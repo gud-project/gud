@@ -1,4 +1,4 @@
-module github.com/PaperBag42/gud
+module github.com/gud-project/gud
 
 go 1.12
 

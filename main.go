@@ -1,6 +1,6 @@
 package main
 
-import "github.com/PaperBag42/gud/cmd"
+import "github.com/gud-project/gud/cmd"
 
 func main() {
 	cmd.Execute()
