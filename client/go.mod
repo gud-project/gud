@@ -1,4 +1,4 @@
-module github.com/gud-project/gud/client
+module gitlab.com/magsh-2019/2/gud/client
 
 go 1.12
 

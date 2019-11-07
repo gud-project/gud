@@ -1,6 +1,6 @@
 package main
 
-import "github.com/gud-project/gud/client/cmd"
+import "gitlab.com/magsh-2019/2/gud/client/cmd"
 
 func main() {
 	cmd.Execute()
