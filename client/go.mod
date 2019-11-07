@@ -1,4 +1,4 @@
-module github.com/gud-project/gud
+module github.com/gud-project/gud/client
 
 go 1.12
 
