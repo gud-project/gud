@@ -52,5 +52,5 @@ func Load(dir string) (*Project, error) {
 		last = parent
 	}
 
-	return nil, fmt.Errorf("No Gud project found at " + dir)
+	return nil, Error{"No Gud project found at " + dir}
 }
