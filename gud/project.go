@@ -1,7 +1,6 @@
 package gud
 
 import (
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,12 +26,18 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = os.Mkdir(path.Join(dir, "/objects"), os.ModeDir)
+	err = os.Mkdir(path.Join(dir, "objects"), os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = os.Create(dir)
+	var f *os.File
+	f, err = os.Create(path.Join(dir, "head"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = f.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +49,6 @@ func Start(dir string) (*Project, error) {
 func Load(dir string) (*Project, error) {
 	last := dir
 	for parent := filepath.Dir(dir); last == parent; parent = filepath.Dir(parent) {
-
 		info, err := os.Stat(path.Join(dir, ".gud"))
 		if os.IsExist(err) && info.IsDir() {
 			return &Project{dir}, nil
