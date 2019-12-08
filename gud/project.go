@@ -47,13 +47,12 @@ func Start(dir string) (*Project, error) {
 }
 
 func Load(dir string) (*Project, error) {
-	last := dir
-	for parent := filepath.Dir(dir); last == parent; parent = filepath.Dir(parent) {
+	for parent := filepath.Dir(dir); dir != parent; parent = filepath.Dir(parent) {
 		info, err := os.Stat(path.Join(dir, ".gud"))
-		if os.IsExist(err) && info.IsDir() {
+		if !os.IsNotExist(err) && info.IsDir() {
 			return &Project{dir}, nil
 		}
-		last = parent
+		dir = parent
 	}
 
 	return nil, Error{"No Gud project found at " + dir}

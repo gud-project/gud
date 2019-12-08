@@ -9,7 +9,6 @@ import (
 const testDir string = "test"
 
 func TestMain(m *testing.M) {
-
 	// Creates test directory
 	err := os.Mkdir(testDir, os.ModeDir)
 	if err != nil {
