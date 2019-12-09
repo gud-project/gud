@@ -16,7 +16,7 @@ func TestAddToIndexFile(t *testing.T) {
 	_, _ = Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
 
-	err := AddToIndexFile(testDir, path.Join(testDir, ".gud/index"), []string{testPath})
+	err := AddToIndexFile(testDir, []string{testPath})
 	if err != nil {
 		t.Error(err)
 	}

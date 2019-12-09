@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+const gudPath = ".gud"
+
 type Project struct {
 	path string
 }
@@ -20,7 +22,7 @@ func Start(dir string) (*Project, error) {
 		dir = wd
 	}
 
-	gudDir := path.Join(dir, ".gud")
+	gudDir := path.Join(dir, gudPath)
 	err := os.Mkdir(gudDir, os.ModeDir)
 	if err != nil {
 		return nil, err
@@ -64,5 +66,5 @@ func Load(dir string) (*Project, error) {
 }
 
 func (p *Project) Add(paths ...string) error {
-	return AddToIndexFile(p.path, path.Join(p.path, ".gud/index"), paths)
+	return AddToIndexFile(p.path, paths)
 }

@@ -3,11 +3,14 @@ package gud
 import (
 	"encoding/gob"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 
 	"gopkg.in/djherbis/times.v1"
 )
+
+var indexFilePath = path.Join(gudPath, "index")
 
 type IndexEntry struct {
 	Name  string
@@ -49,7 +52,8 @@ func InitIndex(path string) error {
 	return dumpIndex(path, []IndexEntry{})
 }
 
-func AddToIndexFile(rootPath, indexPath string, paths []string) error {
+func AddToIndexFile(rootPath string, paths []string) error {
+	indexPath := path.Join(rootPath, indexFilePath)
 	entries, err := loadIndex(indexPath)
 	if err != nil {
 		return err
@@ -57,8 +61,8 @@ func AddToIndexFile(rootPath, indexPath string, paths []string) error {
 
 	newEntries := make([]IndexEntry, 0, len(entries)+len(paths))
 	copy(newEntries, entries)
-	for _, path := range paths {
-		entry, err := NewIndexEntry(path, rootPath)
+	for _, file := range paths {
+		entry, err := NewIndexEntry(file, rootPath)
 		if err != nil {
 			return err
 		}
