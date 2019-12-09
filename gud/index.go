@@ -10,7 +10,7 @@ import (
 	"gopkg.in/djherbis/times.v1"
 )
 
-var indexFilePath = path.Join(gudPath, "index")
+const indexFilePath = gudPath + "/index"
 
 type IndexEntry struct {
 	Name  string

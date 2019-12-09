@@ -21,7 +21,7 @@ func TestAddToIndexFile(t *testing.T) {
 		t.Error(err)
 	}
 
-	entries, err := loadIndex(path.Join(testDir, ".gud/index"))
+	entries, err := loadIndex(path.Join(testDir, indexFilePath))
 	if err != nil {
 		t.Error(err)
 	}
