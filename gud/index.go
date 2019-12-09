@@ -3,6 +3,7 @@ package gud
 import (
 	"encoding/gob"
 	"os"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/djherbis/times.v1"
@@ -20,17 +21,27 @@ type indexFile struct {
 	Entries []IndexEntry
 }
 
-func NewIndexEntry(path string) (*IndexEntry, error) {
+func NewIndexEntry(path, rootPath string) (*IndexEntry, error) {
+	relative, err := filepath.Rel(rootPath, path)
+	if err != nil {
+		return nil, err
+	}
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
 
+	timespec, err := times.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
 	return &IndexEntry{
-		Name:  path,
+		Name:  relative,
 		Size:  info.Size(),
 		Mtime: info.ModTime(),
-		Ctime: times.Get(info).ChangeTime(),
+		Ctime: timespec.ChangeTime(),
 	}, nil
 }
 
@@ -38,7 +49,7 @@ func InitIndex(path string) error {
 	return dumpIndex(path, []IndexEntry{})
 }
 
-func AddToIndexFile(indexPath string, paths []string) error {
+func AddToIndexFile(rootPath, indexPath string, paths []string) error {
 	entries, err := loadIndex(indexPath)
 	if err != nil {
 		return err
@@ -46,13 +57,13 @@ func AddToIndexFile(indexPath string, paths []string) error {
 
 	newEntries := make([]IndexEntry, 0, len(entries)+len(paths))
 	copy(newEntries, entries)
-	for i, path := range paths {
-		entry, err := NewIndexEntry(path)
+	for _, path := range paths {
+		entry, err := NewIndexEntry(path, rootPath)
 		if err != nil {
 			return err
 		}
 
-		newEntries[len(entries)+i] = *entry
+		newEntries = append(newEntries, *entry)
 	}
 
 	return dumpIndex(indexPath, newEntries)
