@@ -8,6 +8,18 @@ import (
 
 const testDir string = "test"
 
+func clearTest() {
+	err := os.RemoveAll(testDir)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.Mkdir(testDir, os.ModeDir)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func TestMain(m *testing.M) {
 	// Creates test directory
 	err := os.Mkdir(testDir, os.ModeDir)
@@ -28,6 +40,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestStart(t *testing.T) {
+	defer clearTest()
+
 	// Runs function Start
 	_, err := Start(testDir)
 	if err != nil {
@@ -42,18 +56,11 @@ func TestStart(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
-	// Checks if project already exist
-	_, err := os.Stat(path.Join(testDir, ".gud"))
-	if os.IsNotExist(err) {
-		// Create gud project to load
-		_, err := Start(testDir)
-		if err != nil {
-			t.Error(err)
-		}
-	}
+	defer clearTest()
 
-	// Runs function Load
-	_, err = Load(testDir)
+	_, _ = Start(testDir)
+
+	_, err := Load(testDir)
 	if err != nil {
 		t.Error(err)
 	}

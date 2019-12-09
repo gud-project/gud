@@ -64,5 +64,5 @@ func Load(dir string) (*Project, error) {
 }
 
 func (p *Project) Add(paths ...string) error {
-	return AddToIndexFile(path.Join(p.path, ".gud/index"), paths)
+	return AddToIndexFile(p.path, path.Join(p.path, ".gud/index"), paths)
 }
