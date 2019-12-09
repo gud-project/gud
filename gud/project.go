@@ -20,19 +20,19 @@ func Start(dir string) (*Project, error) {
 		dir = wd
 	}
 
-	dir = path.Join(dir, ".gud")
-	err := os.Mkdir(dir, os.ModeDir)
+	gudDir := path.Join(dir, ".gud")
+	err := os.Mkdir(gudDir, os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
 
-	err = os.Mkdir(path.Join(dir, "objects"), os.ModeDir)
+	err = os.Mkdir(path.Join(gudDir, "objects"), os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
 
 	var f *os.File
-	f, err = os.Create(path.Join(dir, "head"))
+	f, err = os.Create(path.Join(gudDir, "head"))
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +42,13 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
+	err = InitIndex(path.Join(gudDir, "index"))
+	if err != nil {
+		return nil, err
+	}
+
 	// Create the directory
-	return &Project{dir}, nil
+	return &Project{gudDir}, nil
 }
 
 func Load(dir string) (*Project, error) {
@@ -56,4 +61,8 @@ func Load(dir string) (*Project, error) {
 	}
 
 	return nil, Error{"No Gud project found at " + dir}
+}
+
+func (p *Project) Add(paths ...string) error {
+	return AddToIndexFile(path.Join(p.path, ".gud/index"), paths)
 }
