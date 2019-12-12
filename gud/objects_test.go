@@ -6,21 +6,28 @@ import (
 	"testing"
 )
 
-const TestFile string = "testFile"
+const testFile string = "testFile"
 
 func TestInitObjectsDir(t *testing.T) {
+	defer clearTest()
+
+	_ = os.Mkdir(path.Join(testDir, gudPath), os.ModeDir)
 	err := InitObjectsDir(testDir)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if _, err := os.Stat(path.Join(testDir, ObjectsDirName)); os.IsNotExist(err) {
+	if _, err := os.Stat(path.Join(testDir, objectsDirPath)); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }
 
-func TestCrerteBlob(t *testing.T) {
-	f, err := os.Create(TestFile)
+func TestCreateBlob(t *testing.T) {
+	defer clearTest()
+
+	testPath := path.Join(testDir, testFile)
+
+	f, err := os.Create(testPath)
 	if err != nil {
 		t.Error(err)
 	}
@@ -29,7 +36,7 @@ func TestCrerteBlob(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = CreateBlob(TestFile)
+	_, err = CreateBlob(testPath)
 	if err != nil {
 		t.Error(err)
 	}

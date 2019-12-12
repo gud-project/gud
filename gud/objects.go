@@ -9,7 +9,7 @@ import (
 	"path"
 )
 
-const ObjectsDirName string = "objects"
+const objectsDirPath string = gudPath + "/objects"
 
 type Object struct {
 	Name string
@@ -18,8 +18,8 @@ type Object struct {
 	Type string
 }
 
-func InitObjectsDir(name string) error {
-	return os.Mkdir(path.Join(name, ObjectsDirName), os.ModeDir)
+func InitObjectsDir(rootPath string) error {
+	return os.Mkdir(path.Join(rootPath, objectsDirPath), os.ModeDir)
 }
 
 func CreateBlob(name string) ([]byte, error) {
@@ -44,7 +44,7 @@ func CreateBlob(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	RetHash := h.Sum(nil)
+	retHash := h.Sum(nil)
 
 	err = zipWriter.Close()
 	if err != nil {
@@ -61,5 +61,5 @@ func CreateBlob(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	return RetHash, nil
+	return retHash, nil
 }

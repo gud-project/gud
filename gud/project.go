@@ -28,7 +28,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = os.Mkdir(path.Join(gudDir, "objects"), os.ModeDir)
+	err = InitObjectsDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = InitIndex(path.Join(gudDir, "index"))
+	err = InitIndex(dir)
 	if err != nil {
 		return nil, err
 	}

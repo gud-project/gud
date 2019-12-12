@@ -49,8 +49,8 @@ func NewIndexEntry(path, rootPath string) (*IndexEntry, error) {
 	}, nil
 }
 
-func InitIndex(path string) error {
-	return dumpIndex(path, []IndexEntry{})
+func InitIndex(rootPath string) error {
+	return dumpIndex(path.Join(rootPath, indexFilePath), []IndexEntry{})
 }
 
 func AddToIndex(rootPath string, paths []string) error {
