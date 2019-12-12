@@ -1,17 +1,16 @@
 package gud
 
 import (
-	"archive/zip"
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
+	"path"
 )
 
-const DirectoryType string = "04000"
+const ObjectsDirName string = "objects"
 
 type Object struct {
 	Name string
@@ -20,69 +19,47 @@ type Object struct {
 	Type string
 }
 
-func (o Object) getHash() ([]byte, error) {
+func InitObjectsDir(name string) error {
+	return os.Mkdir(path.Join(name, ObjectsDirName), os.ModeDir)
+}
+
+func CrerteBlob(name string) ([]byte, error) {
+	dst, err := os.Create(name)
+	if err != nil {
+		return nil, err
+	}
+
 	h := sha1.New()
-	fmt.Fprintf(h, "%s %d", o.Type, string(o.Size))
+	_, err = fmt.Fprintf(h, name)
+	if err != nil {
+		return nil, err
+	}
+	zipWriter := zlib.NewWriter(io.MultiWriter(dst, h))
 
-	f, err := os.Open(o.Name)
+	src, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = io.Copy(h, f)
+	_, err = io.Copy(zipWriter, src)
 	if err != nil {
 		return nil, err
 	}
 
-	err = f.Close()
+	err = src.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = dst.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	err = zipWriter.Close()
 	if err != nil {
 		return nil, err
 	}
 
 	return h.Sum(nil), nil
-}
-
-type ObjectDir struct {
-	objects []Object
-}
-
-func InitObjectDir(path string) error {
-	return nil
-}
-
-func (od ObjectDir) NewTree(Name string) error {
-	info, err := os.Lstat(Name)
-	if err != nil {
-		return err
-	}
-
-	od.objects = append(od.objects, Object{Name, info.Size(), info.Mode(), "tree"})
-	return nil
-}
-
-func (od ObjectDir) NewBlob(Name string) error {
-	info, err := os.Lstat(Name)
-	if err != nil {
-		return err
-	}
-
-	od.objects = append(od.objects, Object{Name, info.Size(), info.Mode(), "blob"})
-
-	var b bytes.Buffer
-	w := zlib.NewWriter(&b)
-	f, err := os.Open(Name)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(w, f)
-	if err != nil {
-		return err
-	}
-	err = f.Close()
-	if err != nil {
-		return err
-	}
-	w.Close()
-
-	return nil
 }
