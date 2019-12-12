@@ -1,7 +1,6 @@
 package gud
 
 import (
-	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
 	"fmt"
@@ -23,7 +22,7 @@ func InitObjectsDir(name string) error {
 	return os.Mkdir(path.Join(name, ObjectsDirName), os.ModeDir)
 }
 
-func CrerteBlob(name string) ([]byte, error) {
+func CreateBlob(name string) ([]byte, error) {
 	dst, err := os.Create(name)
 	if err != nil {
 		return nil, err
@@ -45,6 +44,12 @@ func CrerteBlob(name string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	RetHash := h.Sum(nil)
+
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	err = src.Close()
 	if err != nil {
@@ -56,10 +61,5 @@ func CrerteBlob(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = zipWriter.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	return h.Sum(nil), nil
+	return RetHash, nil
 }
