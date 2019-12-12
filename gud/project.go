@@ -66,5 +66,9 @@ func Load(dir string) (*Project, error) {
 }
 
 func (p *Project) Add(paths ...string) error {
-	return AddToIndexFile(p.path, paths)
+	return AddToIndex(p.path, paths)
+}
+
+func (p *Project) Remove(paths ...string) error {
+	return RemoveFromIndex(p.path, paths)
 }
