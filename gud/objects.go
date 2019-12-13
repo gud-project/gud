@@ -1,8 +1,10 @@
 package gud
 
 import (
+	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +12,7 @@ import (
 )
 
 const objectsDirPath string = gudPath + "/objects"
+const hashLen = 2 * sha1.Size
 
 type Object struct {
 	Name string
@@ -22,31 +25,24 @@ func InitObjectsDir(rootPath string) error {
 	return os.Mkdir(path.Join(rootPath, objectsDirPath), os.ModeDir)
 }
 
-func CreateBlob(name string) ([]byte, error) {
-	dst, err := os.Create(name)
+func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
+	var dst bytes.Buffer
+
+	hash := sha1.New()
+	_, err := fmt.Fprintf(hash, relPath)
 	if err != nil {
 		return nil, err
 	}
 
-	h := sha1.New()
-	_, err = fmt.Fprintf(h, name)
-	if err != nil {
-		return nil, err
-	}
-	zipWriter := zlib.NewWriter(io.MultiWriter(dst, h))
+	// use compressed data for both the object content and the hash
+	zipWriter := zlib.NewWriter(io.MultiWriter(&dst, hash))
 
-	src, err := os.Open(name)
+	src, err := os.Open(path.Join(rootPath, relPath))
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = io.Copy(zipWriter, src)
-	if err != nil {
-		return nil, err
-	}
-	retHash := h.Sum(nil)
-
-	err = zipWriter.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +52,28 @@ func CreateBlob(name string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = dst.Close()
+	err = zipWriter.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	return retHash, nil
+	var ret [hashLen]byte
+	hex.Encode(ret[:], hash.Sum(nil))
+
+	obj, err := os.Create(path.Join(rootPath, objectsDirPath, string(ret[:])))
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = dst.WriteTo(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	err = obj.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ret, nil
 }

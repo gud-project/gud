@@ -1,6 +1,7 @@
 package gud
 
 import (
+	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -25,24 +26,15 @@ func TestInitObjectsDir(t *testing.T) {
 func TestCreateBlob(t *testing.T) {
 	defer clearTest()
 
-	testPath := path.Join(testDir, testFile)
+	_, _ = Start(testDir)
+	_ = ioutil.WriteFile(path.Join(testDir, testFile), []byte("hello\nthis is a test"), 0644)
 
-	f, err := os.Create(testPath)
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = f.Write([]byte("hello\nthis is a test"))
+	hash, err := CreateBlob(testDir, testFile)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = CreateBlob(testPath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = f.Close()
-	if err != nil {
+	if _, err = os.Stat(path.Join(testDir, objectsDirPath, string(hash[:]))); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }
