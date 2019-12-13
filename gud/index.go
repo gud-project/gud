@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"gopkg.in/djherbis/times.v1"
@@ -14,6 +15,7 @@ const indexFilePath = gudPath + "/index"
 
 type IndexEntry struct {
 	Name  string
+	Hash  [hashLen]byte
 	Size  int64
 	Ctime time.Time
 	Mtime time.Time
@@ -24,10 +26,13 @@ type indexFile struct {
 	Entries []IndexEntry
 }
 
-func NewIndexEntry(path, rootPath string) (*IndexEntry, error) {
+func CreateIndexEntry(rootPath, path string) (*IndexEntry, error) {
 	relative, err := filepath.Rel(rootPath, path)
 	if err != nil {
 		return nil, err
+	}
+	if strings.HasPrefix(relative, "..") {
+		return nil, Error{"path is not inside the root directory"}
 	}
 
 	info, err := os.Stat(path)
@@ -40,8 +45,14 @@ func NewIndexEntry(path, rootPath string) (*IndexEntry, error) {
 		return nil, err
 	}
 
+	hash, err := CreateBlob(rootPath, relative)
+	if err != nil {
+		return nil, err
+	}
+
 	return &IndexEntry{
 		Name:  relative,
+		Hash:  *hash,
 		Size:  info.Size(),
 		Mtime: info.ModTime(),
 		Ctime: spec.ChangeTime(),
@@ -64,7 +75,7 @@ func AddToIndex(rootPath string, paths []string) error {
 
 	for _, file := range paths {
 		// TODO: if file is a directory, create new entries recursively
-		entry, err := NewIndexEntry(file, rootPath)
+		entry, err := CreateIndexEntry(rootPath, file)
 		if err != nil {
 			return err
 		}
