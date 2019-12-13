@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 const objectsDirPath string = gudPath + "/objects"
@@ -22,7 +22,7 @@ type Object struct {
 }
 
 func InitObjectsDir(rootPath string) error {
-	return os.Mkdir(path.Join(rootPath, objectsDirPath), os.ModeDir)
+	return os.Mkdir(filepath.Join(rootPath, objectsDirPath), os.ModeDir)
 }
 
 func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
@@ -37,7 +37,7 @@ func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
 	// use compressed data for both the object content and the hash
 	zipWriter := zlib.NewWriter(io.MultiWriter(&dst, hash))
 
-	src, err := os.Open(path.Join(rootPath, relPath))
+	src, err := os.Open(filepath.Join(rootPath, relPath))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
 	var ret [hashLen]byte
 	hex.Encode(ret[:], hash.Sum(nil))
 
-	obj, err := os.Create(path.Join(rootPath, objectsDirPath, string(ret[:])))
+	obj, err := os.Create(filepath.Join(rootPath, objectsDirPath, string(ret[:])))
 	if err != nil {
 		return nil, err
 	}

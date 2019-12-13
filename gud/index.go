@@ -3,7 +3,6 @@ package gud
 import (
 	"encoding/gob"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"time"
@@ -50,11 +49,11 @@ func NewIndexEntry(path, rootPath string) (*IndexEntry, error) {
 }
 
 func InitIndex(rootPath string) error {
-	return dumpIndex(path.Join(rootPath, indexFilePath), []IndexEntry{})
+	return dumpIndex(filepath.Join(rootPath, indexFilePath), []IndexEntry{})
 }
 
 func AddToIndex(rootPath string, paths []string) error {
-	indexPath := path.Join(rootPath, indexFilePath)
+	indexPath := filepath.Join(rootPath, indexFilePath)
 	entries, err := loadIndex(indexPath)
 	if err != nil {
 		return err
@@ -82,7 +81,7 @@ func AddToIndex(rootPath string, paths []string) error {
 }
 
 func RemoveFromIndex(rootPath string, paths []string) error {
-	indexPath := path.Join(rootPath, indexFilePath)
+	indexPath := filepath.Join(rootPath, indexFilePath)
 	entries, err := loadIndex(indexPath)
 	if err != nil {
 		return err

@@ -2,7 +2,6 @@ package gud
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 )
 
@@ -22,7 +21,7 @@ func Start(dir string) (*Project, error) {
 		dir = wd
 	}
 
-	gudDir := path.Join(dir, gudPath)
+	gudDir := filepath.Join(dir, gudPath)
 	err := os.Mkdir(gudDir, os.ModeDir)
 	if err != nil {
 		return nil, err
@@ -34,7 +33,7 @@ func Start(dir string) (*Project, error) {
 	}
 
 	var f *os.File
-	f, err = os.Create(path.Join(gudDir, "head"))
+	f, err = os.Create(filepath.Join(gudDir, "head"))
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +54,7 @@ func Start(dir string) (*Project, error) {
 
 func Load(dir string) (*Project, error) {
 	for parent := filepath.Dir(dir); dir != parent; parent = filepath.Dir(parent) {
-		info, err := os.Stat(path.Join(dir, ".gud"))
+		info, err := os.Stat(filepath.Join(dir, ".gud"))
 		if !os.IsNotExist(err) && info.IsDir() {
 			return &Project{dir}, nil
 		}

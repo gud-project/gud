@@ -2,7 +2,7 @@ package gud
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -49,7 +49,7 @@ func TestStart(t *testing.T) {
 	}
 
 	// Checks if dir created
-	info, err := os.Stat(path.Join(testDir, ".gud"))
+	info, err := os.Stat(filepath.Join(testDir, ".gud"))
 	if os.IsNotExist(err) || !info.IsDir() {
 		t.Error(err)
 	}
