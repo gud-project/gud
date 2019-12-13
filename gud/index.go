@@ -1,6 +1,7 @@
 package gud
 
 import (
+	"container/list"
 	"encoding/gob"
 	"os"
 	"path/filepath"
@@ -64,17 +65,24 @@ func InitIndex(rootPath string) error {
 }
 
 func AddToIndex(rootPath string, paths []string) error {
+	// TODO: handle renames
 	indexPath := filepath.Join(rootPath, indexFilePath)
 	entries, err := loadIndex(indexPath)
 	if err != nil {
 		return err
 	}
 
-	newEntries := make([]IndexEntry, 0, len(entries)+len(paths))
+	files, err := walkFiles(paths)
+	if err != nil {
+		return err
+	}
+
+	newEntries := make([]IndexEntry, 0, len(entries)+files.Len())
 	copy(newEntries, entries)
 
-	for _, file := range paths {
-		// TODO: if file is a directory, create new entries recursively
+	for e := files.Front(); e != nil; e = e.Next() {
+		file := e.Value.(string)
+
 		entry, err := CreateIndexEntry(rootPath, file)
 		if err != nil {
 			return err
@@ -98,9 +106,16 @@ func RemoveFromIndex(rootPath string, paths []string) error {
 		return err
 	}
 
-	missing := make([]string, 0, len(paths))
+	files, err := walkFiles(paths)
+	if err != nil {
+		return nil
+	}
 
-	for _, file := range paths {
+	missing := make([]string, 0, files.Len())
+
+	for e := files.Front(); e != nil; e = e.Next() {
+		file := e.Value.(string)
+
 		relative, err := filepath.Rel(rootPath, file)
 		if err != nil {
 			return err
@@ -161,6 +176,27 @@ func dumpIndex(path string, entries []IndexEntry) error {
 	}
 
 	return file.Close()
+}
+
+func walkFiles(paths []string) (*list.List, error) {
+	files := list.New()
+
+	for _, path := range paths {
+		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				files.PushFront(path)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return files, nil
 }
 
 func findEntry(entries []IndexEntry, name string) int {
