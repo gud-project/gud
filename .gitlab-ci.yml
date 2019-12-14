@@ -1,18 +1,18 @@
 image: golang:1.12
 
 cache:
-	paths:
-		- /apt-cache
-		- /go/src/golang.org
-		- /go/src/gopkg.in
-		- /go/src/github.com
+    paths:
+        - /apt-cache
+        - /go/src/golang.org
+        - /go/src/gopkg.in
+        - /go/src/github.com
 
 before_script:
-	- mkdir -p /go/src/gitlab.com/magsh-2019/2/gud/
-	- cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
-	- go get -v -d ./...
+    - mkdir -p /go/src/gitlab.com/magsh-2019/2/gud/
+    - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
+    - go get -v -d ./...
 
 lib:
-	stage: test
-	script:
-		- go test gitlab.com/magsh-2019/2/gud/gud
+    stage: test
+    script:
+        - go test gitlab.com/magsh-2019/2/gud/gud
