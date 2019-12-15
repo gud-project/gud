@@ -10,7 +10,7 @@ cache:
 before_script:
     - mkdir -p /go/src/gitlab.com/magsh-2019/2/gud/
     - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
-    - go get -v -d ./...
+    - go get -v -d gitlab.com/magsh-2019/2/gud/gud
 
 lib:
     stage: test
