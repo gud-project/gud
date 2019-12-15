@@ -26,7 +26,7 @@ func InitObjectsDir(rootPath string) error {
 }
 
 func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
-	var dst bytes.Buffer
+	var zipData bytes.Buffer
 
 	hash := sha1.New()
 	_, err := fmt.Fprintf(hash, relPath)
@@ -35,7 +35,7 @@ func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
 	}
 
 	// use compressed data for both the object content and the hash
-	zipWriter := zlib.NewWriter(io.MultiWriter(&dst, hash))
+	zipWriter := zlib.NewWriter(io.MultiWriter(&zipData, hash))
 
 	src, err := os.Open(filepath.Join(rootPath, relPath))
 	if err != nil {
@@ -57,20 +57,20 @@ func CreateBlob(rootPath, relPath string) (*[hashLen]byte, error) {
 		return nil, err
 	}
 
+	// Create the blob file
 	var ret [hashLen]byte
-	hex.Encode(ret[:], hash.Sum(nil))
-
-	obj, err := os.Create(filepath.Join(rootPath, objectsDirPath, string(ret[:])))
+	hex.Encode(ret[:], hash.Sum(nil)) // Get the hash of the file
+	dst, err := os.Create(filepath.Join(rootPath, objectsDirPath, string(ret[:])))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = dst.WriteTo(obj)
+	_, err = zipData.WriteTo(dst)
 	if err != nil {
 		return nil, err
 	}
 
-	err = obj.Close()
+	err = dst.Close()
 	if err != nil {
 		return nil, err
 	}
