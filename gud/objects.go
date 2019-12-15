@@ -10,6 +10,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 const objectsDirPath string = gudPath + "/objects"
@@ -115,4 +117,37 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) 
 	}
 
 	return &ret, nil
+}
+
+func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
+	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	if err != nil {
+		return err
+	}
+
+	zip, err := zlib.NewReader(f)
+	if err != nil {
+		return err
+	}
+
+	return gob.NewDecoder(zip).Decode(ret)
+}
+
+func FindObjectParent(rootPath, relPath string, root []Object) (*[]Object, error) {
+	// WIP
+	for _, dir := range strings.Split(relPath, string(os.PathSeparator)) {
+		ind := sort.Search(len(root), func(i int) bool {
+			return root[i].Name == dir
+		})
+		if ind >= len(root) || root[ind].Name != dir {
+			return nil, Error{"Object not found"}
+		}
+
+		err := LoadTree(rootPath, root[ind].Hash, &root)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &root, nil
 }

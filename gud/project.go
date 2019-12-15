@@ -7,6 +7,7 @@ import (
 )
 
 const gudPath = ".gud"
+const headFileName = gudPath + "/head"
 
 type Project struct {
 	path string
@@ -33,7 +34,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(gudDir, "head"), hash[:], 0644)
+	err = ioutil.WriteFile(filepath.Join(gudDir, headFileName), hash[:], 0644)
 
 	if err != nil {
 		return nil, err
@@ -68,6 +69,45 @@ func (p *Project) Remove(paths ...string) error {
 	return RemoveFromIndex(p.path, paths)
 }
 
+func (p *Project) GetCurrentVersion() (*Version, error) {
+	head, err := os.Open(filepath.Join(p.path, headFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	var hash ObjectHash
+	_, err = head.Read(hash[:])
+	if err != nil {
+		return nil, err
+	}
+
+	err = head.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	var currentVersion Version
+	err = LoadTree(p.path, hash, &currentVersion)
+
+	return &currentVersion, nil
+}
+
 func (p *Project) Save(message string) error {
+	//currentVersion, err := p.GetCurrentVersion()
+	//if err != nil {
+	//	return err
+	//}
+
+	index, err := loadIndex(filepath.Join(p.path, indexFilePath))
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range index {
+		for dir := filepath.Dir(entry.Name); dir != "."; dir = filepath.Dir(dir) {
+
+		}
+	}
+
 	return nil
 }
