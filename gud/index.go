@@ -24,7 +24,7 @@ type IndexEntry struct {
 }
 
 type indexFile struct {
-	Version Version
+	Version PackageVersion
 	Entries []IndexEntry
 }
 

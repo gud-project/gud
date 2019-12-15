@@ -1,11 +1,11 @@
 package gud
 
-type Version struct {
+type PackageVersion struct {
 	Major, Minor, Patch uint
 }
 
-func GetVersion() Version {
-	return Version{
+func GetVersion() PackageVersion {
+	return PackageVersion{
 		Major: 0,
 		Minor: 0,
 		Patch: 0,

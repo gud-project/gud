@@ -14,7 +14,7 @@ func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
 	_ = os.Mkdir(filepath.Join(testDir, gudPath), os.ModeDir)
-	err := InitObjectsDir(testDir)
+	_, err := InitObjectsDir(testDir)
 	if err != nil {
 		t.Error(err)
 	}

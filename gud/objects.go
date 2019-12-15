@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"crypto/sha1"
+	"encoding/gob"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -13,19 +14,43 @@ import (
 
 const objectsDirPath string = gudPath + "/objects"
 const hashLen = 2 * sha1.Size
+const initialCommitName string = "initial commit"
+
+type ObjectType int
+type ObjectHash [sha1.Size]byte
+
+const (
+	typeBlob ObjectType = 0
+	typeTree ObjectType = 1
+)
 
 type Object struct {
 	Name string
-	Size int64
-	Mode os.FileMode
-	Type string
+	Hash ObjectHash
+	Type ObjectType
 }
 
-func InitObjectsDir(rootPath string) error {
-	return os.Mkdir(filepath.Join(rootPath, objectsDirPath), os.ModeDir)
+type Version struct {
+	Tree    []Object
+	Message string
 }
 
-func CreateBlob(rootPath, relPath string) (*[sha1.Size]byte, error) {
+func InitObjectsDir(rootPath string) (*ObjectHash, error) {
+	err := os.Mkdir(filepath.Join(rootPath, objectsDirPath), os.ModeDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var buffer bytes.Buffer
+	err = gob.NewEncoder(&buffer).Encode(Version{[]Object{}, initialCommitName})
+	if err != nil {
+		return nil, err
+	}
+
+	return CreateObject(rootPath, initialCommitName, &buffer)
+}
+
+func CreateBlob(rootPath, relPath string) (*ObjectHash, error) {
 	src, err := os.Open(filepath.Join(rootPath, relPath))
 	if err != nil {
 		return nil, err
@@ -44,7 +69,7 @@ func CreateBlob(rootPath, relPath string) (*[sha1.Size]byte, error) {
 	return hash, err
 }
 
-func CreateObject(rootPath, relPath string, src io.Reader) (*[sha1.Size]byte, error) {
+func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) {
 	var zipData bytes.Buffer
 
 	hash := sha1.New()
@@ -67,7 +92,7 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*[sha1.Size]byte, er
 	}
 
 	sum := hash.Sum(nil)
-	var ret [sha1.Size]byte
+	var ret ObjectHash
 	copy(ret[:], sum)
 
 	// Create the blob file

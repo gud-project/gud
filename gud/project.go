@@ -1,6 +1,7 @@
 package gud
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -27,18 +28,13 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = InitObjectsDir(dir)
+	hash, err := InitObjectsDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	var f *os.File
-	f, err = os.Create(filepath.Join(gudDir, "head"))
-	if err != nil {
-		return nil, err
-	}
+	err = ioutil.WriteFile(filepath.Join(gudDir, "head"), hash[:], 0644)
 
-	err = f.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +66,8 @@ func (p *Project) Add(paths ...string) error {
 
 func (p *Project) Remove(paths ...string) error {
 	return RemoveFromIndex(p.path, paths)
+}
+
+func (p *Project) Save(message string) error {
+	return nil
 }
