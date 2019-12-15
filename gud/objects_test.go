@@ -1,6 +1,7 @@
 package gud
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -34,7 +35,7 @@ func TestCreateBlob(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = os.Stat(filepath.Join(testDir, objectsDirPath, string(hash[:]))); os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(testDir, objectsDirPath, hex.EncodeToString(hash[:]))); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }
