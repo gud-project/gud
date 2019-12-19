@@ -32,8 +32,10 @@ type Object struct {
 	Type ObjectType
 }
 
+type Tree []Object
+
 type Version struct {
-	Tree    []Object
+	Tree    Tree
 	Message string
 }
 
@@ -44,7 +46,7 @@ func InitObjectsDir(rootPath string) (*ObjectHash, error) {
 	}
 
 	var buffer bytes.Buffer
-	err = gob.NewEncoder(&buffer).Encode(Version{[]Object{}, initialCommitName})
+	err = gob.NewEncoder(&buffer).Encode(Version{Tree{}, initialCommitName})
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +71,25 @@ func CreateBlob(rootPath, relPath string) (*ObjectHash, error) {
 	}
 
 	return hash, err
+}
+
+func CreateTree(rootPath, relPath string, tree interface{}) (*Object, error) {
+	var buffer bytes.Buffer
+
+	err := gob.NewEncoder(&buffer).Encode(tree)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := CreateObject(rootPath, relPath, &buffer)
+	if err != nil {
+		return nil, err
+	}
+	return &Object{
+		Name: filepath.Base(relPath),
+		Hash: *hash,
+		Type: typeTree,
+	}, nil
 }
 
 func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) {
