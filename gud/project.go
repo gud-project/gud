@@ -34,7 +34,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(gudDir, headFileName), hash[:], 0644)
+	err = ioutil.WriteFile(filepath.Join(dir, headFileName), hash[:], 0644)
 
 	if err != nil {
 		return nil, err

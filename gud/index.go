@@ -202,6 +202,6 @@ func walkFiles(paths []string) (*list.List, error) {
 
 func findEntry(entries []IndexEntry, name string) int {
 	return sort.Search(len(entries), func(i int) bool {
-		return name == entries[i].Name
+		return name <= entries[i].Name
 	})
 }
