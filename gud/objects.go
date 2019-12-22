@@ -22,8 +22,9 @@ type ObjectType int
 type ObjectHash [sha1.Size]byte
 
 const (
-	typeBlob ObjectType = 0
-	typeTree ObjectType = 1
+	typeBlob    ObjectType = 0
+	typeTree    ObjectType = 1
+	typeVersion ObjectType = 2
 )
 
 type Object struct {
@@ -73,10 +74,18 @@ func CreateBlob(rootPath, relPath string) (*ObjectHash, error) {
 	return hash, err
 }
 
-func CreateTree(rootPath, relPath string, tree interface{}) (*Object, error) {
+func CreateTree(rootPath, relPath string, tree Tree) (*Object, error) {
+	return CreateGobObject(rootPath, relPath, tree, typeTree)
+}
+
+func CreateVersion(rootPath, relPath string, version Version) (*Object, error) {
+	return CreateGobObject(rootPath, relPath, version, typeVersion)
+}
+
+func CreateGobObject(rootPath, relPath string, obj interface{}, objectType ObjectType) (*Object, error) {
 	var buffer bytes.Buffer
 
-	err := gob.NewEncoder(&buffer).Encode(tree)
+	err := gob.NewEncoder(&buffer).Encode(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +97,7 @@ func CreateTree(rootPath, relPath string, tree interface{}) (*Object, error) {
 	return &Object{
 		Name: filepath.Base(relPath),
 		Hash: *hash,
-		Type: typeTree,
+		Type: objectType,
 	}, nil
 }
 
