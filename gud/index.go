@@ -89,8 +89,8 @@ func AddToIndex(rootPath string, paths []string) error {
 			return err
 		}
 
-		ind := findEntry(newEntries, entry.Name)
-		if ind >= len(newEntries) || file != newEntries[ind].Name { // file is not yet added
+		ind, found := findEntry(newEntries, entry.Name)
+		if !found { // file is not yet added
 			newEntries = append(newEntries, IndexEntry{})
 			copy(newEntries[ind+1:], newEntries[ind:]) // keep the slice sorted
 		}
@@ -122,8 +122,8 @@ func RemoveFromIndex(rootPath string, paths []string) error {
 			return err
 		}
 
-		ind := findEntry(entries, relative)
-		if ind < len(entries) && relative == entries[ind].Name { // file is found
+		ind, found := findEntry(entries, relative)
+		if found {
 			copy(entries[ind:], entries[ind+1:]) // keep the slice sorted
 			entries = entries[:len(entries)-1]
 		} else {
@@ -200,8 +200,11 @@ func walkFiles(paths []string) (*list.List, error) {
 	return files, nil
 }
 
-func findEntry(entries []IndexEntry, name string) int {
-	return sort.Search(len(entries), func(i int) bool {
+func findEntry(entries []IndexEntry, name string) (int, bool) {
+	l := len(entries)
+	ind := sort.Search(l, func(i int) bool {
 		return name <= entries[i].Name
 	})
+
+	return ind, ind < l && name == entries[ind].Name
 }
