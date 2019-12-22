@@ -199,6 +199,11 @@ func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
 		return err
 	}
 
+	err = f.Close()
+	if err != nil {
+		return nil
+	}
+
 	return gob.NewDecoder(zip).Decode(ret)
 }
 

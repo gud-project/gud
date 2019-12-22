@@ -47,7 +47,7 @@ func Start(dir string) (*Project, error) {
 	}
 
 	// Create the directory
-	return &Project{gudDir}, nil
+	return &Project{dir}, nil
 }
 
 func Load(dir string) (*Project, error) {

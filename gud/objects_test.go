@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-const testFile string = "testFile"
-
 func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
