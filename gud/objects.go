@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 const objectsDirPath string = gudPath + "/objects"
@@ -36,8 +37,16 @@ type Object struct {
 type Tree []Object
 
 type Version struct {
-	Tree    Tree
+	Tree    ObjectHash
 	Message string
+	Time    time.Time
+	Prev    *ObjectHash
+}
+
+type DirStructure struct {
+	Name    string
+	Objects Tree
+	Dirs    []DirStructure
 }
 
 func InitObjectsDir(rootPath string) (*ObjectHash, error) {
@@ -46,8 +55,18 @@ func InitObjectsDir(rootPath string) (*ObjectHash, error) {
 		return nil, err
 	}
 
+	tree, err := CreateTree(rootPath, "", Tree{})
+	if err != nil {
+		return nil, err
+	}
+
 	var buffer bytes.Buffer
-	err = gob.NewEncoder(&buffer).Encode(Version{Tree{}, initialCommitName})
+	err = gob.NewEncoder(&buffer).Encode(Version{
+		Tree:    tree.Hash,
+		Message: initialCommitName,
+		Time:    time.Now(),
+		Prev:    nil,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +168,26 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) 
 	return &ret, nil
 }
 
+func LoadHead(rootPath string) (*ObjectHash, error) {
+	head, err := os.Open(filepath.Join(rootPath, headFileName))
+	if err != nil {
+		return nil, err
+	}
+
+	var hash ObjectHash
+	_, err = head.Read(hash[:])
+	if err != nil {
+		return nil, err
+	}
+
+	err = head.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return &hash, nil
+}
+
 func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
 	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
 	if err != nil {
@@ -163,21 +202,79 @@ func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
 	return gob.NewDecoder(zip).Decode(ret)
 }
 
-func FindObjectParent(rootPath, relPath string, root []Object) (*[]Object, error) {
-	// WIP
-	for _, dir := range strings.Split(relPath, string(os.PathSeparator)) {
-		ind := sort.Search(len(root), func(i int) bool {
-			return root[i].Name == dir
+func AddToStructure(dirStructure *DirStructure, name string, hash ObjectHash) {
+	dirs := strings.Split(name, string(os.PathSeparator))
+	current := dirStructure
+
+	for _, dir := range dirs[:len(dirs)-1] {
+		ind := sort.Search(len(current.Dirs), func(i int) bool {
+			return dir <= current.Dirs[i].Name
 		})
-		if ind >= len(root) || root[ind].Name != dir {
-			return nil, Error{"Object not found"}
+		if ind >= len(current.Dirs) || current.Dirs[ind].Name != dir {
+			next := DirStructure{Name: dir}
+
+			current.Dirs = append(current.Dirs, DirStructure{})
+			copy(current.Dirs[ind+1:], current.Dirs[ind:])
+			current.Dirs[ind] = next
+		}
+		current = &current.Dirs[ind]
+	}
+
+	// assume name is not in objects
+	ind, found := searchTree(current.Objects, name)
+	if found {
+		panic("???")
+	}
+
+	current.Objects = append(current.Objects, Object{})
+	copy(current.Objects[ind+1:], current.Objects[ind:])
+	current.Objects[ind] = Object{
+		Name: name,
+		Hash: hash,
+		Type: typeBlob,
+	}
+}
+
+func BuildTree(rootPath, relPath string, root DirStructure, prev Tree) (*Object, error) {
+	newTree := make(Tree, 0, len(prev)+len(root.Objects)+len(root.Dirs))
+	copy(newTree, prev)
+
+	for _, dir := range root.Dirs {
+		var tree Tree
+		ind, found := searchTree(newTree, dir.Name)
+		if found {
+			err := LoadTree(rootPath, newTree[ind].Hash, &tree)
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		err := LoadTree(rootPath, root[ind].Hash, &root)
+		obj, err := BuildTree(rootPath, filepath.Join(relPath, dir.Name), dir, tree)
 		if err != nil {
 			return nil, err
 		}
+		newTree = append(newTree, Object{})
+		copy(newTree[ind+1:], newTree[ind:])
+		newTree[ind] = *obj
 	}
 
-	return &root, nil
+	for _, obj := range root.Objects {
+		ind, found := searchTree(newTree, obj.Name)
+		if !found { // file is not yet added
+			newTree = append(newTree, Object{})
+			copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
+		}
+		newTree[ind] = obj // update entry if the file was already added
+	}
+
+	return CreateTree(rootPath, relPath, newTree)
+}
+
+func searchTree(tree Tree, name string) (int, bool) {
+	l := len(tree)
+	ind := sort.Search(l, func(i int) bool {
+		return name <= tree[i].Name
+	})
+
+	return ind, ind < l && name == tree[ind].Name
 }

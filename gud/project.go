@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const gudPath = ".gud"
@@ -70,44 +71,70 @@ func (p *Project) Remove(paths ...string) error {
 }
 
 func (p *Project) GetCurrentVersion() (*Version, error) {
-	head, err := os.Open(filepath.Join(p.path, headFileName))
-	if err != nil {
-		return nil, err
-	}
-
-	var hash ObjectHash
-	_, err = head.Read(hash[:])
-	if err != nil {
-		return nil, err
-	}
-
-	err = head.Close()
+	head, err := LoadHead(p.path)
 	if err != nil {
 		return nil, err
 	}
 
 	var currentVersion Version
-	err = LoadTree(p.path, hash, &currentVersion)
+	err = LoadTree(p.path, *head, &currentVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	return &currentVersion, nil
 }
 
-func (p *Project) Save(message string) error {
-	//currentVersion, err := p.GetCurrentVersion()
-	//if err != nil {
-	//	return err
-	//}
-
+func (p *Project) Save(message string) (*Version, error) {
 	index, err := loadIndex(filepath.Join(p.path, indexFilePath))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	head, err := LoadHead(p.path)
+	if err != nil {
+		return nil, err
+	}
+
+	var currentVersion Version
+	err = LoadTree(p.path, *head, &currentVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	dir := DirStructure{Name: "."}
 	for _, entry := range index {
-		for dir := filepath.Dir(entry.Name); dir != "."; dir = filepath.Dir(dir) {
-
-		}
+		AddToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	return nil
+	var tree Tree
+	err = LoadTree(p.path, currentVersion.Tree, &tree)
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := BuildTree(p.path, "", dir, tree)
+	if err != nil {
+		return nil, err
+	}
+
+	newVersion := Version{
+		Tree:    obj.Hash,
+		Message: message,
+		Time:    time.Now(),
+		Prev:    head,
+	}
+
+	_, err = CreateVersion(p.path, message, newVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	// reset index
+	err = InitIndex(p.path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &newVersion, nil
 }
