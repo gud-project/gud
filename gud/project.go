@@ -86,7 +86,7 @@ func (p Project) CurrentVersion() (*Version, error) {
 }
 
 func (p *Project) Save(message string) (*Version, error) {
-	index, err := loadIndex(filepath.Join(p.path, indexFilePath))
+	index, err := loadIndex(p.path)
 	if err != nil {
 		return nil, err
 	}

@@ -62,13 +62,12 @@ func CreateIndexEntry(rootPath, path string) (*IndexEntry, error) {
 }
 
 func InitIndex(rootPath string) error {
-	return dumpIndex(filepath.Join(rootPath, indexFilePath), []IndexEntry{})
+	return dumpIndex(rootPath, []IndexEntry{})
 }
 
 func AddToIndex(rootPath string, paths []string) error {
 	// TODO: handle renames
-	indexPath := filepath.Join(rootPath, indexFilePath)
-	entries, err := loadIndex(indexPath)
+	entries, err := loadIndex(rootPath)
 	if err != nil {
 		return err
 	}
@@ -97,12 +96,11 @@ func AddToIndex(rootPath string, paths []string) error {
 		newEntries[ind] = *entry // update entry if the file was already added
 	}
 
-	return dumpIndex(indexPath, newEntries)
+	return dumpIndex(rootPath, newEntries)
 }
 
 func RemoveFromIndex(rootPath string, paths []string) error {
-	indexPath := filepath.Join(rootPath, indexFilePath)
-	entries, err := loadIndex(indexPath)
+	entries, err := loadIndex(rootPath)
 	if err != nil {
 		return err
 	}
@@ -134,11 +132,11 @@ func RemoveFromIndex(rootPath string, paths []string) error {
 	if len(missing) > 0 {
 		return Error{string(len(missing)) + " files are not staged"}
 	}
-	return dumpIndex(indexPath, entries)
+	return dumpIndex(rootPath, entries)
 }
 
-func loadIndex(path string) ([]IndexEntry, error) {
-	file, err := os.Open(path)
+func loadIndex(rootPath string) ([]IndexEntry, error) {
+	file, err := os.Open(filepath.Join(rootPath, indexFilePath))
 	if err != nil {
 		return nil, err
 	}
@@ -154,15 +152,19 @@ func loadIndex(path string) ([]IndexEntry, error) {
 		return nil, err
 	}
 
-	if GetVersion() != index.Version {
-		panic("Outdated gud version") // TODO: clean up index file
+	if GetVersion() != index.Version { // version does not match
+		err := InitIndex(rootPath)
+		if err != nil {
+			return nil, err
+		}
+		return []IndexEntry{}, nil
 	}
 
 	return index.Entries, nil
 }
 
-func dumpIndex(path string, entries []IndexEntry) error {
-	file, err := os.Create(path)
+func dumpIndex(rootPath string, entries []IndexEntry) error {
+	file, err := os.Create(filepath.Join(rootPath, indexFilePath))
 	if err != nil {
 		return err
 	}

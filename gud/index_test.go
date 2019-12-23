@@ -21,7 +21,7 @@ func TestAddToIndex(t *testing.T) {
 		t.Error(err)
 	}
 
-	entries, err := loadIndex(filepath.Join(testDir, indexFilePath))
+	entries, err := loadIndex(testDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -47,7 +47,7 @@ func TestRemoveFromIndex(t *testing.T) {
 		t.Error(err)
 	}
 
-	entries, err := loadIndex(filepath.Join(testDir, indexFilePath))
+	entries, err := loadIndex(testDir)
 	if err != nil {
 		t.Error(err)
 	}
