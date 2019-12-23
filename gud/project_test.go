@@ -81,6 +81,14 @@ func TestProject_Save(t *testing.T) {
 		t.Error(err)
 	}
 
+	current, err := p.CurrentVersion()
+	if err != nil {
+		t.Error(err)
+	}
+	if current.Tree != version.Tree {
+		t.Error("CurrentVersion() did not return the latest version")
+	}
+
 	var tree Tree
 	err = LoadTree(testDir, version.Tree, &tree)
 	if err != nil {
@@ -93,6 +101,32 @@ func TestProject_Save(t *testing.T) {
 
 	obj := tree[0]
 	if obj.Name != testFile || obj.Type != typeBlob {
+		t.FailNow()
+	}
+}
+
+func TestProject_Prev(t *testing.T) {
+	defer clearTest()
+
+	testPath := filepath.Join(testDir, testFile)
+	p, _ := Start(testDir)
+	firstVersion, _ := p.CurrentVersion()
+	beforeFirst, err := p.Prev(*firstVersion)
+	if beforeFirst != nil || err == nil {
+		t.Fail()
+	}
+
+	_ = ioutil.WriteFile(testPath, []byte("hello\nthis is a test"), 0644)
+
+	_ = p.Add(testPath)
+	secondVersion, _ := p.Save("add testFile")
+
+	prev, err := p.Prev(*secondVersion)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if prev.Tree != firstVersion.Tree {
 		t.FailNow()
 	}
 }

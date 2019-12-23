@@ -43,6 +43,10 @@ type Version struct {
 	Prev    *ObjectHash
 }
 
+func (v Version) HasPrev() bool {
+	return v.Prev != nil
+}
+
 type DirStructure struct {
 	Name    string
 	Objects Tree

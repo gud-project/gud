@@ -143,3 +143,17 @@ func (p *Project) Save(message string) (*Version, error) {
 
 	return &newVersion, nil
 }
+
+func (p Project) Prev(version Version) (*Version, error) {
+	if !version.HasPrev() {
+		return nil, Error{"The version has no predecessor"}
+	}
+
+	var prev Version
+	err := LoadTree(p.path, *version.Prev, &prev)
+	if err != nil {
+		return nil, err
+	}
+
+	return &prev, nil
+}
