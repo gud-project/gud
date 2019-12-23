@@ -168,6 +168,20 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) 
 	return &ret, nil
 }
 
+func WriteHead(rootPath string, hash ObjectHash) error {
+	head, err := os.Create(filepath.Join(rootPath, headFileName))
+	if err != nil {
+		return err
+	}
+
+	_, err = head.Write(hash[:])
+	if err != nil {
+		return err
+	}
+
+	return head.Close()
+}
+
 func LoadHead(rootPath string) (*ObjectHash, error) {
 	head, err := os.Open(filepath.Join(rootPath, headFileName))
 	if err != nil {

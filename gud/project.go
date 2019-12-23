@@ -70,7 +70,7 @@ func (p *Project) Remove(paths ...string) error {
 	return RemoveFromIndex(p.path, paths)
 }
 
-func (p *Project) GetCurrentVersion() (*Version, error) {
+func (p Project) CurrentVersion() (*Version, error) {
 	head, err := LoadHead(p.path)
 	if err != nil {
 		return nil, err
@@ -113,19 +113,24 @@ func (p *Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	obj, err := BuildTree(p.path, "", dir, tree)
+	treeObj, err := BuildTree(p.path, "", dir, tree)
 	if err != nil {
 		return nil, err
 	}
 
 	newVersion := Version{
-		Tree:    obj.Hash,
+		Tree:    treeObj.Hash,
 		Message: message,
 		Time:    time.Now(),
 		Prev:    head,
 	}
 
-	_, err = CreateVersion(p.path, message, newVersion)
+	versionObj, err := CreateVersion(p.path, message, newVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	err = WriteHead(p.path, versionObj.Hash)
 	if err != nil {
 		return nil, err
 	}
