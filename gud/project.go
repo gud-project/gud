@@ -1,5 +1,7 @@
 package gud
 
+//gud is library containing the basics of a VCS
+
 import (
 	"io/ioutil"
 	"os"
@@ -10,10 +12,13 @@ import (
 const gudPath = ".gud"
 const headFileName = gudPath + "/head"
 
+//Project is a representation of a Gud project
 type Project struct {
 	path string
 }
 
+//Start creates a new Gud project in the path it receives.
+//It returns a struct representing it.
 func Start(dir string) (*Project, error) {
 	// Check if got a path
 	if dir == "" {
@@ -50,6 +55,7 @@ func Start(dir string) (*Project, error) {
 	return &Project{dir}, nil
 }
 
+//Load receives a path to a Gud project and returns a representation of it.
 func Load(dir string) (*Project, error) {
 	for parent := filepath.Dir(dir); dir != parent; parent = filepath.Dir(parent) {
 		info, err := os.Stat(filepath.Join(dir, ".gud"))
@@ -62,10 +68,12 @@ func Load(dir string) (*Project, error) {
 	return nil, Error{"No Gud project found at " + dir}
 }
 
+//Add adds files to the current version of the Gud project
 func (p *Project) Add(paths ...string) error {
 	return AddToIndex(p.path, paths)
 }
 
+//Remove removes files from the current version of the Gud project
 func (p *Project) Remove(paths ...string) error {
 	return RemoveFromIndex(p.path, paths)
 }
@@ -85,6 +93,7 @@ func (p Project) CurrentVersion() (*Version, error) {
 	return &currentVersion, nil
 }
 
+//Save saves the current version of the project.
 func (p *Project) Save(message string) (*Version, error) {
 	index, err := loadIndex(p.path)
 	if err != nil {
@@ -144,6 +153,7 @@ func (p *Project) Save(message string) (*Version, error) {
 	return &newVersion, nil
 }
 
+//Prev receives a version of the project and returns and it's previous one.
 func (p Project) Prev(version Version) (*Version, error) {
 	if !version.HasPrev() {
 		return nil, Error{"The version has no predecessor"}

@@ -36,6 +36,7 @@ type Object struct {
 
 type Tree []Object
 
+//Version is a representation of a project version.
 type Version struct {
 	Tree    ObjectHash
 	Message string
