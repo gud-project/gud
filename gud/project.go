@@ -68,12 +68,12 @@ func Load(dir string) (*Project, error) {
 }
 
 // Add adds files to the current version of the Gud project
-func (p *Project) Add(paths ...string) error {
+func (p Project) Add(paths ...string) error {
 	return addToIndex(p.Path, paths)
 }
 
 // Remove removes files from the current version of the Gud project
-func (p *Project) Remove(paths ...string) error {
+func (p Project) Remove(paths ...string) error {
 	return removeFromIndex(p.Path, paths)
 }
 
@@ -94,7 +94,7 @@ func (p Project) CurrentVersion() (*Version, error) {
 }
 
 // Save saves the current version of the project.
-func (p *Project) Save(message string) (*Version, error) {
+func (p Project) Save(message string) (*Version, error) {
 	index, err := loadIndex(p.Path)
 	if err != nil {
 		return nil, err
