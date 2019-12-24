@@ -8,9 +8,9 @@ cache:
         - /go/src/github.com
 
 before_script:
-    - mkdir -p /go/src/gitlab.com/magsh-2019/2/gud/
+    - mkdir -p /go/src/gitlab.com/magsh-2019/2/
     - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
-    - go get -v -d gitlab.com/magsh-2019/2/gud/gud
+    - go get -v -d ./...
 
 lib:
     stage: test
