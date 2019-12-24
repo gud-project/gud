@@ -13,7 +13,7 @@ const headFileName = gudPath + "/head"
 
 // Project is a representation of a Gud project
 type Project struct {
-	path string
+	Path string
 }
 
 // Start creates a new Gud project in the path it receives.
@@ -34,7 +34,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	hash, err := InitObjectsDir(dir)
+	hash, err := initObjectsDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = InitIndex(dir)
+	err = initIndex(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -69,23 +69,23 @@ func Load(dir string) (*Project, error) {
 
 // Add adds files to the current version of the Gud project
 func (p *Project) Add(paths ...string) error {
-	return AddToIndex(p.path, paths)
+	return addToIndex(p.Path, paths)
 }
 
 // Remove removes files from the current version of the Gud project
 func (p *Project) Remove(paths ...string) error {
-	return RemoveFromIndex(p.path, paths)
+	return removeFromIndex(p.Path, paths)
 }
 
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	head, err := LoadHead(p.path)
+	head, err := loadHead(p.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	var currentVersion Version
-	err = LoadTree(p.path, *head, &currentVersion)
+	err = loadTree(p.Path, *head, &currentVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -95,34 +95,34 @@ func (p Project) CurrentVersion() (*Version, error) {
 
 // Save saves the current version of the project.
 func (p *Project) Save(message string) (*Version, error) {
-	index, err := loadIndex(p.path)
+	index, err := loadIndex(p.Path)
 	if err != nil {
 		return nil, err
 	}
 
-	head, err := LoadHead(p.path)
+	head, err := loadHead(p.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	var currentVersion Version
-	err = LoadTree(p.path, *head, &currentVersion)
+	err = loadTree(p.Path, *head, &currentVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	dir := DirStructure{Name: "."}
+	dir := dirStructure{Name: "."}
 	for _, entry := range index {
-		AddToStructure(&dir, entry.Name, entry.Hash)
+		addToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	var tree Tree
-	err = LoadTree(p.path, currentVersion.Tree, &tree)
+	var tree tree
+	err = loadTree(p.Path, currentVersion.Tree, &tree)
 	if err != nil {
 		return nil, err
 	}
 
-	treeObj, err := BuildTree(p.path, "", dir, tree)
+	treeObj, err := buildTree(p.Path, "", dir, tree)
 	if err != nil {
 		return nil, err
 	}
@@ -131,21 +131,21 @@ func (p *Project) Save(message string) (*Version, error) {
 		Tree:    treeObj.Hash,
 		Message: message,
 		Time:    time.Now(),
-		Prev:    head,
+		prev:    head,
 	}
 
-	versionObj, err := CreateVersion(p.path, message, newVersion)
+	versionObj, err := createVersion(p.Path, message, newVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	err = WriteHead(p.path, versionObj.Hash)
+	err = writeHead(p.Path, versionObj.Hash)
 	if err != nil {
 		return nil, err
 	}
 
 	// reset index
-	err = InitIndex(p.path)
+	err = initIndex(p.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +160,7 @@ func (p Project) Prev(version Version) (*Version, error) {
 	}
 
 	var prev Version
-	err := LoadTree(p.path, *version.Prev, &prev)
+	err := loadTree(p.Path, *version.prev, &prev)
 	if err != nil {
 		return nil, err
 	}

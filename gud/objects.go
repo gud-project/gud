@@ -19,49 +19,49 @@ const objectsDirPath string = gudPath + "/objects"
 const hashLen = 2 * sha1.Size
 const initialCommitName string = "initial commit"
 
-type ObjectType int
-type ObjectHash [sha1.Size]byte
+type objectType int
+type objectHash [sha1.Size]byte
 
 const (
-	typeBlob    ObjectType = 0
-	typeTree    ObjectType = 1
-	typeVersion ObjectType = 2
+	typeBlob    objectType = 0
+	typeTree    objectType = 1
+	typeVersion objectType = 2
 )
 
-type Object struct {
+type object struct {
 	Name string
-	Hash ObjectHash
-	Type ObjectType
+	Hash objectHash
+	Type objectType
 }
 
-type Tree []Object
+type tree []object
 
 // Version is a representation of a project version.
 type Version struct {
-	Tree    ObjectHash
 	Message string
 	Time    time.Time
-	Prev    *ObjectHash
+	Tree    objectHash
+	prev    *objectHash
 }
 
 // HasPrev returns true if the version has a predecessor.
 func (v Version) HasPrev() bool {
-	return v.Prev != nil
+	return v.prev != nil
 }
 
-type DirStructure struct {
+type dirStructure struct {
 	Name    string
-	Objects Tree
-	Dirs    []DirStructure
+	Objects tree
+	Dirs    []dirStructure
 }
 
-func InitObjectsDir(rootPath string) (*ObjectHash, error) {
+func initObjectsDir(rootPath string) (*objectHash, error) {
 	err := os.Mkdir(filepath.Join(rootPath, objectsDirPath), os.ModeDir)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, err := CreateTree(rootPath, "", Tree{})
+	tree, err := createTree(rootPath, "", tree{})
 	if err != nil {
 		return nil, err
 	}
@@ -71,22 +71,22 @@ func InitObjectsDir(rootPath string) (*ObjectHash, error) {
 		Tree:    tree.Hash,
 		Message: initialCommitName,
 		Time:    time.Now(),
-		Prev:    nil,
+		prev:    nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return CreateObject(rootPath, initialCommitName, &buffer)
+	return createObject(rootPath, initialCommitName, &buffer)
 }
 
-func CreateBlob(rootPath, relPath string) (*ObjectHash, error) {
+func createBlob(rootPath, relPath string) (*objectHash, error) {
 	src, err := os.Open(filepath.Join(rootPath, relPath))
 	if err != nil {
 		return nil, err
 	}
 
-	hash, err := CreateObject(rootPath, relPath, src)
+	hash, err := createObject(rootPath, relPath, src)
 	if err != nil {
 		return nil, err
 	}
@@ -99,15 +99,15 @@ func CreateBlob(rootPath, relPath string) (*ObjectHash, error) {
 	return hash, err
 }
 
-func CreateTree(rootPath, relPath string, tree Tree) (*Object, error) {
-	return CreateGobObject(rootPath, relPath, tree, typeTree)
+func createTree(rootPath, relPath string, tree tree) (*object, error) {
+	return createGobObject(rootPath, relPath, tree, typeTree)
 }
 
-func CreateVersion(rootPath, relPath string, version Version) (*Object, error) {
-	return CreateGobObject(rootPath, relPath, version, typeVersion)
+func createVersion(rootPath, relPath string, version Version) (*object, error) {
+	return createGobObject(rootPath, relPath, version, typeVersion)
 }
 
-func CreateGobObject(rootPath, relPath string, obj interface{}, objectType ObjectType) (*Object, error) {
+func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
 	var buffer bytes.Buffer
 
 	err := gob.NewEncoder(&buffer).Encode(obj)
@@ -115,18 +115,18 @@ func CreateGobObject(rootPath, relPath string, obj interface{}, objectType Objec
 		return nil, err
 	}
 
-	hash, err := CreateObject(rootPath, relPath, &buffer)
+	hash, err := createObject(rootPath, relPath, &buffer)
 	if err != nil {
 		return nil, err
 	}
-	return &Object{
+	return &object{
 		Name: filepath.Base(relPath),
 		Hash: *hash,
 		Type: objectType,
 	}, nil
 }
 
-func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) {
+func createObject(rootPath, relPath string, src io.Reader) (*objectHash, error) {
 	var zipData bytes.Buffer
 
 	hash := sha1.New()
@@ -149,7 +149,7 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) 
 	}
 
 	sum := hash.Sum(nil)
-	var ret ObjectHash
+	var ret objectHash
 	copy(ret[:], sum)
 
 	// Create the blob file
@@ -174,7 +174,7 @@ func CreateObject(rootPath, relPath string, src io.Reader) (*ObjectHash, error) 
 	return &ret, nil
 }
 
-func WriteHead(rootPath string, hash ObjectHash) error {
+func writeHead(rootPath string, hash objectHash) error {
 	head, err := os.Create(filepath.Join(rootPath, headFileName))
 	if err != nil {
 		return err
@@ -188,13 +188,13 @@ func WriteHead(rootPath string, hash ObjectHash) error {
 	return head.Close()
 }
 
-func LoadHead(rootPath string) (*ObjectHash, error) {
+func loadHead(rootPath string) (*objectHash, error) {
 	head, err := os.Open(filepath.Join(rootPath, headFileName))
 	if err != nil {
 		return nil, err
 	}
 
-	var hash ObjectHash
+	var hash objectHash
 	_, err = head.Read(hash[:])
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func LoadHead(rootPath string) (*ObjectHash, error) {
 	return &hash, nil
 }
 
-func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
+func loadTree(rootPath string, hash objectHash, ret interface{}) error {
 	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
 	if err != nil {
 		return err
@@ -227,18 +227,18 @@ func LoadTree(rootPath string, hash ObjectHash, ret interface{}) error {
 	return gob.NewDecoder(zip).Decode(ret)
 }
 
-func AddToStructure(dirStructure *DirStructure, name string, hash ObjectHash) {
+func addToStructure(structure *dirStructure, name string, hash objectHash) {
 	dirs := strings.Split(name, string(os.PathSeparator))
-	current := dirStructure
+	current := structure
 
 	for _, dir := range dirs[:len(dirs)-1] {
 		ind := sort.Search(len(current.Dirs), func(i int) bool {
 			return dir <= current.Dirs[i].Name
 		})
 		if ind >= len(current.Dirs) || current.Dirs[ind].Name != dir {
-			next := DirStructure{Name: dir}
+			next := dirStructure{Name: dir}
 
-			current.Dirs = append(current.Dirs, DirStructure{})
+			current.Dirs = append(current.Dirs, dirStructure{})
 			copy(current.Dirs[ind+1:], current.Dirs[ind:])
 			current.Dirs[ind] = next
 		}
@@ -251,34 +251,34 @@ func AddToStructure(dirStructure *DirStructure, name string, hash ObjectHash) {
 		panic("???")
 	}
 
-	current.Objects = append(current.Objects, Object{})
+	current.Objects = append(current.Objects, object{})
 	copy(current.Objects[ind+1:], current.Objects[ind:])
-	current.Objects[ind] = Object{
+	current.Objects[ind] = object{
 		Name: name,
 		Hash: hash,
 		Type: typeBlob,
 	}
 }
 
-func BuildTree(rootPath, relPath string, root DirStructure, prev Tree) (*Object, error) {
-	newTree := make(Tree, 0, len(prev)+len(root.Objects)+len(root.Dirs))
+func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object, error) {
+	newTree := make(tree, 0, len(prev)+len(root.Objects)+len(root.Dirs))
 	copy(newTree, prev)
 
 	for _, dir := range root.Dirs {
-		var tree Tree
+		var tree tree
 		ind, found := searchTree(newTree, dir.Name)
 		if found {
-			err := LoadTree(rootPath, newTree[ind].Hash, &tree)
+			err := loadTree(rootPath, newTree[ind].Hash, &tree)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		obj, err := BuildTree(rootPath, filepath.Join(relPath, dir.Name), dir, tree)
+		obj, err := buildTree(rootPath, filepath.Join(relPath, dir.Name), dir, tree)
 		if err != nil {
 			return nil, err
 		}
-		newTree = append(newTree, Object{})
+		newTree = append(newTree, object{})
 		copy(newTree[ind+1:], newTree[ind:])
 		newTree[ind] = *obj
 	}
@@ -286,16 +286,16 @@ func BuildTree(rootPath, relPath string, root DirStructure, prev Tree) (*Object,
 	for _, obj := range root.Objects {
 		ind, found := searchTree(newTree, obj.Name)
 		if !found { // file is not yet added
-			newTree = append(newTree, Object{})
+			newTree = append(newTree, object{})
 			copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
 		}
 		newTree[ind] = obj // update entry if the file was already added
 	}
 
-	return CreateTree(rootPath, relPath, newTree)
+	return createTree(rootPath, relPath, newTree)
 }
 
-func searchTree(tree Tree, name string) (int, bool) {
+func searchTree(tree tree, name string) (int, bool) {
 	l := len(tree)
 	ind := sort.Search(l, func(i int) bool {
 		return name <= tree[i].Name

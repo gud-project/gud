@@ -15,7 +15,7 @@ import (
 
 const indexFilePath = gudPath + "/index"
 
-type IndexEntry struct {
+type indexEntry struct {
 	Name  string
 	Hash  [sha1.Size]byte
 	Size  int64
@@ -25,16 +25,16 @@ type IndexEntry struct {
 
 type indexFile struct {
 	Version PackageVersion
-	Entries []IndexEntry
+	Entries []indexEntry
 }
 
-func CreateIndexEntry(rootPath, path string) (*IndexEntry, error) {
+func createIndexEntry(rootPath, path string) (*indexEntry, error) {
 	relative, err := filepath.Rel(rootPath, path)
 	if err != nil {
 		return nil, err
 	}
 	if strings.HasPrefix(relative, "..") {
-		return nil, Error{"path is not inside the root directory"}
+		return nil, Error{"Path is not inside the root directory"}
 	}
 
 	info, err := os.Stat(path)
@@ -47,12 +47,12 @@ func CreateIndexEntry(rootPath, path string) (*IndexEntry, error) {
 		return nil, err
 	}
 
-	hash, err := CreateBlob(rootPath, relative)
+	hash, err := createBlob(rootPath, relative)
 	if err != nil {
 		return nil, err
 	}
 
-	return &IndexEntry{
+	return &indexEntry{
 		Name:  relative,
 		Hash:  *hash,
 		Size:  info.Size(),
@@ -61,11 +61,11 @@ func CreateIndexEntry(rootPath, path string) (*IndexEntry, error) {
 	}, nil
 }
 
-func InitIndex(rootPath string) error {
-	return dumpIndex(rootPath, []IndexEntry{})
+func initIndex(rootPath string) error {
+	return dumpIndex(rootPath, []indexEntry{})
 }
 
-func AddToIndex(rootPath string, paths []string) error {
+func addToIndex(rootPath string, paths []string) error {
 	// TODO: handle renames
 	entries, err := loadIndex(rootPath)
 	if err != nil {
@@ -77,20 +77,20 @@ func AddToIndex(rootPath string, paths []string) error {
 		return err
 	}
 
-	newEntries := make([]IndexEntry, 0, len(entries)+files.Len())
+	newEntries := make([]indexEntry, 0, len(entries)+files.Len())
 	copy(newEntries, entries)
 
 	for e := files.Front(); e != nil; e = e.Next() {
 		file := e.Value.(string)
 
-		entry, err := CreateIndexEntry(rootPath, file)
+		entry, err := createIndexEntry(rootPath, file)
 		if err != nil {
 			return err
 		}
 
 		ind, found := findEntry(newEntries, entry.Name)
 		if !found { // file is not yet added
-			newEntries = append(newEntries, IndexEntry{})
+			newEntries = append(newEntries, indexEntry{})
 			copy(newEntries[ind+1:], newEntries[ind:]) // keep the slice sorted
 		}
 		newEntries[ind] = *entry // update entry if the file was already added
@@ -99,7 +99,7 @@ func AddToIndex(rootPath string, paths []string) error {
 	return dumpIndex(rootPath, newEntries)
 }
 
-func RemoveFromIndex(rootPath string, paths []string) error {
+func removeFromIndex(rootPath string, paths []string) error {
 	entries, err := loadIndex(rootPath)
 	if err != nil {
 		return err
@@ -135,7 +135,7 @@ func RemoveFromIndex(rootPath string, paths []string) error {
 	return dumpIndex(rootPath, entries)
 }
 
-func loadIndex(rootPath string) ([]IndexEntry, error) {
+func loadIndex(rootPath string) ([]indexEntry, error) {
 	file, err := os.Open(filepath.Join(rootPath, indexFilePath))
 	if err != nil {
 		return nil, err
@@ -153,17 +153,17 @@ func loadIndex(rootPath string) ([]IndexEntry, error) {
 	}
 
 	if GetVersion() != index.Version { // version does not match
-		err := InitIndex(rootPath)
+		err := initIndex(rootPath)
 		if err != nil {
 			return nil, err
 		}
-		return []IndexEntry{}, nil
+		return []indexEntry{}, nil
 	}
 
 	return index.Entries, nil
 }
 
-func dumpIndex(rootPath string, entries []IndexEntry) error {
+func dumpIndex(rootPath string, entries []indexEntry) error {
 	file, err := os.Create(filepath.Join(rootPath, indexFilePath))
 	if err != nil {
 		return err
@@ -202,7 +202,7 @@ func walkFiles(paths []string) (*list.List, error) {
 	return files, nil
 }
 
-func findEntry(entries []IndexEntry, name string) (int, bool) {
+func findEntry(entries []indexEntry, name string) (int, bool) {
 	l := len(entries)
 	ind := sort.Search(l, func(i int) bool {
 		return name <= entries[i].Name

@@ -89,8 +89,8 @@ func TestProject_Save(t *testing.T) {
 		t.Error("CurrentVersion() did not return the latest version")
 	}
 
-	var tree Tree
-	err = LoadTree(testDir, version.Tree, &tree)
+	var tree tree
+	err = loadTree(testDir, version.Tree, &tree)
 	if err != nil {
 		t.Error(err)
 	}

@@ -16,7 +16,7 @@ func TestAddToIndex(t *testing.T) {
 	_, _ = Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
 
-	err := AddToIndex(testDir, []string{testPath})
+	err := addToIndex(testDir, []string{testPath})
 	if err != nil {
 		t.Error(err)
 	}
@@ -40,9 +40,9 @@ func TestRemoveFromIndex(t *testing.T) {
 
 	_, _ = Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = AddToIndex(testDir, []string{testPath})
+	_ = addToIndex(testDir, []string{testPath})
 
-	err := RemoveFromIndex(testDir, []string{testPath})
+	err := removeFromIndex(testDir, []string{testPath})
 	if err != nil {
 		t.Error(err)
 	}
