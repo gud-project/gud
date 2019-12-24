@@ -1,4 +1,4 @@
-// gud is library containing the basics of a VCS
+// Package gud is library containing the basics of a VCS
 package gud
 
 import (

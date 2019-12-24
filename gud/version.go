@@ -1,5 +1,6 @@
 package gud
 
+// PackageVersion is a structure for holding the version of the gud package.
 type PackageVersion struct {
 	Major, Minor, Patch uint
 }
