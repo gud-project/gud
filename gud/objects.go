@@ -36,7 +36,7 @@ type Object struct {
 
 type Tree []Object
 
-//Version is a representation of a project version.
+// Version is a representation of a project version.
 type Version struct {
 	Tree    ObjectHash
 	Message string
@@ -44,6 +44,7 @@ type Version struct {
 	Prev    *ObjectHash
 }
 
+// HasPrev returns true if the version has a predecessor.
 func (v Version) HasPrev() bool {
 	return v.Prev != nil
 }
