@@ -1,12 +1,14 @@
 package gud
 
 import (
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
 const testDir string = "test"
+const testFile string = "testFile"
 
 func clearTest() {
 	err := os.RemoveAll(testDir)
@@ -49,7 +51,7 @@ func TestStart(t *testing.T) {
 	}
 
 	// Checks if dir created
-	info, err := os.Stat(path.Join(testDir, ".gud"))
+	info, err := os.Stat(filepath.Join(testDir, ".gud"))
 	if os.IsNotExist(err) || !info.IsDir() {
 		t.Error(err)
 	}
@@ -63,5 +65,68 @@ func TestLoad(t *testing.T) {
 	_, err := Load(testDir)
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestProject_Save(t *testing.T) {
+	defer clearTest()
+
+	testPath := filepath.Join(testDir, testFile)
+	p, _ := Start(testDir)
+	_ = ioutil.WriteFile(testPath, []byte("hello\nthis is a test"), 0644)
+
+	_ = p.Add(testPath)
+	version, err := p.Save("add testFile")
+	if err != nil {
+		t.Error(err)
+	}
+
+	current, err := p.CurrentVersion()
+	if err != nil {
+		t.Error(err)
+	}
+	if current.Tree != version.Tree {
+		t.Error("CurrentVersion() did not return the latest version")
+	}
+
+	var tree tree
+	err = loadTree(testDir, version.Tree, &tree)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(tree) != 1 {
+		t.FailNow()
+	}
+
+	obj := tree[0]
+	if obj.Name != testFile || obj.Type != typeBlob {
+		t.FailNow()
+	}
+}
+
+func TestProject_Prev(t *testing.T) {
+	defer clearTest()
+
+	testPath := filepath.Join(testDir, testFile)
+	p, _ := Start(testDir)
+	firstVersion, _ := p.CurrentVersion()
+	beforeFirst, err := p.Prev(*firstVersion)
+	if beforeFirst != nil || err == nil {
+		t.Fail()
+	}
+
+	_ = ioutil.WriteFile(testPath, []byte("hello\nthis is a test"), 0644)
+
+	_ = p.Add(testPath)
+	secondVersion, _ := p.Save("add testFile")
+
+	prev, err := p.Prev(*secondVersion)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if prev.Tree != firstVersion.Tree {
+		t.FailNow()
 	}
 }

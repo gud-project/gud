@@ -1,23 +1,23 @@
 package gud
 
 import (
+	"encoding/hex"
+	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"testing"
 )
-
-const testFile string = "testFile"
 
 func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
-	_ = os.Mkdir(path.Join(testDir, gudPath), os.ModeDir)
-	err := InitObjectsDir(testDir)
+	_ = os.Mkdir(filepath.Join(testDir, gudPath), os.ModeDir)
+	_, err := initObjectsDir(testDir)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if _, err := os.Stat(path.Join(testDir, objectsDirPath)); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(testDir, objectsDirPath)); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }
@@ -25,24 +25,15 @@ func TestInitObjectsDir(t *testing.T) {
 func TestCreateBlob(t *testing.T) {
 	defer clearTest()
 
-	testPath := path.Join(testDir, testFile)
+	_, _ = Start(testDir)
+	_ = ioutil.WriteFile(filepath.Join(testDir, testFile), []byte("hello\nthis is a test"), 0644)
 
-	f, err := os.Create(testPath)
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = f.Write([]byte("hello\nthis is a test"))
+	hash, err := createBlob(testDir, testFile)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = CreateBlob(testPath)
-	if err != nil {
-		t.Error(err)
-	}
-
-	err = f.Close()
-	if err != nil {
+	if _, err = os.Stat(filepath.Join(testDir, objectsDirPath, hex.EncodeToString(hash[:]))); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }

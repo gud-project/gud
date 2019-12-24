@@ -2,7 +2,7 @@ package gud
 
 import (
 	"io/ioutil"
-	"path"
+	"path/filepath"
 	"testing"
 )
 
@@ -10,18 +10,18 @@ func TestAddToIndex(t *testing.T) {
 	defer clearTest()
 
 	const testFile = "foo.txt"
-	testPath := path.Join(testDir, testFile)
+	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
 	_, _ = Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
 
-	err := AddToIndex(testDir, []string{testPath})
+	err := addToIndex(testDir, []string{testPath})
 	if err != nil {
 		t.Error(err)
 	}
 
-	entries, err := loadIndex(path.Join(testDir, indexFilePath))
+	entries, err := loadIndex(testDir)
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,19 +35,19 @@ func TestRemoveFromIndex(t *testing.T) {
 	defer clearTest()
 
 	const testFile = "foo.txt"
-	testPath := path.Join(testDir, testFile)
+	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
 	_, _ = Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = AddToIndex(testDir, []string{testPath})
+	_ = addToIndex(testDir, []string{testPath})
 
-	err := RemoveFromIndex(testDir, []string{testPath})
+	err := removeFromIndex(testDir, []string{testPath})
 	if err != nil {
 		t.Error(err)
 	}
 
-	entries, err := loadIndex(path.Join(testDir, indexFilePath))
+	entries, err := loadIndex(testDir)
 	if err != nil {
 		t.Error(err)
 	}
