@@ -66,8 +66,7 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
-	err = gob.NewEncoder(&buffer).Encode(Version{
+	obj, err := createVersion(rootPath, Version{
 		Tree:    tree.Hash,
 		Message: initialCommitName,
 		Time:    time.Now(),
@@ -77,7 +76,7 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 		return nil, err
 	}
 
-	return createObject(rootPath, initialCommitName, &buffer)
+	return &obj.Hash, err
 }
 
 func createBlob(rootPath, relPath string) (*objectHash, error) {
@@ -103,8 +102,8 @@ func createTree(rootPath, relPath string, tree tree) (*object, error) {
 	return createGobObject(rootPath, relPath, tree, typeTree)
 }
 
-func createVersion(rootPath, relPath string, version Version) (*object, error) {
-	return createGobObject(rootPath, relPath, version, typeVersion)
+func createVersion(rootPath string, version Version) (*object, error) {
+	return createGobObject(rootPath, version.Message, version, typeVersion)
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {

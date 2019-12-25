@@ -134,7 +134,7 @@ func (p Project) Save(message string) (*Version, error) {
 		prev:    head,
 	}
 
-	versionObj, err := createVersion(p.Path, message, newVersion)
+	versionObj, err := createVersion(p.Path, newVersion)
 	if err != nil {
 		return nil, err
 	}
