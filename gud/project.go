@@ -79,18 +79,8 @@ func (p Project) Remove(paths ...string) error {
 
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	head, err := loadHead(p.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	var currentVersion Version
-	err = loadTree(p.Path, *head, &currentVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	return &currentVersion, nil
+	_, version, err := loadHead(p.Path)
+	return version, err
 }
 
 // Save saves the current version of the project.
@@ -100,13 +90,7 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	head, err := loadHead(p.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	var currentVersion Version
-	err = loadTree(p.Path, *head, &currentVersion)
+	head, currentVersion, err := loadHead(p.Path)
 	if err != nil {
 		return nil, err
 	}

@@ -187,24 +187,26 @@ func writeHead(rootPath string, hash objectHash) error {
 	return head.Close()
 }
 
-func loadHead(rootPath string) (*objectHash, error) {
+func loadHead(rootPath string) (*objectHash, *Version, error) {
 	head, err := os.Open(filepath.Join(rootPath, headFileName))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	defer head.Close()
 
 	var hash objectHash
 	_, err = head.Read(hash[:])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = head.Close()
+	var version Version
+	err = loadTree(rootPath, hash, &version)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &hash, nil
+	return &hash, &version, nil
 }
 
 func loadTree(rootPath string, hash objectHash, ret interface{}) error {
