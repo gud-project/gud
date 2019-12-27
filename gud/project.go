@@ -98,8 +98,7 @@ func (p Project) Save(message string) (*Version, error) {
 		addToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	var prev tree
-	err = loadTree(p.Path, currentVersion.Tree, &prev)
+	prev, err := loadTree(p.Path, currentVersion.treeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -117,10 +116,10 @@ func (p Project) Save(message string) (*Version, error) {
 	}
 
 	newVersion := Version{
-		Message: message,
-		Time:    time.Now(),
-		Tree:    treeObj.Hash,
-		prev:    head,
+		Message:  message,
+		Time:     time.Now(),
+		treeHash: treeObj.Hash,
+		prev:     head,
 	}
 
 	versionObj, err := createVersion(p.Path, newVersion)
@@ -148,11 +147,10 @@ func (p Project) Prev(version Version) (*Version, error) {
 		return nil, Error{"The version has no predecessor"}
 	}
 
-	var prev Version
-	err := loadTree(p.Path, *version.prev, &prev)
+	prev, err := loadVersion(p.Path, *version.prev)
 	if err != nil {
 		return nil, err
 	}
 
-	return &prev, nil
+	return prev, nil
 }

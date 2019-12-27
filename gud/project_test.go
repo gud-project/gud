@@ -85,12 +85,11 @@ func TestProject_Save(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if current.Tree != version.Tree {
+	if current.treeHash != version.treeHash {
 		t.Error("CurrentVersion() did not return the latest version")
 	}
 
-	var tree tree
-	err = loadTree(testDir, version.Tree, &tree)
+	tree, err := loadTree(testDir, version.treeHash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +125,7 @@ func TestProject_Prev(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if prev.Tree != firstVersion.Tree {
+	if prev.treeHash != firstVersion.treeHash {
 		t.FailNow()
 	}
 }

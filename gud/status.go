@@ -26,8 +26,7 @@ func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
 		return err
 	}
 
-	var root tree
-	err = loadTree(p.Path, version.Tree, &root)
+	root, err := loadTree(p.Path, version.treeHash)
 	if err != nil {
 		return err
 	}
@@ -129,8 +128,7 @@ func reportRemoved(rootPath, relPath string, isDir bool, hash objectHash, fn Cha
 }
 
 func compareDir(rootPath, relPath string, hash objectHash, index []indexEntry, fn ChangeCallback) error {
-	var inner tree
-	err := loadTree(rootPath, hash, &inner)
+	inner, err := loadTree(rootPath, hash)
 	if err != nil {
 		return err
 	}
@@ -159,8 +157,7 @@ func reportNewDir(rootPath, relPath string, fn ChangeCallback) error {
 }
 
 func reportRemovedDir(rootPath, relPath string, hash objectHash, fn ChangeCallback) error {
-	var tree tree
-	err := loadTree(rootPath, hash, &tree)
+	tree, err := loadTree(rootPath, hash)
 	if err != nil {
 		return err
 	}

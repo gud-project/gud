@@ -40,10 +40,17 @@ type tree []object
 
 // Version is a representation of a project version.
 type Version struct {
-	Message string
-	Time    time.Time
-	Tree    objectHash
-	prev    *objectHash
+	Message  string
+	Time     time.Time
+	treeHash objectHash
+	prev     *objectHash
+}
+
+type gobVersion struct {
+	Message  string
+	Time     time.Time
+	TreeHash objectHash
+	Prev     *objectHash
 }
 
 // HasPrev returns true if the version has a predecessor.
@@ -69,10 +76,10 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 	}
 
 	obj, err := createVersion(rootPath, Version{
-		Message: initialCommitName,
-		Time:    time.Now(),
-		Tree:    tree.Hash,
-		prev:    nil,
+		Message:  initialCommitName,
+		Time:     time.Now(),
+		treeHash: tree.Hash,
+		prev:     nil,
 	})
 	if err != nil {
 		return nil, err
@@ -101,7 +108,12 @@ func createTree(rootPath, relPath string, tree tree) (*object, error) {
 }
 
 func createVersion(rootPath string, version Version) (*object, error) {
-	return createGobObject(rootPath, version.Message, version, typeVersion)
+	return createGobObject(rootPath, version.Message, gobVersion{
+		Message:  version.Message,
+		Time:     version.Time,
+		TreeHash: version.treeHash,
+		Prev:     version.prev,
+	}, typeVersion)
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
@@ -192,16 +204,15 @@ func loadHead(rootPath string) (*objectHash, *Version, error) {
 		return nil, nil, err
 	}
 
-	var version Version
-	err = loadTree(rootPath, hash, &version)
+	version, err := loadVersion(rootPath, hash)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return &hash, &version, nil
+	return &hash, version, nil
 }
 
-func loadTree(rootPath string, hash objectHash, ret interface{}) error {
+func loadGobObject(rootPath string, hash objectHash, ret interface{}) error {
 	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
 	if err != nil {
 		return err
@@ -217,6 +228,33 @@ func loadTree(rootPath string, hash objectHash, ret interface{}) error {
 	return gob.NewDecoder(zip).Decode(ret)
 }
 
+func loadTree(rootPath string, hash objectHash) (tree, error) {
+	var t tree
+
+	err := loadGobObject(rootPath, hash, &t)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func loadVersion(rootPath string, hash objectHash) (*Version, error) {
+	var v gobVersion
+
+	err := loadGobObject(rootPath, hash, &v)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Version{
+		Message:  v.Message,
+		Time:     v.Time,
+		treeHash: v.TreeHash,
+		prev:     v.Prev,
+	}, nil
+}
+
 func findObject(rootPath, relPath string) (*objectHash, error) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
 	_, version, err := loadHead(rootPath)
@@ -224,10 +262,9 @@ func findObject(rootPath, relPath string) (*objectHash, error) {
 		return nil, err
 	}
 
-	hash := version.Tree
+	hash := version.treeHash
 	for _, name := range dirs {
-		var tree tree
-		err := loadTree(rootPath, hash, &tree)
+		tree, err := loadTree(rootPath, hash)
 		if err != nil {
 			return nil, err
 		}
@@ -326,7 +363,8 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 		var tree tree
 		ind, found := searchTree(newTree, dir.Name)
 		if found {
-			err := loadTree(rootPath, newTree[ind].Hash, &tree)
+			var err error
+			tree, err = loadTree(rootPath, newTree[ind].Hash)
 			if err != nil {
 				return nil, err
 			}
@@ -373,8 +411,7 @@ func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string) erro
 	for _, obj := range root {
 		objRelPath := filepath.Join(relPath, obj.Name)
 		if obj.Type == typeTree {
-			var inner tree
-			err := loadTree(rootPath, obj.Hash, &inner)
+			inner, err := loadTree(rootPath, obj.Hash)
 			if err != nil {
 				return err
 			}
