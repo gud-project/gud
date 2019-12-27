@@ -279,7 +279,9 @@ func compareToObject(rootPath, relPath string, hash objectHash) (bool, error) {
 		}
 
 		if err1 == io.EOF || err2 == io.EOF {
-			return err1 == err2, nil
+			n1, err1 = file.Read(buf1[:])
+			n2, err2 = unzip.Read(buf2[:])
+			return n1 == 0 && n2 == 0 && err1 == io.EOF && err2 == io.EOF, nil
 		}
 		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
 			return false, nil
