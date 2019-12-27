@@ -18,12 +18,12 @@ func TestAddToIndex(t *testing.T) {
 
 	err := addToIndex(testDir, []string{testPath})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entries, err := loadIndex(testDir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(entries) != 1 || entries[0].Name != testFile || entries[0].Size != int64(len(data)) {
@@ -44,12 +44,12 @@ func TestRemoveFromIndex(t *testing.T) {
 
 	err := removeFromIndex(testDir, []string{testPath})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entries, err := loadIndex(testDir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(entries) > 0 {
@@ -70,12 +70,12 @@ func TestRemoveFromProject(t *testing.T) {
 
 	err := removeFromProject(testDir, []string{testPath})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entries, err := loadIndex(testDir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if len(entries) > 0 {
 		t.Error("Index entry was not removed")
@@ -86,12 +86,12 @@ func TestRemoveFromProject(t *testing.T) {
 
 	err = removeFromProject(testDir, []string{testPath})
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	entries, err = loadIndex(testDir)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if len(entries) != 1 || entries[0].Name != testFile || entries[0].State != StateRemoved {

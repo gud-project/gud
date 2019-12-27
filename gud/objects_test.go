@@ -30,7 +30,7 @@ func TestCreateBlob(t *testing.T) {
 
 	hash, err := createBlob(testDir, testFile)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if _, err = os.Stat(filepath.Join(testDir, objectsDirPath, hex.EncodeToString(hash[:]))); os.IsNotExist(err) {
