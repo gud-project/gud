@@ -23,6 +23,8 @@ const initialCommitName string = "initial commit"
 type objectType int
 type objectHash [sha1.Size]byte
 
+var nullHash objectHash
+
 const (
 	typeBlob    objectType = 0
 	typeTree    objectType = 1
@@ -68,9 +70,9 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 	}
 
 	obj, err := createVersion(rootPath, Version{
-		Tree:    tree.Hash,
 		Message: initialCommitName,
 		Time:    time.Now(),
+		Tree:    tree.Hash,
 		prev:    nil,
 	})
 	if err != nil {
@@ -336,20 +338,36 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 		if err != nil {
 			return nil, err
 		}
-		newTree = append(newTree, object{})
-		copy(newTree[ind+1:], newTree[ind:])
-		newTree[ind] = *obj
+
+		if obj != nil {
+			newTree = append(newTree, object{})
+			copy(newTree[ind+1:], newTree[ind:])
+			newTree[ind] = *obj
+		}
 	}
 
 	for _, obj := range root.Objects {
 		ind, found := searchTree(newTree, obj.Name)
-		if !found { // file is not yet added
-			newTree = append(newTree, object{})
-			copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
+		if obj.Hash == nullHash { // file is to be removed
+			if !found {
+				panic("???")
+			}
+			copy(newTree[ind:], newTree[ind+1:])
+			newTree = newTree[:len(newTree)-1]
+
+		} else {
+			if !found { // file is not yet added
+				newTree = append(newTree, object{})
+				copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
+			}
+
+			newTree[ind] = obj // update entry if the file was already added
 		}
-		newTree[ind] = obj // update entry if the file was already added
 	}
 
+	if len(newTree) == 0 {
+		return nil, nil
+	}
 	return createTree(rootPath, relPath, newTree)
 }
 

@@ -15,9 +15,18 @@ import (
 
 const indexFilePath = gudPath + "/index"
 
+type FileState int
+
+const (
+	StateNew      FileState = 0
+	StateRemoved  FileState = 1
+	StateModified FileState = 2
+)
+
 type indexEntry struct {
 	Name  string
 	Hash  [sha1.Size]byte
+	State FileState
 	Size  int64
 	Ctime time.Time
 	Mtime time.Time
@@ -29,12 +38,31 @@ type indexFile struct {
 }
 
 func createIndexEntry(rootPath, path string) (*indexEntry, error) {
-	relative, err := filepath.Rel(rootPath, path)
+	relPath, err := filepath.Rel(rootPath, path)
 	if err != nil {
 		return nil, err
 	}
-	if strings.HasPrefix(relative, "..") {
-		return nil, Error{"Path is not inside the root directory"}
+	if strings.HasPrefix(relPath, "..") {
+		return nil, Error{rootPath + " is not inside the root directory"}
+	}
+
+	prevHash, err := findObject(rootPath, relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var state FileState
+	if prevHash != nil {
+		unchanged, err := compareToObject(rootPath, relPath, *prevHash)
+		if err != nil {
+			return nil, err
+		}
+		if unchanged {
+			return nil, Error{path + " has not been modified"}
+		}
+		state = StateModified
+	} else {
+		state = StateNew
 	}
 
 	info, err := os.Stat(path)
@@ -47,14 +75,15 @@ func createIndexEntry(rootPath, path string) (*indexEntry, error) {
 		return nil, err
 	}
 
-	hash, err := createBlob(rootPath, relative)
+	hash, err := createBlob(rootPath, relPath)
 	if err != nil {
 		return nil, err
 	}
 
 	return &indexEntry{
-		Name:  relative,
+		Name:  relPath,
 		Hash:  *hash,
+		State: state,
 		Size:  info.Size(),
 		Mtime: info.ModTime(),
 		Ctime: spec.ChangeTime(),
@@ -77,7 +106,7 @@ func addToIndex(rootPath string, paths []string) error {
 		return err
 	}
 
-	newEntries := make([]indexEntry, 0, len(entries)+files.Len())
+	newEntries := make([]indexEntry, len(entries), len(entries)+files.Len())
 	copy(newEntries, entries)
 
 	for e := files.Front(); e != nil; e = e.Next() {
@@ -113,19 +142,19 @@ func removeFromIndex(rootPath string, paths []string) error {
 	missing := make([]string, 0, files.Len())
 
 	for e := files.Front(); e != nil; e = e.Next() {
-		file := e.Value.(string)
+		path := e.Value.(string)
 
-		relative, err := filepath.Rel(rootPath, file)
+		relPath, err := filepath.Rel(rootPath, path)
 		if err != nil {
 			return err
 		}
 
-		ind, found := findEntry(entries, relative)
+		ind, found := findEntry(entries, relPath)
 		if found {
 			copy(entries[ind:], entries[ind+1:]) // keep the slice sorted
 			entries = entries[:len(entries)-1]
 		} else {
-			missing = append(missing, file)
+			missing = append(missing, path)
 		}
 	}
 
@@ -133,6 +162,68 @@ func removeFromIndex(rootPath string, paths []string) error {
 		return Error{string(len(missing)) + " files are not staged"}
 	}
 	return dumpIndex(rootPath, entries)
+}
+
+func removeFromProject(rootPath string, paths []string) error {
+	entries, err := loadIndex(rootPath)
+	if err != nil {
+		return err
+	}
+
+	files, err := walkFiles(paths) // TODO: walk objects instead of files?
+	if err != nil {
+		return nil
+	}
+
+	missing := make([]string, 0, files.Len())
+	newEntries := make([]indexEntry, len(entries), len(entries)+files.Len())
+	copy(newEntries, entries)
+
+	for e := files.Front(); e != nil; e = e.Next() {
+		path := e.Value.(string)
+
+		relPath, err := filepath.Rel(rootPath, path)
+		if err != nil {
+			return err
+		}
+
+		ind, found := findEntry(newEntries, relPath)
+		if found {
+			entry := &newEntries[ind]
+			if entry.State == StateNew {
+				copy(newEntries[ind:], newEntries[ind+1:])
+				newEntries = newEntries[:len(newEntries)-1]
+			} else {
+				entry.State = StateRemoved
+				entry.Hash = nullHash
+			}
+
+		} else {
+			// check that the file existed before removing it
+			prevHash, err := findObject(rootPath, relPath)
+			if err != nil {
+				return err
+			}
+			if prevHash == nil {
+				missing = append(missing, path)
+			} else {
+				newEntries = append(newEntries, indexEntry{})
+				copy(newEntries[ind+1:], newEntries[ind:]) // keep the slice sorted
+				newEntries[ind] = indexEntry{
+					Name:  relPath,
+					Hash:  nullHash,
+					State: StateRemoved,
+					Ctime: time.Now(),
+					Mtime: time.Now(),
+				}
+			}
+		}
+	}
+
+	if len(missing) > 0 {
+		return Error{string(len(missing)) + " files are not tracked"}
+	}
+	return dumpIndex(rootPath, newEntries)
 }
 
 func loadIndex(rootPath string) ([]indexEntry, error) {
@@ -173,7 +264,6 @@ func dumpIndex(rootPath string, entries []indexEntry) error {
 		Version: GetVersion(),
 		Entries: entries,
 	})
-
 	if err != nil {
 		return err
 	}
@@ -202,11 +292,11 @@ func walkFiles(paths []string) (*list.List, error) {
 	return files, nil
 }
 
-func findEntry(entries []indexEntry, name string) (int, bool) {
+func findEntry(entries []indexEntry, relPath string) (int, bool) {
 	l := len(entries)
 	ind := sort.Search(l, func(i int) bool {
-		return name <= entries[i].Name
+		return relPath <= entries[i].Name
 	})
 
-	return ind, ind < l && name == entries[ind].Name
+	return ind, ind < l && relPath == entries[ind].Name
 }
