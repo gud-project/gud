@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -174,17 +175,7 @@ func createObject(rootPath, relPath string, src io.Reader) (*objectHash, error) 
 }
 
 func writeHead(rootPath string, hash objectHash) error {
-	head, err := os.Create(filepath.Join(rootPath, headFileName))
-	if err != nil {
-		return err
-	}
-
-	_, err = head.Write(hash[:])
-	if err != nil {
-		return err
-	}
-
-	return head.Close()
+	return ioutil.WriteFile(filepath.Join(rootPath, headFileName), hash[:], 0644)
 }
 
 func loadHead(rootPath string) (*objectHash, *Version, error) {
@@ -226,6 +217,72 @@ func loadTree(rootPath string, hash objectHash, ret interface{}) error {
 	}
 
 	return gob.NewDecoder(zip).Decode(ret)
+}
+
+func findObject(rootPath, relPath string) (*objectHash, error) {
+	dirs := strings.Split(relPath, string(os.PathSeparator))
+	_, version, err := loadHead(rootPath)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := version.Tree
+	for _, name := range dirs {
+		var tree tree
+		err := loadTree(rootPath, hash, &tree)
+		if err != nil {
+			return nil, err
+		}
+
+		ind, found := searchTree(tree, name)
+		if !found {
+			return nil, nil
+		}
+		hash = tree[ind].Hash
+	}
+
+	return &hash, nil
+}
+
+func compareToObject(rootPath, relPath string, hash objectHash) (bool, error) {
+	const bufSiz = 1024
+
+	file, err := os.Open(filepath.Join(rootPath, relPath))
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	obj, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	if err != nil {
+		return false, err
+	}
+	defer obj.Close()
+
+	unzip, err := zlib.NewReader(obj)
+	if err != nil {
+		return false, err
+	}
+	defer unzip.Close()
+
+	var buf1, buf2 [bufSiz]byte
+	for {
+		n1, err1 := file.Read(buf1[:])
+		if err1 != nil && err1 != io.EOF {
+			return false, err1
+		}
+		n2, err2 := unzip.Read(buf2[:])
+		if err2 != nil && err2 != io.EOF {
+			return false, err2
+		}
+
+		if err1 == io.EOF || err2 == io.EOF {
+			return err1 == err2, nil
+		}
+		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
+			return false, nil
+		}
+	}
 }
 
 func addToStructure(structure *dirStructure, name string, hash objectHash) {
@@ -294,6 +351,30 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 	}
 
 	return createTree(rootPath, relPath, newTree)
+}
+
+func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string) error) error {
+	for _, obj := range root {
+		objRelPath := filepath.Join(relPath, obj.Name)
+		if obj.Type == typeTree {
+			var inner tree
+			err := loadTree(rootPath, obj.Hash, &inner)
+			if err != nil {
+				return err
+			}
+			err = walkBlobs(rootPath, objRelPath, inner, fn)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := fn(objRelPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func searchTree(tree tree, name string) (int, bool) {
