@@ -231,14 +231,10 @@ func loadIndex(rootPath string) ([]indexEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
 	var index indexFile
 	err = gob.NewDecoder(file).Decode(&index)
-	if err != nil {
-		return nil, err
-	}
-
-	err = file.Close()
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,6 @@ import (
 )
 
 const objectsDirPath string = gudPath + "/objects"
-const hashLen = 2 * sha1.Size
 const initialCommitName string = "initial commit"
 
 type objectType int
@@ -87,13 +86,9 @@ func createBlob(rootPath, relPath string) (*objectHash, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer src.Close()
 
 	hash, err := createObject(rootPath, relPath, src)
-	if err != nil {
-		return nil, err
-	}
-
-	err = src.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -128,49 +123,53 @@ func createGobObject(rootPath, relPath string, obj interface{}, objectType objec
 	}, nil
 }
 
-func createObject(rootPath, relPath string, src io.Reader) (*objectHash, error) {
+func createObject(rootPath, relPath string, src io.Reader) (hash *objectHash, err error) {
 	var zipData bytes.Buffer
 
-	hash := sha1.New()
-	_, err := fmt.Fprintf(hash, relPath)
+	sha := sha1.New()
+	_, err = fmt.Fprintf(sha, relPath)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	// use compressed data for both the object content and the hash
-	zipWriter := zlib.NewWriter(io.MultiWriter(&zipData, hash))
+	zip := zlib.NewWriter(io.MultiWriter(&zipData, sha))
+	defer func() {
+		cerr := zip.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
-	_, err = io.Copy(zipWriter, src)
+	_, err = io.Copy(zip, src)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	err = zipWriter.Close()
+	err = zip.Close()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	sum := hash.Sum(nil)
+	sum := sha.Sum(nil)
 	var ret objectHash
 	copy(ret[:], sum)
 
 	// Create the blob file
-	var objName [hashLen]byte
-	hex.Encode(objName[:], sum) // Get the hash of the file
-
-	dst, err := os.Create(filepath.Join(rootPath, objectsDirPath, string(objName[:])))
+	dst, err := os.Create(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(sum)))
 	if err != nil {
-		return nil, err
+		return
 	}
+	defer func() {
+		cerr := dst.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	_, err = zipData.WriteTo(dst)
 	if err != nil {
-		return nil, err
-	}
-
-	err = dst.Close()
-	if err != nil {
-		return nil, err
+		return
 	}
 
 	return &ret, nil
@@ -207,16 +206,13 @@ func loadTree(rootPath string, hash objectHash, ret interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	zip, err := zlib.NewReader(f)
 	if err != nil {
 		return err
 	}
-
-	err = f.Close()
-	if err != nil {
-		return nil
-	}
+	defer zip.Close()
 
 	return gob.NewDecoder(zip).Decode(ret)
 }
