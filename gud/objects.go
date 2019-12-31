@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,11 +17,12 @@ import (
 )
 
 const objectsDirPath string = gudPath + "/objects"
-const hashLen = 2 * sha1.Size
 const initialCommitName string = "initial commit"
 
 type objectType int
 type objectHash [sha1.Size]byte
+
+var nullHash objectHash
 
 const (
 	typeBlob    objectType = 0
@@ -38,10 +40,17 @@ type tree []object
 
 // Version is a representation of a project version.
 type Version struct {
-	Message string
-	Time    time.Time
-	Tree    objectHash
-	prev    *objectHash
+	Message  string
+	Time     time.Time
+	treeHash objectHash
+	prev     *objectHash
+}
+
+type gobVersion struct {
+	Message  string
+	Time     time.Time
+	TreeHash objectHash
+	Prev     *objectHash
 }
 
 // HasPrev returns true if the version has a predecessor.
@@ -66,18 +75,17 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
-	err = gob.NewEncoder(&buffer).Encode(Version{
-		Tree:    tree.Hash,
-		Message: initialCommitName,
-		Time:    time.Now(),
-		prev:    nil,
+	obj, err := createVersion(rootPath, Version{
+		Message:  initialCommitName,
+		Time:     time.Now(),
+		treeHash: tree.Hash,
+		prev:     nil,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return createObject(rootPath, initialCommitName, &buffer)
+	return &obj.Hash, err
 }
 
 func createBlob(rootPath, relPath string) (*objectHash, error) {
@@ -85,13 +93,9 @@ func createBlob(rootPath, relPath string) (*objectHash, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer src.Close()
 
 	hash, err := createObject(rootPath, relPath, src)
-	if err != nil {
-		return nil, err
-	}
-
-	err = src.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +107,13 @@ func createTree(rootPath, relPath string, tree tree) (*object, error) {
 	return createGobObject(rootPath, relPath, tree, typeTree)
 }
 
-func createVersion(rootPath, relPath string, version Version) (*object, error) {
-	return createGobObject(rootPath, relPath, version, typeVersion)
+func createVersion(rootPath string, version Version) (*object, error) {
+	return createGobObject(rootPath, version.Message, gobVersion{
+		Message:  version.Message,
+		Time:     version.Time,
+		TreeHash: version.treeHash,
+		Prev:     version.prev,
+	}, typeVersion)
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
@@ -126,105 +135,191 @@ func createGobObject(rootPath, relPath string, obj interface{}, objectType objec
 	}, nil
 }
 
-func createObject(rootPath, relPath string, src io.Reader) (*objectHash, error) {
+func createObject(rootPath, relPath string, src io.Reader) (hash *objectHash, err error) {
 	var zipData bytes.Buffer
 
-	hash := sha1.New()
-	_, err := fmt.Fprintf(hash, relPath)
+	sha := sha1.New()
+	_, err = fmt.Fprintf(sha, relPath)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	// use compressed data for both the object content and the hash
-	zipWriter := zlib.NewWriter(io.MultiWriter(&zipData, hash))
+	zip := zlib.NewWriter(io.MultiWriter(&zipData, sha))
+	defer func() {
+		cerr := zip.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
-	_, err = io.Copy(zipWriter, src)
+	_, err = io.Copy(zip, src)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	err = zipWriter.Close()
+	err = zip.Close()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	sum := hash.Sum(nil)
+	sum := sha.Sum(nil)
 	var ret objectHash
 	copy(ret[:], sum)
 
 	// Create the blob file
-	var objName [hashLen]byte
-	hex.Encode(objName[:], sum) // Get the hash of the file
-
-	dst, err := os.Create(filepath.Join(rootPath, objectsDirPath, string(objName[:])))
+	dst, err := os.Create(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(sum)))
 	if err != nil {
-		return nil, err
+		return
 	}
+	defer func() {
+		cerr := dst.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
 
 	_, err = zipData.WriteTo(dst)
 	if err != nil {
-		return nil, err
-	}
-
-	err = dst.Close()
-	if err != nil {
-		return nil, err
+		return
 	}
 
 	return &ret, nil
 }
 
 func writeHead(rootPath string, hash objectHash) error {
-	head, err := os.Create(filepath.Join(rootPath, headFileName))
-	if err != nil {
-		return err
-	}
-
-	_, err = head.Write(hash[:])
-	if err != nil {
-		return err
-	}
-
-	return head.Close()
+	return ioutil.WriteFile(filepath.Join(rootPath, headFileName), hash[:], 0644)
 }
 
-func loadHead(rootPath string) (*objectHash, error) {
+func loadHead(rootPath string) (*objectHash, *Version, error) {
 	head, err := os.Open(filepath.Join(rootPath, headFileName))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	defer head.Close()
 
 	var hash objectHash
 	_, err = head.Read(hash[:])
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = head.Close()
+	version, err := loadVersion(rootPath, hash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &hash, nil
+	return &hash, version, nil
 }
 
-func loadTree(rootPath string, hash objectHash, ret interface{}) error {
+func loadGobObject(rootPath string, hash objectHash, ret interface{}) error {
 	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	zip, err := zlib.NewReader(f)
 	if err != nil {
 		return err
 	}
-
-	err = f.Close()
-	if err != nil {
-		return nil
-	}
+	defer zip.Close()
 
 	return gob.NewDecoder(zip).Decode(ret)
+}
+
+func loadTree(rootPath string, hash objectHash) (tree, error) {
+	var t tree
+
+	err := loadGobObject(rootPath, hash, &t)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func loadVersion(rootPath string, hash objectHash) (*Version, error) {
+	var v gobVersion
+
+	err := loadGobObject(rootPath, hash, &v)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Version{
+		Message:  v.Message,
+		Time:     v.Time,
+		treeHash: v.TreeHash,
+		prev:     v.Prev,
+	}, nil
+}
+
+func findObject(rootPath, relPath string) (*objectHash, error) {
+	dirs := strings.Split(relPath, string(os.PathSeparator))
+	_, version, err := loadHead(rootPath)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := version.treeHash
+	for _, name := range dirs {
+		tree, err := loadTree(rootPath, hash)
+		if err != nil {
+			return nil, err
+		}
+
+		ind, found := searchTree(tree, name)
+		if !found {
+			return nil, nil
+		}
+		hash = tree[ind].Hash
+	}
+
+	return &hash, nil
+}
+
+func compareToObject(rootPath, relPath string, hash objectHash) (bool, error) {
+	const bufSiz = 1024
+
+	file, err := os.Open(filepath.Join(rootPath, relPath))
+	if err != nil {
+		return false, err
+	}
+	defer file.Close()
+
+	obj, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	if err != nil {
+		return false, err
+	}
+	defer obj.Close()
+
+	unzip, err := zlib.NewReader(obj)
+	if err != nil {
+		return false, err
+	}
+	defer unzip.Close()
+
+	var buf1, buf2 [bufSiz]byte
+	for {
+		n1, err1 := file.Read(buf1[:])
+		if err1 != nil && err1 != io.EOF {
+			return false, err1
+		}
+		n2, err2 := unzip.Read(buf2[:])
+		if err2 != nil && err2 != io.EOF {
+			return false, err2
+		}
+
+		if err1 == io.EOF || err2 == io.EOF {
+			n1, err1 = file.Read(buf1[:])
+			n2, err2 = unzip.Read(buf2[:])
+			return n1 == 0 && n2 == 0 && err1 == io.EOF && err2 == io.EOF, nil
+		}
+		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
+			return false, nil
+		}
+	}
 }
 
 func addToStructure(structure *dirStructure, name string, hash objectHash) {
@@ -268,7 +363,8 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 		var tree tree
 		ind, found := searchTree(newTree, dir.Name)
 		if found {
-			err := loadTree(rootPath, newTree[ind].Hash, &tree)
+			var err error
+			tree, err = loadTree(rootPath, newTree[ind].Hash)
 			if err != nil {
 				return nil, err
 			}
@@ -278,21 +374,60 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 		if err != nil {
 			return nil, err
 		}
-		newTree = append(newTree, object{})
-		copy(newTree[ind+1:], newTree[ind:])
-		newTree[ind] = *obj
+
+		if obj != nil {
+			newTree = append(newTree, object{})
+			copy(newTree[ind+1:], newTree[ind:])
+			newTree[ind] = *obj
+		}
 	}
 
 	for _, obj := range root.Objects {
 		ind, found := searchTree(newTree, obj.Name)
-		if !found { // file is not yet added
-			newTree = append(newTree, object{})
-			copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
+		if obj.Hash == nullHash { // file is to be removed
+			if !found {
+				panic("???")
+			}
+			copy(newTree[ind:], newTree[ind+1:])
+			newTree = newTree[:len(newTree)-1]
+
+		} else {
+			if !found { // file is not yet added
+				newTree = append(newTree, object{})
+				copy(newTree[ind+1:], newTree[ind:]) // keep the slice sorted
+			}
+
+			newTree[ind] = obj // update entry if the file was already added
 		}
-		newTree[ind] = obj // update entry if the file was already added
 	}
 
+	if len(newTree) == 0 {
+		return nil, nil
+	}
 	return createTree(rootPath, relPath, newTree)
+}
+
+func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string) error) error {
+	for _, obj := range root {
+		objRelPath := filepath.Join(relPath, obj.Name)
+		if obj.Type == typeTree {
+			inner, err := loadTree(rootPath, obj.Hash)
+			if err != nil {
+				return err
+			}
+			err = walkBlobs(rootPath, objRelPath, inner, fn)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := fn(objRelPath)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func searchTree(tree tree, name string) (int, bool) {

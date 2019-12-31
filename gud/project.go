@@ -2,7 +2,6 @@
 package gud
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -39,8 +38,7 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(dir, headFileName), hash[:], 0644)
-
+	err = writeHead(dir, *hash)
 	if err != nil {
 		return nil, err
 	}
@@ -74,23 +72,13 @@ func (p Project) Add(paths ...string) error {
 
 // Remove removes files from the current version of the Gud project
 func (p Project) Remove(paths ...string) error {
-	return removeFromIndex(p.Path, paths)
+	return removeFromProject(p.Path, paths)
 }
 
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	head, err := loadHead(p.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	var currentVersion Version
-	err = loadTree(p.Path, *head, &currentVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	return &currentVersion, nil
+	_, version, err := loadHead(p.Path)
+	return version, err
 }
 
 // Save saves the current version of the project.
@@ -100,13 +88,7 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	head, err := loadHead(p.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	var currentVersion Version
-	err = loadTree(p.Path, *head, &currentVersion)
+	head, currentVersion, err := loadHead(p.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -116,25 +98,31 @@ func (p Project) Save(message string) (*Version, error) {
 		addToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	var tree tree
-	err = loadTree(p.Path, currentVersion.Tree, &tree)
+	prev, err := loadTree(p.Path, currentVersion.treeHash)
 	if err != nil {
 		return nil, err
 	}
 
-	treeObj, err := buildTree(p.Path, "", dir, tree)
+	treeObj, err := buildTree(p.Path, "", dir, prev)
 	if err != nil {
 		return nil, err
+	}
+
+	if treeObj == nil {
+		treeObj, err = createTree(p.Path, message, tree{})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	newVersion := Version{
-		Tree:    treeObj.Hash,
-		Message: message,
-		Time:    time.Now(),
-		prev:    head,
+		Message:  message,
+		Time:     time.Now(),
+		treeHash: treeObj.Hash,
+		prev:     head,
 	}
 
-	versionObj, err := createVersion(p.Path, message, newVersion)
+	versionObj, err := createVersion(p.Path, newVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -159,11 +147,10 @@ func (p Project) Prev(version Version) (*Version, error) {
 		return nil, Error{"The version has no predecessor"}
 	}
 
-	var prev Version
-	err := loadTree(p.Path, *version.prev, &prev)
+	prev, err := loadVersion(p.Path, *version.prev)
 	if err != nil {
 		return nil, err
 	}
 
-	return &prev, nil
+	return prev, nil
 }
