@@ -10,7 +10,6 @@ import (
 func TestProject_Status(t *testing.T) {
 	defer clearTest()
 
-	const testFile = "foo.txt"
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 

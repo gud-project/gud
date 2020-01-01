@@ -89,6 +89,19 @@ func (p Project) CurrentVersion() (*Version, error) {
 	return loadVersion(p.Path, *hash)
 }
 
+func (p Project) CurrentBranch() (string, error) {
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return "", err
+	}
+
+	if head.IsDetached {
+		return "", nil
+	}
+
+	return head.Branch, nil
+}
+
 // Save saves the current version of the project.
 func (p Project) Save(message string) (*Version, error) {
 	index, err := loadIndex(p.Path)
