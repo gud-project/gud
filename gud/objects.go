@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -187,31 +186,6 @@ func createObject(rootPath, relPath string, src io.Reader) (hash *objectHash, er
 	return &ret, nil
 }
 
-func writeHead(rootPath string, hash objectHash) error {
-	return ioutil.WriteFile(filepath.Join(rootPath, headFileName), hash[:], 0644)
-}
-
-func loadHead(rootPath string) (*objectHash, *Version, error) {
-	head, err := os.Open(filepath.Join(rootPath, headFileName))
-	if err != nil {
-		return nil, nil, err
-	}
-	defer head.Close()
-
-	var hash objectHash
-	_, err = head.Read(hash[:])
-	if err != nil {
-		return nil, nil, err
-	}
-
-	version, err := loadVersion(rootPath, hash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return &hash, version, nil
-}
-
 func loadGobObject(rootPath string, hash objectHash, ret interface{}) error {
 	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
 	if err != nil {
@@ -257,12 +231,22 @@ func loadVersion(rootPath string, hash objectHash) (*Version, error) {
 
 func findObject(rootPath, relPath string) (*objectHash, error) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
-	_, version, err := loadHead(rootPath)
+	head, err := loadHead(rootPath)
 	if err != nil {
 		return nil, err
 	}
 
+	versionHash, err := getCurrentHash(rootPath, *head)
+	if err != nil {
+		return nil, err
+	}
+
+	version, err := loadVersion(rootPath, *versionHash)
+	if err != nil {
+		return nil, err
+	}
 	hash := version.treeHash
+
 	for _, name := range dirs {
 		tree, err := loadTree(rootPath, hash)
 		if err != nil {

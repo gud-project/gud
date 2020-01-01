@@ -8,7 +8,6 @@ import (
 )
 
 const gudPath = ".gud"
-const headFileName = gudPath + "/head"
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -33,12 +32,12 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	hash, err := initObjectsDir(dir)
+	firstHash, err := initObjectsDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeHead(dir, *hash)
+	err = initBranches(dir, *firstHash)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +76,17 @@ func (p Project) Remove(paths ...string) error {
 
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	_, version, err := loadHead(p.Path)
-	return version, err
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := getCurrentHash(p.Path, *head)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadVersion(p.Path, *hash)
 }
 
 // Save saves the current version of the project.
@@ -88,7 +96,21 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	head, currentVersion, err := loadHead(p.Path)
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if head.IsDetached {
+		return nil, Error{"cannot save when head is detached"}
+	}
+
+	currentHash, err := getCurrentHash(p.Path, *head)
+	if err != nil {
+		return nil, err
+	}
+
+	currentVersion, err := loadVersion(p.Path, *currentHash)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +141,7 @@ func (p Project) Save(message string) (*Version, error) {
 		Message:  message,
 		Time:     time.Now(),
 		treeHash: treeObj.Hash,
-		prev:     head,
+		prev:     currentHash,
 	}
 
 	versionObj, err := createVersion(p.Path, newVersion)
@@ -127,7 +149,7 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	err = writeHead(p.Path, versionObj.Hash)
+	err = dumpBranch(p.Path, head.Branch, versionObj.Hash)
 	if err != nil {
 		return nil, err
 	}
