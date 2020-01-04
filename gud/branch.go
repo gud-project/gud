@@ -42,6 +42,63 @@ func (p Project) CreateBranch(name string) error {
 	return dumpBranch(p.Path, name, *hash)
 }
 
+func (p Project) Checkout(hash objectHash) error {
+	err := p.Status(
+		func(relPath string, state FileState) error {
+			return Error{"the index must be empty when checking out"}
+		},
+		func(relPath string, state FileState) error {
+			return Error{"uncommitted changes must be cleaned before checking out"}
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	version, err := loadVersion(p.Path, hash)
+	if err != nil {
+		return err
+	}
+	tree, err := loadTree(p.Path, version.treeHash)
+	if err != nil {
+		return err
+	}
+	err = removeChanges(p.Path, tree)
+	if err != nil {
+		return err
+	}
+
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return err
+	}
+
+	return dumpHead(p.Path, Head{
+		IsDetached: true,
+		Hash:       hash,
+		Branch:     head.Branch,
+	})
+}
+
+func removeChanges(rootPath string, tree tree) error {
+	return compareTree(
+		rootPath, ".", tree, []indexEntry{},
+		func(relPath string, state FileState, hash *objectHash, isDir bool) error {
+			path := filepath.Join(rootPath, relPath)
+			if isDir && state == StateNew {
+				return os.Remove(path)
+			}
+			if isDir {
+				return os.Mkdir(path, os.ModeDir)
+			}
+			if state == StateNew {
+				return os.Remove(path)
+			}
+			return unzipObject(rootPath, relPath, *hash)
+		},
+	)
+}
+
 func getCurrentHash(rootPath string, head Head) (*objectHash, error) {
 	if head.IsDetached {
 		return &head.Hash, nil
