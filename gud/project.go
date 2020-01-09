@@ -4,7 +4,6 @@ package gud
 import (
 	"os"
 	"path/filepath"
-	"time"
 )
 
 const gudPath = ".gud"
@@ -95,11 +94,21 @@ func (p Project) CurrentBranch() (string, error) {
 		return "", err
 	}
 
-	if head.IsDetached {
-		return "", nil
+	return head.Branch, nil
+}
+
+func (p Project) LatestVersion() (*Version, error) {
+	branch, err := p.CurrentBranch()
+	if err != nil {
+		return nil, err
 	}
 
-	return head.Branch, nil
+	hash, err := loadBranch(p.Path, branch)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadVersion(p.Path, *hash)
 }
 
 // Save saves the current version of the project.
@@ -150,19 +159,7 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	newVersion := Version{
-		Message:  message,
-		Time:     time.Now(),
-		treeHash: treeObj.Hash,
-		prev:     currentHash,
-	}
-
-	versionObj, err := createVersion(p.Path, newVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dumpBranch(p.Path, head.Branch, versionObj.Hash)
+	newVersion, err := saveVersion(p.Path, message, head.Branch, treeObj.Hash, currentHash, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +170,7 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	return &newVersion, nil
+	return newVersion, nil
 }
 
 // Prev receives a version of the project and returns and it's previous one.

@@ -21,6 +21,10 @@ const initialCommitName string = "initial commit"
 type objectType int
 type objectHash [sha1.Size]byte
 
+func (h objectHash) String() string {
+	return hex.EncodeToString(h[:])
+}
+
 var nullHash objectHash
 
 const (
@@ -43,6 +47,7 @@ type Version struct {
 	Time     time.Time
 	treeHash objectHash
 	prev     *objectHash
+	merged   *objectHash
 }
 
 type gobVersion struct {
@@ -55,6 +60,10 @@ type gobVersion struct {
 // HasPrev returns true if the version has a predecessor.
 func (v Version) HasPrev() bool {
 	return v.prev != nil
+}
+
+func (v Version) IsMergeVersion() bool {
+	return v.merged != nil
 }
 
 type dirStructure struct {
@@ -85,6 +94,28 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 	}
 
 	return &obj.Hash, err
+}
+
+func saveVersion(rootPath, message, branch string, tree objectHash, prev, merged *objectHash) (*Version, error) {
+	v := Version{
+		Message:  message,
+		Time:     time.Now(),
+		treeHash: tree,
+		prev:     prev,
+		merged:   merged,
+	}
+
+	obj, err := createVersion(rootPath, v)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dumpBranch(rootPath, branch, obj.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &v, err
 }
 
 func createBlob(rootPath, relPath string) (*objectHash, error) {
@@ -187,7 +218,7 @@ func createObject(rootPath, relPath string, src io.Reader) (hash *objectHash, er
 }
 
 func unzipObject(rootPath, relPath string, hash objectHash) (err error) {
-	src, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	src, err := os.Open(filepath.Join(rootPath, objectsDirPath, hash.String()))
 	if err != nil {
 		return
 	}
@@ -215,7 +246,7 @@ func unzipObject(rootPath, relPath string, hash objectHash) (err error) {
 }
 
 func loadGobObject(rootPath string, hash objectHash, ret interface{}) error {
-	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	f, err := os.Open(filepath.Join(rootPath, objectsDirPath, hash.String()))
 	if err != nil {
 		return err
 	}
@@ -300,7 +331,7 @@ func compareToObject(rootPath, relPath string, hash objectHash) (bool, error) {
 	}
 	defer file.Close()
 
-	obj, err := os.Open(filepath.Join(rootPath, objectsDirPath, hex.EncodeToString(hash[:])))
+	obj, err := os.Open(filepath.Join(rootPath, objectsDirPath, hash.String()))
 	if err != nil {
 		return false, err
 	}
@@ -419,7 +450,7 @@ func buildTree(rootPath, relPath string, root dirStructure, prev tree) (*object,
 	return createTree(rootPath, relPath, newTree)
 }
 
-func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string, hash objectHash, t objectType) error) error {
+func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string, obj object) error) error {
 	for _, obj := range root {
 		objRelPath := filepath.Join(relPath, obj.Name)
 
@@ -434,7 +465,7 @@ func walkBlobs(rootPath, relPath string, root tree, fn func(relPath string, hash
 			}
 		}
 
-		err := fn(objRelPath, obj.Hash, obj.Type)
+		err := fn(objRelPath, obj)
 		if err != nil {
 			return err
 		}

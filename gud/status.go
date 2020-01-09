@@ -166,7 +166,7 @@ func reportRemovedDir(rootPath, relPath string, hash objectHash, fn cmpCallback)
 		return err
 	}
 
-	err = walkBlobs(rootPath, relPath, tree, func(relPath string, hash objectHash, t objectType) error {
+	err = walkBlobs(rootPath, relPath, tree, func(relPath string, obj object) error {
 		return fn(relPath, StateRemoved, &hash, false)
 	})
 	if err != nil {
