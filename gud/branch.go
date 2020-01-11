@@ -4,9 +4,12 @@ import (
 	"container/list"
 	"encoding/gob"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 const branchesDirPath = gudPath + "/branches"
@@ -17,6 +20,7 @@ type Head struct {
 	IsDetached bool
 	Branch     string
 	Hash       objectHash
+	MergedHash *objectHash
 }
 
 func (p Project) CreateBranch(name string) error {
@@ -75,7 +79,25 @@ func (p Project) Checkout(hash objectHash) error {
 	})
 }
 
-func (p Project) Merge(from objectHash) (*Version, error) {
+func (p Project) MergeBranch(from string) (*Version, error) {
+	hash, err := loadBranch(p.Path, from)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.merge(*hash, from)
+}
+
+func (p Project) MergeHash(from objectHash) (*Version, error) {
+	version, err := loadVersion(p.Path, from)
+	if err != nil {
+		return nil, err
+	}
+
+	return p.merge(from, fmt.Sprintf("\"%s\"", version.Message))
+}
+
+func (p Project) merge(from objectHash, name string) (*Version, error) {
 	err := p.assertNoChanges()
 	if err != nil {
 		return nil, err
@@ -158,12 +180,28 @@ func (p Project) Merge(from objectHash) (*Version, error) {
 		return nil, err
 	}
 
-	tree, conflicts, err := mergeTrees(p.Path, ".", toTree, fromTree, baseTree)
+	tree, conflicts, err := mergeTrees(p.Path, ".", toTree, fromTree, head.Branch, name, baseTree)
 	if err != nil {
 		return nil, err
 	}
+
 	if conflicts != nil {
-		// TODO
+		index := make([]indexEntry, 0, conflicts.Len())
+		for p := conflicts.Front(); p != nil; p = p.Next() {
+			index = append(index, indexEntry{
+				Name:  p.Value.(string),
+				State: StateConflict,
+			})
+		}
+
+		err = dumpHead(p.Path, Head{
+			IsDetached: false,
+			Branch:     head.Branch,
+			MergedHash: &from,
+		})
+		if err != nil {
+			return nil, err
+		}
 		return nil, Error{"there are merge conflicts. please solve them and save the changes"}
 	}
 
@@ -173,7 +211,7 @@ func (p Project) Merge(from objectHash) (*Version, error) {
 	}
 
 	return saveVersion(
-		p.Path, fmt.Sprintf("merged %s into %s", from, head.Branch),
+		p.Path, fmt.Sprintf("merged %s into %s", name, head.Branch),
 		head.Branch, treeObj.Hash, to, &from)
 }
 
@@ -191,7 +229,7 @@ func removeChanges(rootPath string, tree tree) error {
 			if state == StateNew {
 				return os.Remove(path)
 			}
-			return unzipObject(rootPath, relPath, *hash)
+			return extractBlob(rootPath, relPath, *hash)
 		},
 	)
 }
@@ -229,7 +267,7 @@ func (p Project) assertNoChanges() error {
 	)
 }
 
-func mergeTrees(rootPath, relPath string, to, from, base tree) (tree, *list.List, error) {
+func mergeTrees(rootPath, relPath string, to, from tree, toName, fromName string, base tree) (tree, *list.List, error) {
 	res := make(tree, len(to), len(to)+len(from))
 	conflicts := list.New()
 	copy(res, to)
@@ -254,7 +292,7 @@ func mergeTrees(rootPath, relPath string, to, from, base tree) (tree, *list.List
 				if found {
 					baseObj := base[baseInd]
 					if toObj.Hash != baseObj.Hash && fromObj.Hash != baseObj.Hash { // conflicting changes
-						mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, fromObj, toObj, &baseObj)
+						mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, toObj, fromObj, toName, fromName, &baseObj)
 						if err != nil {
 							return nil, nil, err
 						}
@@ -268,7 +306,7 @@ func mergeTrees(rootPath, relPath string, to, from, base tree) (tree, *list.List
 						res[toInd] = fromObj
 					}
 				} else { // conflicting changes
-					mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, fromObj, toObj, nil)
+					mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, toObj, fromObj, toName, fromName, nil)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -294,14 +332,25 @@ func mergeTrees(rootPath, relPath string, to, from, base tree) (tree, *list.List
 	return res, nil, nil
 }
 
-func mergeDiff(rootPath, parentPath string, from, to object, base *object) (*object, *list.List, error) {
+func mergeDiff(
+	rootPath, parentPath string,
+	to, from object,
+	toName, fromName string,
+	base *object) (*object, *list.List, error) {
 	relPath := filepath.Join(parentPath, to.Name)
 
 	if to.Type != from.Type {
 		return nil, nil, Error{"cannot merge directory and file: " + relPath}
 	}
 	if to.Type == typeBlob {
-		// conflict
+		err := writeConflict(rootPath, relPath, to.Hash, from.Hash, toName, fromName)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		conflicts := list.New()
+		conflicts.PushFront(relPath)
+		return nil, conflicts, nil
 	}
 
 	toTree, err := loadTree(rootPath, to.Hash)
@@ -317,7 +366,7 @@ func mergeDiff(rootPath, parentPath string, from, to object, base *object) (*obj
 		baseTree, err = loadTree(rootPath, base.Hash)
 	}
 
-	newTree, conflicts, err := mergeTrees(rootPath, relPath, toTree, fromTree, baseTree)
+	newTree, conflicts, err := mergeTrees(rootPath, relPath, toTree, fromTree, toName, fromName, baseTree)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -331,6 +380,54 @@ func mergeDiff(rootPath, parentPath string, from, to object, base *object) (*obj
 	}
 
 	return newObj, nil, nil
+}
+
+func writeConflict(
+	rootPath, relPath string,
+	to, from objectHash,
+	toName, fromName string) (err error) {
+	toText, err := readBlob(rootPath, to)
+	if err != nil {
+		return
+	}
+	fromText, err := readBlob(rootPath, from)
+	if err != nil {
+		return
+	}
+
+	dst, err := os.Create(filepath.Join(rootPath, relPath))
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := dst.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	dmp := diffmatchpatch.New()
+	wSrc, wDst, wArr := dmp.DiffLinesToChars(toText, fromText)
+	for _, diff := range dmp.DiffCharsToLines(dmp.DiffMain(wSrc, wDst, false), wArr) {
+		switch diff.Type {
+		case diffmatchpatch.DiffEqual:
+			_, err = dst.WriteString(diff.Text)
+		case diffmatchpatch.DiffDelete:
+			_, err = writeChange(dst, "Old", toName, diff.Text)
+		case diffmatchpatch.DiffInsert:
+			_, err = writeChange(dst, "New", fromName, diff.Text)
+		}
+		if err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func writeChange(w io.Writer, changeType, name, change string) (int, error) {
+	label := fmt.Sprintf("{{{ %s change from %s {{{", changeType, name)
+	return fmt.Fprintf(w, "%s\n%s\n%s", label, change, strings.Repeat("}", len(label)))
 }
 
 func initBranches(rootPath string, firstHash objectHash) error {

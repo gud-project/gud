@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -217,7 +218,28 @@ func createObject(rootPath, relPath string, src io.Reader) (hash *objectHash, er
 	return &ret, nil
 }
 
-func unzipObject(rootPath, relPath string, hash objectHash) (err error) {
+func readBlob(rootPath string, hash objectHash) (string, error) {
+	src, err := os.Open(filepath.Join(rootPath, objectsDirPath, hash.String()))
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	zip, err := zlib.NewReader(src)
+	if err != nil {
+		return "", err
+	}
+	defer zip.Close()
+
+	content, err := ioutil.ReadAll(zip)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
+}
+
+func extractBlob(rootPath, relPath string, hash objectHash) (err error) {
 	src, err := os.Open(filepath.Join(rootPath, objectsDirPath, hash.String()))
 	if err != nil {
 		return

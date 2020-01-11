@@ -118,6 +118,12 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
+	for _, entry := range index {
+		if entry.State == StateConflict {
+			return nil, Error{"conflicts must be solved before saving"}
+		}
+	}
+
 	head, err := loadHead(p.Path)
 	if err != nil {
 		return nil, err
@@ -159,7 +165,7 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	newVersion, err := saveVersion(p.Path, message, head.Branch, treeObj.Hash, currentHash, nil)
+	newVersion, err := saveVersion(p.Path, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
 	if err != nil {
 		return nil, err
 	}
@@ -168,6 +174,14 @@ func (p Project) Save(message string) (*Version, error) {
 	err = initIndex(p.Path)
 	if err != nil {
 		return nil, err
+	}
+
+	if head.MergedHash != nil {
+		head.MergedHash = nil
+		err = dumpHead(p.Path, *head)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return newVersion, nil
