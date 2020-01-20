@@ -9,7 +9,6 @@ import (
 func TestAddToIndex(t *testing.T) {
 	defer clearTest()
 
-	const testFile = "foo.txt"
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
@@ -34,7 +33,6 @@ func TestAddToIndex(t *testing.T) {
 func TestRemoveFromIndex(t *testing.T) {
 	defer clearTest()
 
-	const testFile = "foo.txt"
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
@@ -60,7 +58,6 @@ func TestRemoveFromIndex(t *testing.T) {
 func TestRemoveFromProject(t *testing.T) {
 	defer clearTest()
 
-	const testFile = "foo.txt"
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 

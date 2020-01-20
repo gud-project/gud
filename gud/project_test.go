@@ -129,3 +129,17 @@ func TestProject_Prev(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestProject_CurrentBranch(t *testing.T) {
+	defer clearTest()
+
+	p, _ := Start(testDir)
+
+	firstBranch, err := p.CurrentBranch()
+	if err != nil {
+		t.Error(err)
+	}
+	if firstBranch != firstBranchName {
+		t.Error("first branch name incorrect")
+	}
+}

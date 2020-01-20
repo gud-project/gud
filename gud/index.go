@@ -18,9 +18,10 @@ const indexFilePath = gudPath + "/index"
 type FileState int
 
 const (
-	StateNew      FileState = 0
-	StateRemoved  FileState = 1
-	StateModified FileState = 2
+	StateNew FileState = iota
+	StateRemoved
+	StateModified
+	StateConflict
 )
 
 type indexEntry struct {

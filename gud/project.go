@@ -4,11 +4,9 @@ package gud
 import (
 	"os"
 	"path/filepath"
-	"time"
 )
 
 const gudPath = ".gud"
-const headFileName = gudPath + "/head"
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -33,12 +31,12 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	hash, err := initObjectsDir(dir)
+	firstHash, err := initObjectsDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	err = writeHead(dir, *hash)
+	err = initBranches(dir, *firstHash)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +75,40 @@ func (p Project) Remove(paths ...string) error {
 
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	_, version, err := loadHead(p.Path)
-	return version, err
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := getCurrentHash(p.Path, *head)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadVersion(p.Path, *hash)
+}
+
+func (p Project) CurrentBranch() (string, error) {
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return "", err
+	}
+
+	return head.Branch, nil
+}
+
+func (p Project) LatestVersion() (*Version, error) {
+	branch, err := p.CurrentBranch()
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := loadBranch(p.Path, branch)
+	if err != nil {
+		return nil, err
+	}
+
+	return loadVersion(p.Path, *hash)
 }
 
 // Save saves the current version of the project.
@@ -88,7 +118,27 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	head, currentVersion, err := loadHead(p.Path)
+	for _, entry := range index {
+		if entry.State == StateConflict {
+			return nil, Error{"conflicts must be solved before saving"}
+		}
+	}
+
+	head, err := loadHead(p.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	if head.IsDetached {
+		return nil, Error{"cannot save when head is detached"}
+	}
+
+	currentHash, err := getCurrentHash(p.Path, *head)
+	if err != nil {
+		return nil, err
+	}
+
+	currentVersion, err := loadVersion(p.Path, *currentHash)
 	if err != nil {
 		return nil, err
 	}
@@ -115,19 +165,7 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	newVersion := Version{
-		Message:  message,
-		Time:     time.Now(),
-		TreeHash: treeObj.Hash,
-		prev:     head,
-	}
-
-	versionObj, err := createVersion(p.Path, newVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	err = writeHead(p.Path, versionObj.Hash)
+	newVersion, err := saveVersion(p.Path, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +176,15 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, err
 	}
 
-	return &newVersion, nil
+	if head.MergedHash != nil {
+		head.MergedHash = nil
+		err = dumpHead(p.Path, *head)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return newVersion, nil
 }
 
 // Prev receives a version of the project and returns and it's previous one.
