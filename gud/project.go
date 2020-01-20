@@ -98,7 +98,7 @@ func (p Project) Save(message string) (*Version, error) {
 		addToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	prev, err := loadTree(p.Path, currentVersion.treeHash)
+	prev, err := loadTree(p.Path, currentVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (p Project) Save(message string) (*Version, error) {
 	newVersion := Version{
 		Message:  message,
 		Time:     time.Now(),
-		treeHash: treeObj.Hash,
+		TreeHash: treeObj.Hash,
 		prev:     head,
 	}
 

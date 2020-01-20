@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 type ChangeCallback func(relPath string, state FileState) error
@@ -26,7 +27,7 @@ func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
 		return err
 	}
 
-	root, err := loadTree(p.Path, version.treeHash)
+	root, err := loadTree(p.Path, version.TreeHash)
 	if err != nil {
 		return err
 	}
@@ -40,6 +41,17 @@ func compareTree(rootPath, relPath string, root tree, index []indexEntry, fn Cha
 		return err
 	}
 
+	// dont enter .gud
+	if relPath == "." {
+		ind := sort.Search(len(dir), func(i int) bool {
+			return gudPath <= dir[i].Name()
+		})
+		if ind < len(dir) && dir[ind].Name() == gudPath {
+			copy(dir[ind:], dir[ind+1:])
+			dir = dir[:len(dir)-1]
+		}
+	}
+
 	fileInd := 0
 	objInd := 0
 	for fileInd < len(dir) && objInd < len(root) {
@@ -49,7 +61,7 @@ func compareTree(rootPath, relPath string, root tree, index []indexEntry, fn Cha
 		childPath := filepath.Join(relPath, basePath)
 
 		if basePath < obj.Name { // new file/dir
-			err = reportNew(rootPath, childPath, info.IsDir(), fn)
+			err = reportNew(rootPath, childPath, info.IsDir(), index, fn)
 			if err != nil {
 				return err
 			}
@@ -68,7 +80,7 @@ func compareTree(rootPath, relPath string, root tree, index []indexEntry, fn Cha
 				if err != nil {
 					return err
 				}
-				err = reportNewDir(rootPath, childPath, fn)
+				err = reportNewDir(rootPath, childPath, index, fn)
 				if err != nil {
 					return err
 				}
@@ -103,21 +115,21 @@ func compareTree(rootPath, relPath string, root tree, index []indexEntry, fn Cha
 
 	for ; fileInd < len(dir); fileInd++ {
 		info := dir[fileInd]
-		err = reportNew(rootPath, filepath.Join(relPath, info.Name()), info.IsDir(), fn)
+		err = reportNew(rootPath, filepath.Join(relPath, info.Name()), info.IsDir(), index, fn)
 	}
 	for ; objInd < len(root); objInd++ {
-		info := dir[fileInd]
-		err = reportNew(rootPath, filepath.Join(relPath, info.Name()), info.IsDir(), fn)
+		obj := root[objInd]
+		err = reportRemoved(rootPath, filepath.Join(relPath, obj.Name), obj.Type == typeTree, obj.Hash, fn)
 	}
 
 	return nil
 }
 
-func reportNew(rootPath, relPath string, isDir bool, fn ChangeCallback) error {
+func reportNew(rootPath, relPath string, isDir bool, index []indexEntry, fn ChangeCallback) error {
 	if isDir {
-		return reportNewDir(rootPath, relPath, fn)
+		return reportNewDir(rootPath, relPath, index, fn)
 	}
-	return fn(relPath, StateNew)
+	return reportNewFile(rootPath, relPath, index, fn)
 }
 
 func reportRemoved(rootPath, relPath string, isDir bool, hash objectHash, fn ChangeCallback) error {
@@ -136,17 +148,14 @@ func compareDir(rootPath, relPath string, hash objectHash, index []indexEntry, f
 	return compareTree(rootPath, relPath, inner, index, fn)
 }
 
-func reportNewDir(rootPath, relPath string, fn ChangeCallback) error {
-	if relPath == gudPath { // don't enter .gud/
-		return nil
-	}
+func reportNewDir(rootPath, relPath string, index []indexEntry, fn ChangeCallback) error {
 	return filepath.Walk(filepath.Join(rootPath, relPath), func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			newRelPath, err := filepath.Rel(rootPath, path)
 			if err != nil {
 				return err
 			}
-			err = fn(newRelPath, StateNew)
+			err = reportNewFile(rootPath, newRelPath, index, fn)
 			if err != nil {
 				return err
 			}
@@ -154,6 +163,25 @@ func reportNewDir(rootPath, relPath string, fn ChangeCallback) error {
 
 		return nil
 	})
+}
+
+func reportNewFile(rootPath, relPath string, index []indexEntry, fn ChangeCallback) error {
+	ind, tracked := findEntry(index, relPath)
+	if tracked {
+		entry := index[ind]
+		if entry.State == StateNew || entry.State == StateModified {
+			same, err := compareToObject(rootPath, relPath, entry.Hash)
+			if err != nil {
+				return err
+			}
+			if !same {
+				return fn(relPath, StateModified)
+			}
+			return nil
+		}
+	}
+
+	return fn(relPath, StateNew)
 }
 
 func reportRemovedDir(rootPath, relPath string, hash objectHash, fn ChangeCallback) error {

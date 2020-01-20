@@ -42,7 +42,7 @@ type tree []object
 type Version struct {
 	Message  string
 	Time     time.Time
-	treeHash objectHash
+	TreeHash objectHash
 	prev     *objectHash
 }
 
@@ -78,7 +78,7 @@ func initObjectsDir(rootPath string) (*objectHash, error) {
 	obj, err := createVersion(rootPath, Version{
 		Message:  initialCommitName,
 		Time:     time.Now(),
-		treeHash: tree.Hash,
+		TreeHash: tree.Hash,
 		prev:     nil,
 	})
 	if err != nil {
@@ -111,9 +111,13 @@ func createVersion(rootPath string, version Version) (*object, error) {
 	return createGobObject(rootPath, version.Message, gobVersion{
 		Message:  version.Message,
 		Time:     version.Time,
-		TreeHash: version.treeHash,
+		TreeHash: version.TreeHash,
 		Prev:     version.prev,
 	}, typeVersion)
+}
+
+func (v *Version) String() string {
+	return fmt.Sprintf("Message: %s\nTime: %s\nHash: %X\n\n", v.Message, v.Time.Format("2006-01-02 15:04:05"), v.TreeHash)
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
@@ -250,7 +254,7 @@ func loadVersion(rootPath string, hash objectHash) (*Version, error) {
 	return &Version{
 		Message:  v.Message,
 		Time:     v.Time,
-		treeHash: v.TreeHash,
+		TreeHash: v.TreeHash,
 		prev:     v.Prev,
 	}, nil
 }
@@ -262,7 +266,7 @@ func findObject(rootPath, relPath string) (*objectHash, error) {
 		return nil, err
 	}
 
-	hash := version.treeHash
+	hash := version.TreeHash
 	for _, name := range dirs {
 		tree, err := loadTree(rootPath, hash)
 		if err != nil {
@@ -322,8 +326,8 @@ func compareToObject(rootPath, relPath string, hash objectHash) (bool, error) {
 	}
 }
 
-func addToStructure(structure *dirStructure, name string, hash objectHash) {
-	dirs := strings.Split(name, string(os.PathSeparator))
+func addToStructure(structure *dirStructure, relPath string, hash objectHash) {
+	dirs := strings.Split(relPath, string(os.PathSeparator))
 	current := structure
 
 	for _, dir := range dirs[:len(dirs)-1] {
@@ -340,6 +344,7 @@ func addToStructure(structure *dirStructure, name string, hash objectHash) {
 		current = &current.Dirs[ind]
 	}
 
+	name := dirs[len(dirs)-1]
 	// assume name is not in objects
 	ind, found := searchTree(current.Objects, name)
 	if found {

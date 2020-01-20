@@ -37,11 +37,7 @@ type indexFile struct {
 	Entries []indexEntry
 }
 
-func createIndexEntry(rootPath, path string) (*indexEntry, error) {
-	relPath, err := filepath.Rel(rootPath, path)
-	if err != nil {
-		return nil, err
-	}
+func createIndexEntry(rootPath, relPath string) (*indexEntry, error) {
 	if strings.HasPrefix(relPath, "..") {
 		return nil, Error{rootPath + " is not inside the root directory"}
 	}
@@ -58,19 +54,19 @@ func createIndexEntry(rootPath, path string) (*indexEntry, error) {
 			return nil, err
 		}
 		if unchanged {
-			return nil, Error{path + " has not been modified"}
+			return nil, AddedUnmodifiedFileError
 		}
 		state = StateModified
 	} else {
 		state = StateNew
 	}
 
-	info, err := os.Stat(path)
+	fullPath := filepath.Join(rootPath, relPath)
+	info, err := os.Stat(fullPath)
 	if err != nil {
 		return nil, err
 	}
-
-	spec, err := times.Stat(path)
+	spec, err := times.Stat(fullPath)
 	if err != nil {
 		return nil, err
 	}
@@ -110,14 +106,24 @@ func addToIndex(rootPath string, paths []string) error {
 	copy(newEntries, entries)
 
 	for e := files.Front(); e != nil; e = e.Next() {
-		file := e.Value.(string)
+		fullPath := e.Value.(string)
 
-		entry, err := createIndexEntry(rootPath, file)
+		relPath, err := filepath.Rel(rootPath, fullPath)
 		if err != nil {
 			return err
 		}
 
-		ind, found := findEntry(newEntries, entry.Name)
+		ind, found := findEntry(newEntries, relPath)
+		entry, err := createIndexEntry(rootPath, relPath)
+		if err != nil {
+			if err == AddedUnmodifiedFileError && found && newEntries[ind].State == StateRemoved { // remode then add
+				copy(newEntries[ind:], newEntries[ind+1:])
+				newEntries = newEntries[:len(newEntries)-1]
+				continue
+			}
+			return err
+		}
+
 		if !found { // file is not yet added
 			newEntries = append(newEntries, indexEntry{})
 			copy(newEntries[ind+1:], newEntries[ind:]) // keep the slice sorted
@@ -228,6 +234,7 @@ func removeFromProject(rootPath string, paths []string) error {
 
 func loadIndex(rootPath string) ([]indexEntry, error) {
 	file, err := os.Open(filepath.Join(rootPath, indexFilePath))
+
 	if err != nil {
 		return nil, err
 	}
