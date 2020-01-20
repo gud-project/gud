@@ -176,7 +176,7 @@ func reportNewDir(rootPath, relPath string, index []indexEntry, fn cmpCallback) 
 	})
 }
 
-func reportNewFile(rootPath, relPath string, index []indexEntry, fn ChangeCallback) error {
+func reportNewFile(rootPath, relPath string, index []indexEntry, fn cmpCallback) error {
 	ind, tracked := findEntry(index, relPath)
 	if tracked {
 		entry := index[ind]
@@ -186,16 +186,16 @@ func reportNewFile(rootPath, relPath string, index []indexEntry, fn ChangeCallba
 				return err
 			}
 			if !same {
-				return fn(relPath, StateModified)
+				return fn(relPath, StateModified, &entry.Hash, false)
 			}
 			return nil
 		}
 	}
 
-	return fn(relPath, StateNew)
+	return fn(relPath, StateNew, nil, false)
 }
 
-func reportRemovedDir(rootPath, relPath string, hash objectHash, fn ChangeCallback) error {
+func reportRemovedDir(rootPath, relPath string, hash objectHash, fn cmpCallback) error {
 	tree, err := loadTree(rootPath, hash)
 	if err != nil {
 		return err

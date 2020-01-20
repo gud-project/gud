@@ -58,7 +58,7 @@ func (p Project) Checkout(hash objectHash) error {
 	if err != nil {
 		return err
 	}
-	tree, err := loadTree(p.Path, version.treeHash)
+	tree, err := loadTree(p.Path, version.TreeHash)
 	if err != nil {
 		return err
 	}
@@ -167,15 +167,15 @@ func (p Project) merge(from objectHash, name string) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-	toTree, err := loadTree(p.Path, toVersion.treeHash)
+	toTree, err := loadTree(p.Path, toVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
-	fromTree, err := loadTree(p.Path, fromVersion.treeHash)
+	fromTree, err := loadTree(p.Path, fromVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
-	baseTree, err := loadTree(p.Path, baseVersion.treeHash)
+	baseTree, err := loadTree(p.Path, baseVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}

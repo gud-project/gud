@@ -101,7 +101,7 @@ func saveVersion(rootPath, message, branch string, tree objectHash, prev, merged
 	v := Version{
 		Message:  message,
 		Time:     time.Now(),
-		treeHash: tree,
+		TreeHash: tree,
 		prev:     prev,
 		merged:   merged,
 	}

@@ -2,7 +2,6 @@ package gud
 
 import (
 	"container/list"
-	"crypto/sha1"
 	"encoding/gob"
 	"os"
 	"path/filepath"
@@ -26,7 +25,7 @@ const (
 
 type indexEntry struct {
 	Name  string
-	Hash  [sha1.Size]byte
+	Hash  objectHash
 	State FileState
 	Size  int64
 	Ctime time.Time
