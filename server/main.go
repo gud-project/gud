@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/context"
@@ -39,35 +41,23 @@ type MultiErrorResponse struct {
 var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
 var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$`)
 
+type ContextKey int
+
+const (
+	KeyUserID ContextKey = iota
+)
+
 const passwordLenMin = 8
 const sessionAge = 60 * 60 * 24 * 7
 
-func main() {
-	db, err := sql.Open("postgres", fmt.Sprintf("user=gud password=%s", os.Getenv("PQ_PASS")))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+const projectsPath = "projects"
+const dirPerm = 0755
 
-	userExistsStmt, err := db.Prepare("SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer userExistsStmt.Close()
-	newUserStmt, err := db.Prepare(
-		"INSERT INTO users (username, email, password, created_at) VALUES ($1, $2, $3, NOW());")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer newUserStmt.Close()
-	getUserStmt, err := db.Prepare("SELECT id, password FROM users WHERE username = $1")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer getUserStmt.Close()
+func main() {
+	defer closeDB()
 
 	http.HandleFunc("/api/v1/signup", func(w http.ResponseWriter, r *http.Request) {
-		req, errs, intErr := validateSignUp(r, userExistsStmt)
+		req, errs, intErr := validateSignUp(r)
 		if intErr != nil {
 			handleError(w, intErr)
 			return
@@ -79,7 +69,18 @@ func main() {
 		}
 
 		hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		_, err = newUserStmt.Exec(req.Username, req.Email, hash)
+		res, err := newUserStmt.Exec(req.Username, req.Email, hash)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		id, err := res.LastInsertId()
+		if err != nil {
+			handleError(w, err)
+		}
+
+		err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(int(id))), dirPerm)
 		if err != nil {
 			handleError(w, err)
 			return
@@ -97,7 +98,7 @@ func main() {
 			return
 		}
 
-		res, err := getUserStmt.Query(req.Username)
+		res, err := userByNameStmt.Query(req.Username)
 		if err != nil {
 			handleError(w, err)
 			return
@@ -115,7 +116,7 @@ func main() {
 			return
 		}
 
-		var id uint
+		var id int
 		var hash []byte
 		err = res.Scan(&id, &hash)
 		if err != nil {
@@ -165,14 +166,61 @@ func main() {
 	})))
 
 	http.Handle("/api/v1/projects/create", verifySession(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		nameQuery, ok := r.URL.Query()["name"]
+		if !ok || len(nameQuery) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(ErrorResponse{"missing name"})
+			return
+		}
+
+		name := nameQuery[0]
+		userId := context.Get(r, KeyUserID).(int)
+
+		row, err := projectExistsStmt.Query(name, userId)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		defer row.Close()
+
+		var projectExists bool
+		row.Next()
+		err = row.Scan(&projectExists)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if projectExists {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(ErrorResponse{"project already exists"})
+			return
+		}
+
+		res, err := createProjectStmt.Exec(name, userId)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		projectId, err := res.LastInsertId()
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(userId), strconv.Itoa(int(projectId))), dirPerm)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(fmt.Sprintf("user id is %d", context.Get(r, "user_id").(uint))))
 	})))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func validateSignUp(r *http.Request, userExistsStmt *sql.Stmt) (*SignUpRequest, []string, error) {
+func validateSignUp(r *http.Request) (*SignUpRequest, []string, error) {
 	const maxErrs = 3
 	errs := make([]string, 0, maxErrs)
 
@@ -220,7 +268,7 @@ func validateSignUp(r *http.Request, userExistsStmt *sql.Stmt) (*SignUpRequest, 
 	return &req, nil, nil
 }
 
-func createSession(w http.ResponseWriter, r *http.Request, id uint, remember bool) error {
+func createSession(w http.ResponseWriter, r *http.Request, id int, remember bool) error {
 	sess, _ := store.Get(r, "session")
 	sess.Values["id"] = id
 
@@ -244,7 +292,7 @@ func verifySession(next http.Handler) http.Handler {
 		if !sess.IsNew {
 			id, ok := sess.Values["id"].(uint)
 			if ok {
-				context.Set(r, "user_id", id)
+				context.Set(r, KeyUserID, id)
 				next.ServeHTTP(w, r)
 				return
 			}
