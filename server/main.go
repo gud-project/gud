@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 )
 
 type SignUpRequest struct {
@@ -41,11 +42,15 @@ const dirPerm = 0755
 func main() {
 	defer closeDB()
 
-	http.HandleFunc("/api/v1/signup", signUp)
-	http.HandleFunc("/api/v1/login", login)
-	http.Handle("/api/v1/logout", verifySession(http.HandlerFunc(logout)))
+	api := mux.NewRouter()
+	api.HandleFunc("/signup", signUp).Methods("POST")
+	api.HandleFunc("/login", login).Methods("POST")
+	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods("POST")
 
-	http.Handle("/api/v1/projects/create", verifySession(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	projects := api.PathPrefix("/projects").Subrouter()
+	projects.Use(verifySession)
+
+	projects.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
 		var req CreateProjectRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil || req.Name == "" {
@@ -96,8 +101,9 @@ func main() {
 		}
 
 		w.WriteHeader(http.StatusOK)
-	})))
+	}).Methods("POST")
 
+	http.Handle("/api/v1", api)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
