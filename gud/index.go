@@ -25,7 +25,7 @@ const (
 
 type indexEntry struct {
 	Name  string
-	Hash  objectHash
+	Hash  ObjectHash
 	State FileState
 	Size  int64
 	Ctime time.Time

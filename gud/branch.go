@@ -19,8 +19,8 @@ const firstBranchName = "master"
 type Head struct {
 	IsDetached bool
 	Branch     string
-	Hash       objectHash
-	MergedHash *objectHash
+	Hash       ObjectHash
+	MergedHash *ObjectHash
 }
 
 func (p Project) CreateBranch(name string) error {
@@ -48,7 +48,16 @@ func (p Project) CreateBranch(name string) error {
 	return dumpBranch(p.Path, name, *hash)
 }
 
-func (p Project) Checkout(hash objectHash) error {
+func (p Project) CheckoutBranch(branch string) error {
+	hash, err := loadBranch(p.Path, branch)
+	if err != nil {
+		return err
+	}
+
+	return p.Checkout(*hash)
+}
+
+func (p Project) Checkout(hash ObjectHash) error {
 	err := p.assertNoChanges()
 	if err != nil {
 		return err
@@ -88,7 +97,7 @@ func (p Project) MergeBranch(from string) (*Version, error) {
 	return p.merge(*hash, from)
 }
 
-func (p Project) MergeHash(from objectHash) (*Version, error) {
+func (p Project) MergeHash(from ObjectHash) (*Version, error) {
 	version, err := loadVersion(p.Path, from)
 	if err != nil {
 		return nil, err
@@ -97,7 +106,23 @@ func (p Project) MergeHash(from objectHash) (*Version, error) {
 	return p.merge(from, fmt.Sprintf("\"%s\"", version.Message))
 }
 
-func (p Project) merge(from objectHash, name string) (*Version, error) {
+func (p Project) ListBranches(fn func(branch string) error) error {
+	return filepath.Walk(filepath.Join(p.Path, branchesDirPath), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			err = fn(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 	err := p.assertNoChanges()
 	if err != nil {
 		return nil, err
@@ -218,7 +243,7 @@ func (p Project) merge(from objectHash, name string) (*Version, error) {
 func removeChanges(rootPath string, tree tree) error {
 	return compareTree(
 		rootPath, ".", tree, []indexEntry{},
-		func(relPath string, state FileState, hash *objectHash, isDir bool) error {
+		func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
 			path := filepath.Join(rootPath, relPath)
 			if isDir && state == StateNew {
 				return os.Remove(path)
@@ -234,14 +259,14 @@ func removeChanges(rootPath string, tree tree) error {
 	)
 }
 
-func getCurrentHash(rootPath string, head Head) (*objectHash, error) {
+func getCurrentHash(rootPath string, head Head) (*ObjectHash, error) {
 	if head.IsDetached {
 		return &head.Hash, nil
 	}
 	return loadBranch(rootPath, head.Branch)
 }
 
-func isDescendent(rootPath string, new, old objectHash) (bool, error) {
+func isDescendent(rootPath string, new, old ObjectHash) (bool, error) {
 	for new != old {
 		version, err := loadVersion(rootPath, new)
 		if err != nil {
@@ -384,7 +409,7 @@ func mergeDiff(
 
 func writeConflict(
 	rootPath, relPath string,
-	to, from objectHash,
+	to, from ObjectHash,
 	toName, fromName string) (err error) {
 	toText, err := readBlob(rootPath, to)
 	if err != nil {
@@ -430,7 +455,7 @@ func writeChange(w io.Writer, changeType, name, change string) (int, error) {
 	return fmt.Fprintf(w, "%s\n%s\n%s", label, change, strings.Repeat("}", len(label)))
 }
 
-func initBranches(rootPath string, firstHash objectHash) error {
+func initBranches(rootPath string, firstHash ObjectHash) error {
 	err := os.Mkdir(filepath.Join(rootPath, branchesDirPath), os.ModeDir)
 	if err != nil {
 		return err
@@ -444,7 +469,7 @@ func initBranches(rootPath string, firstHash objectHash) error {
 	return dumpHead(rootPath, Head{IsDetached: false, Branch: firstBranchName})
 }
 
-func dumpBranch(rootPath string, name string, hash objectHash) (err error) {
+func dumpBranch(rootPath string, name string, hash ObjectHash) (err error) {
 	file, err := os.Create(filepath.Join(rootPath, branchesDirPath, name))
 	if err != nil {
 		return
@@ -460,8 +485,8 @@ func dumpBranch(rootPath string, name string, hash objectHash) (err error) {
 	return
 }
 
-func loadBranch(rootPath, name string) (*objectHash, error) {
-	var hash objectHash
+func loadBranch(rootPath, name string) (*ObjectHash, error) {
+	var hash ObjectHash
 
 	file, err := os.Open(filepath.Join(rootPath, branchesDirPath, name))
 	if err != nil {
