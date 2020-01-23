@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 type SignUpRequest struct {
@@ -94,7 +95,14 @@ func main() {
 			return
 		}
 
-		err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(userId), strconv.Itoa(int(projectId))), dirPerm)
+		dir := filepath.Join(projectsPath, strconv.Itoa(userId), strconv.Itoa(int(projectId)))
+		err = os.Mkdir(dir, dirPerm)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		_, err = gud.Start(dir)
 		if err != nil {
 			handleError(w, err)
 			return
