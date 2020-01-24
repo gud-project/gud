@@ -4,13 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 type SignUpRequest struct {
@@ -37,85 +32,33 @@ type MultiErrorResponse struct {
 	Errors []string `json:"errors"`
 }
 
-const projectsPath = "projects"
-const dirPerm = 0755
-
 func main() {
 	defer closeDB()
 
 	api := mux.NewRouter()
-	api.HandleFunc("/signup", signUp).Methods("POST")
-	api.HandleFunc("/login", login).Methods("POST")
-	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods("POST")
+	api.HandleFunc("/signup", signUp).Methods(http.MethodPost)
+	api.HandleFunc("/login", login).Methods(http.MethodPost)
+	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
 	projects := api.PathPrefix("/projects").Subrouter()
 	projects.Use(verifySession)
 
-	projects.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
-		var req CreateProjectRequest
-		err := json.NewDecoder(r.Body).Decode(&req)
-		if err != nil || req.Name == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(ErrorResponse{"missing name"})
-			return
-		}
+	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
 
-		name := req.Name
-		userId := context.Get(r, KeyUserID).(int)
-
-		row, err := projectExistsStmt.Query(name, userId)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		defer row.Close()
-
-		var projectExists bool
-		row.Next()
-		err = row.Scan(&projectExists)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		if projectExists {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(ErrorResponse{"project already exists"})
-			return
-		}
-
-		res, err := createProjectStmt.Exec(name, userId)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		projectId, err := res.LastInsertId()
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		dir := filepath.Join(projectsPath, strconv.Itoa(userId), strconv.Itoa(int(projectId)))
-		err = os.Mkdir(dir, dirPerm)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		_, err = gud.Start(dir)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}).Methods("POST")
+	project := api.PathPrefix("/project/{user}/{project}").Subrouter()
+	project.Use(verifySession, verifyProject)
 
 	http.Handle("/api/v1", api)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
+func reportError(w http.ResponseWriter, code int, message string) {
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(ErrorResponse{message})
+}
+
 func handleError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
-	log.Print(err)
+	log.Println(err)
+	log.Writer()
 }

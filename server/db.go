@@ -13,8 +13,10 @@ var db *sql.DB
 var newUserStmt,
 	userExistsStmt,
 	userByNameStmt,
+	userIdMatchesNameStmt,
 	createProjectStmt,
-	projectExistsStmt *sql.Stmt
+	projectExistsStmt,
+	projectByNameStmt *sql.Stmt
 
 func init() {
 	var err error
@@ -32,14 +34,28 @@ func init() {
 			"SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);")
 
 		userByNameStmt = mustPrepare(
-			"SELECT user_id, password FROM users WHERE username = $1")
+			"SELECT user_id, password FROM users WHERE username = $1;")
+
+		userIdMatchesNameStmt = mustPrepare(
+			"SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1 AND username = $2);")
 
 		createProjectStmt = mustPrepare(
 			"INSERT INTO projects (name, user_id, created_at) VALUES ($1, $2, NOW());")
 
 		projectExistsStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM projects WHERE name = $1 AND user_id = $2);")
+
+		projectByNameStmt = mustPrepare(
+			"SELECT project_id FROM projects WHERE name = $1 AND user_id = $2;")
 	}
+}
+
+func checkExists(stmt *sql.Stmt, args ...interface{}) (bool, error) {
+	row := stmt.QueryRow(args...)
+
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }
 
 func mustPrepare(query string) *sql.Stmt {
@@ -57,8 +73,10 @@ func closeDB() error {
 		newUserStmt,
 		userExistsStmt,
 		userByNameStmt,
+		userIdMatchesNameStmt,
 		createProjectStmt,
 		projectExistsStmt,
+		projectByNameStmt,
 	} {
 		if stmt != nil {
 			err := stmt.Close()

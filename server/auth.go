@@ -22,7 +22,8 @@ var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0
 type ContextKey int
 
 const (
-	KeyUserID ContextKey = iota
+	KeyUserId ContextKey = iota
+	KeyProjectId
 )
 
 const passwordLenMin = 8
@@ -65,32 +66,19 @@ func login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{err.Error()})
+		reportError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	res, err := userByNameStmt.Query(req.Username)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-	defer res.Close()
-
-	if !res.Next() {
-		err = res.Err()
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{"user not found"})
-		return
-	}
-
+	row := userByNameStmt.QueryRow(req.Username)
 	var id int
 	var hash []byte
-	err = res.Scan(&id, &hash)
+
+	err = row.Scan(&id, &hash)
+	if err == sql.ErrNoRows {
+		reportError(w, http.StatusUnauthorized, "user not found")
+		return
+	}
 	if err != nil {
 		handleError(w, err)
 		return
@@ -102,8 +90,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 			handleError(w, err)
 			return
 		}
-		w.WriteHeader(http.StatusUnauthorized)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{"user/password combination does not match"})
+		reportError(w, http.StatusUnauthorized, "user/password combination does not match")
 		return
 	}
 
@@ -153,16 +140,7 @@ func validateSignUp(r *http.Request) (*SignUpRequest, []string, error) {
 	} else if strings.ContainsRune(req.Username, '@') {
 		errs = append(errs, "username cannot contain @")
 	} else {
-		var res *sql.Rows
-		res, intErr := userExistsStmt.Query(req.Username)
-		if intErr != nil {
-			return nil, nil, intErr
-		}
-		defer res.Close()
-
-		var userExists bool
-		res.Next()
-		intErr = res.Scan(&userExists)
+		userExists, intErr := checkExists(userExistsStmt, req.Username)
 		if intErr != nil {
 			return nil, nil, intErr
 		}
@@ -209,7 +187,7 @@ func verifySession(next http.Handler) http.Handler {
 		if !sess.IsNew {
 			id, ok := sess.Values["id"].(uint)
 			if ok {
-				context.Set(r, KeyUserID, id)
+				context.Set(r, KeyUserId, id)
 				next.ServeHTTP(w, r)
 				return
 			}
