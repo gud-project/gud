@@ -53,7 +53,7 @@ to quickly create a Cobra application.`,
 			if !stayF {
 				err = checkout(p, args[0])
 				if err != nil {
-					fmt.Fprintf(os.Stderr, err.Error())
+					fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
 				}
 			}
 		}
@@ -61,6 +61,6 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	addCmd.Flags().BoolVarP(&stayF, "stay", "s", false, "Stay at the current branch")
+	createCmd.Flags().BoolVarP(&stayF, "stay", "s", false, "Stay at the current branch")
 	branchCmd.AddCommand(createCmd)
 }

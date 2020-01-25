@@ -16,13 +16,10 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
-	"log"
 	"os"
-	"strings"
 )
 
 // checkoutCmd represents the checkout command
@@ -44,6 +41,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 		}
+
 		err = checkout(p, args[0])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
@@ -52,21 +50,19 @@ to quickly create a Cobra application.`,
 }
 
 func checkout(p *gud.Project, target string) error {
-	err := p.CheckoutBranch(target)
+	var dst gud.ObjectHash
+	err := stringToHash(&dst, target)
 	if err != nil {
-		if strings.Contains(err.Error(), "The system cannot find the path specified") {
-			src := []byte(target)
-			var dst gud.ObjectHash
-			_, err := hex.Decode(dst[:], src)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			err = p.Checkout(dst)
-			if err != nil {
-				return err
-			}
-		} else {
+		err = p.CheckoutBranch(target)
+		if err != nil {
+			return err
+		}
+	}
+	err = p.Checkout(dst)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error() + "\n")
+		err = p.CheckoutBranch(target)
+		if err != nil {
 			return err
 		}
 	}

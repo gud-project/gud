@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -42,4 +43,12 @@ func LoadProject() (*gud.Project, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+func stringToHash(dst *gud.ObjectHash, src string) error{
+	_, err := hex.Decode(dst[:], []byte(src))
+	if err != nil {
+		return err
+	}
+	return nil
 }

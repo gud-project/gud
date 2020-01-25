@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"os"
+	"path/filepath"
 )
 
 // branchCmd represents the branch command
@@ -37,10 +38,11 @@ to quickly create a Cobra application.`,
 			return
 		}
 		branch, err := p.CurrentBranch()
-		fmt.Fprintf(os.Stdout, "Current branch is: %s\n", branch)
+		fmt.Fprintf(os.Stdout, "Current branch is: \n%s\n", branch)
 		fmt.Fprintf(os.Stdout, "Other branches:\n")
 		err = p.ListBranches(func(branch string) error {
-			_, err:= fmt.Println(branch)
+			relBranch, _ := filepath.Rel(filepath.Join(p.Path, ".gud\\branches"), branch)
+			_, err:= fmt.Println(relBranch)
 			return err
 		})
 	},

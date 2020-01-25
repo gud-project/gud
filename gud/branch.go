@@ -93,7 +93,6 @@ func (p Project) MergeBranch(from string) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return p.merge(*hash, from)
 }
 

@@ -22,6 +22,13 @@ const initialCommitName string = "initial commit"
 type objectType int
 type ObjectHash [sha1.Size]byte
 
+func init() {
+	gob.Register(&indexFile{})
+	gob.Register(&Head{})
+	gob.Register(&gobVersion{})
+	gob.Register(&tree{})
+}
+
 func (h ObjectHash) String() string {
 	return hex.EncodeToString(h[:])
 }
@@ -148,7 +155,7 @@ func createVersion(rootPath string, version Version) (*object, error) {
 }
 
 func (v *Version) String() string {
-	return fmt.Sprintf("Message: %s\nTime: %s\nHash: %X\n\n", v.Message, v.Time.Format("2006-01-02 15:04:05"), v.TreeHash)
+	return fmt.Sprintf("Message: %s\nTime: %s\n", v.Message, v.Time.Format("2006-01-02 15:04:05"))
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
