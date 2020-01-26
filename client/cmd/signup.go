@@ -16,16 +16,13 @@ limitations under the License.
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
-	"golang.org/x/crypto/ssh/terminal"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 )
@@ -43,24 +40,27 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Print("Enter user name: ")
-		reader := bufio.NewReader(os.Stdin)
-		name, err := reader.ReadString('\n')
-		if err != nil {
-			println(err.Error())
-			return
-		}
+		print("Username: ")
+		var name string
+		fmt.Scanln(&name)
 
-		email, _ := reader.ReadString('\n')
-		for emailPattern.MatchString(email) {
-			fmt.Fprintf(os.Stderr, "Use email format\n")
-			email, _ = reader.ReadString('\n')
+		print("Email: ")
+		var email string
+		fmt.Scanln(&email)
+		for !emailPattern.MatchString(email) {
+			print("Use email format\nEmail: ")
+			fmt.Scanln(&email)
 		}
 
 		password, err := getPassword()
-		for err != nil {
-			println(err.Error())
+		for err != nil && password == "1"{
+			print(err.Error())
 			password, err = getPassword()
+		}
+
+		if err != nil && password == "2" {
+			print(err.Error())
+			return
 		}
 
 		request := gud.SignUpRequest{name, email, password}
@@ -85,44 +85,43 @@ to quickly create a Cobra application.`,
 			}
 		}
 		err = saveToken(name, token)
+		if err != nil {
+			print(err.Error())
+		}
 	},
 }
 
 func getPassword() (string, error) {
-	print("Enter password: ")
+	print("Password: ")
 	p, err := getValidPassword()
 	if err != nil {
-		return "", err
+		return p, err
 	}
-	print("Enter password again: ")
+	print("password verification: ")
 	vp, err := getValidPassword()
 	if err != nil {
-		return "", err
+		return vp, err
 	}
 	if vp != p {
-		return "", errors.New("Passwords don't match\n")
+		return "1", errors.New("Passwords don't match\n")
 	}
 
 	return p, nil
 }
 
 func getValidPassword() (string, error) {
-	bPassword, err := terminal.ReadPassword(0)
-	if err != nil {
-		return "", fmt.Errorf("Failed to read password: %s\n", err.Error())
-	}
+	var bPassword string
+	fmt.Scanln(&bPassword)
 	password := string(bPassword)
 	if len(password) < gud.PasswordLenMin {
-		return "", errors.New("Password length must be more then 8 characters\n")
+		return "1", errors.New("Password length must be more then 8 characters\n")
 	}
-	if strings.Contains(password, "&") {
-		return "", errors.New("Password can't contain &\n")
+	if strings.Contains(password, "@") {
+		return "1", errors.New("Password can't contain @\n")
 	}
 	return password, nil
 }
 
 func init() {
 	rootCmd.AddCommand(signupCmd)
-
-
 }

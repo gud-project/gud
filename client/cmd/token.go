@@ -21,3 +21,7 @@ func saveToken(name, token string) error{
 	}
 	return nil
 }
+
+func loadToken(name string) (string, error) {
+	return "yay", nil
+}
