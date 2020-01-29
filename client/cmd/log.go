@@ -19,14 +19,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		wd, err := os.Getwd()
+		p, err := LoadProject()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-			return
-		}
-		p, err := gud.Load(wd)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
 			return
 		}
 		v, err := p.CurrentVersion()
@@ -34,9 +28,9 @@ to quickly create a Cobra application.`,
 			fmt.Fprintf(os.Stderr, err.Error())
 		}
 
-		_, err = p.Prev(*v)
-		if err != nil && err.Error() == "The version has no predecessor" {
-			fmt.Fprintf(os.Stdout, "Current branch has no versions\n")
+		_, _, err = p.Prev(*v)
+		if err != nil {
+			fmt.Fprintf(os.Stdout, err.Error())
 		}
 
 		err = printLog(*p, v)
@@ -47,7 +41,7 @@ to quickly create a Cobra application.`,
 }
 
 func printLog(p gud.Project, cv *gud.Version) error {
-	prev, err := p.Prev(*cv)
+	v, prev, err := p.Prev(*cv)
 
 	if err != nil {
 		if err.Error() == "The version has no predecessor" {
@@ -63,7 +57,7 @@ func printLog(p gud.Project, cv *gud.Version) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stdout, cv.String())
+	fmt.Fprintf(os.Stdout, "%s\nHash: %s\n\n", cv.String(), v)
 	return nil
 }
 

@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 var recursF bool
@@ -52,14 +51,8 @@ to quickly create a Cobra application.`,
 }
 
 func removeFiles(paths []string) {
-	wd, err := os.Getwd()
+	p, err := LoadProject()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		return
-	}
-	p, err := gud.Load(wd)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
 		return
 	}
 

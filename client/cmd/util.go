@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"encoding/hex"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 func getAllFiles() ([]string, error) {
@@ -25,4 +29,26 @@ func getAllFiles() ([]string, error) {
 		return nil, err
 	}
 	return files, nil
+}
+
+func LoadProject() (*gud.Project, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		return nil, err
+	}
+	p, err := gud.Load(wd)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		return nil, err
+	}
+	return p, nil
+}
+
+func stringToHash(dst *gud.ObjectHash, src string) error{
+	_, err := hex.Decode(dst[:], []byte(src))
+	if err != nil {
+		return err
+	}
+	return nil
 }

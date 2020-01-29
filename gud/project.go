@@ -32,7 +32,6 @@ func Start(dir string) (*Project, error) {
 		Message:  initialCommitName,
 		Time:     time.Now(),
 		TreeHash: tree.Hash,
-		prev:     nil,
 	})
 	if err != nil {
 		return nil, err
@@ -153,7 +152,9 @@ func (p Project) Save(message string) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	if len(index) == 0 {
+		return nil, Error{"no changes to commit"}
+	}
 	for _, entry := range index {
 		if entry.State == StateConflict {
 			return nil, Error{"conflicts must be solved before saving"}
@@ -224,15 +225,15 @@ func (p Project) Save(message string) (*Version, error) {
 }
 
 // Prev receives a version of the project and returns and it's previous one.
-func (p Project) Prev(version Version) (*Version, error) {
+func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 	if !version.HasPrev() {
-		return nil, Error{"The version has no predecessor"}
+		return nil, nil, Error{"The version has no predecessor"}
 	}
 
 	prev, err := loadVersion(p.Path, *version.prev)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return prev, nil
+	return version.prev, prev, nil
 }

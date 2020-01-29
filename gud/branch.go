@@ -61,6 +61,15 @@ func (p Project) GetBranch(name string) (*ObjectHash, error) {
 	return loadBranch(p.Path, name)
 }
 
+func (p Project) CheckoutBranch(branch string) error {
+	hash, err := loadBranch(p.Path, branch)
+	if err != nil {
+		return err
+	}
+
+	return p.Checkout(*hash)
+}
+
 func (p Project) Checkout(hash ObjectHash) error {
 	err := p.assertNoChanges()
 	if err != nil {
@@ -97,7 +106,6 @@ func (p Project) MergeBranch(from string) (*Version, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return p.merge(*hash, from)
 }
 
@@ -108,6 +116,22 @@ func (p Project) MergeHash(from ObjectHash) (*Version, error) {
 	}
 
 	return p.merge(from, fmt.Sprintf("\"%s\"", version.Message))
+}
+
+func (p Project) ListBranches(fn func(branch string) error) error {
+	return filepath.Walk(filepath.Join(p.Path, branchesDirPath), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			err = fn(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (p Project) merge(from ObjectHash, name string) (*Version, error) {

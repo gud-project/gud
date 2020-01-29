@@ -23,6 +23,7 @@ func clearTest() {
 }
 
 func TestMain(m *testing.M) {
+	_ = os.RemoveAll(testDir)
 	// Creates test directory
 	err := os.Mkdir(testDir, dirPerm)
 	if err != nil {
@@ -110,7 +111,7 @@ func TestProject_Prev(t *testing.T) {
 	testPath := filepath.Join(testDir, testFile)
 	p, _ := Start(testDir)
 	firstVersion, _ := p.CurrentVersion()
-	beforeFirst, err := p.Prev(*firstVersion)
+	_, beforeFirst, err := p.Prev(*firstVersion)
 	if beforeFirst != nil || err == nil {
 		t.Fail()
 	}
@@ -120,7 +121,7 @@ func TestProject_Prev(t *testing.T) {
 	_ = p.Add(testPath)
 	secondVersion, _ := p.Save("add testFile")
 
-	prev, err := p.Prev(*secondVersion)
+	_, prev, err := p.Prev(*secondVersion)
 	if err != nil {
 		t.Fatal(err)
 	}
