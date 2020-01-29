@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"net/textproto"
 	"os"
 	"path/filepath"
@@ -170,8 +169,7 @@ func createPart(writer *multipart.Writer, hash ObjectHash, contentType string) (
 	return writer.CreatePart(header)
 }
 
-func (p Project) PullBranch(branch string, r *http.Request) error {
-	contentType := r.Header.Get("Content-Type")
+func (p Project) PullBranch(branch string, in io.Reader, contentType string) error {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
@@ -194,7 +192,7 @@ func (p Project) PullBranch(branch string, r *http.Request) error {
 	}()
 
 	files := list.New()
-	objs := multipart.NewReader(r.Body, params["boundary"])
+	objs := multipart.NewReader(in, params["boundary"])
 	for {
 		hash, err := pullVersion(temp.Path, objs, currentHash, files)
 		if err != nil {

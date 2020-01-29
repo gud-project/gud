@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
@@ -137,8 +136,8 @@ func validateSignUp(r *http.Request) (*SignUpRequest, []string, error) {
 
 	if req.Username == "" {
 		errs = append(errs, "missing username")
-	} else if strings.ContainsRune(req.Username, '@') {
-		errs = append(errs, "username cannot contain @")
+	} else if !validName(req.Username) {
+		errs = append(errs, "invalid username")
 	} else {
 		userExists, intErr := checkExists(userExistsStmt, req.Username)
 		if intErr != nil {
