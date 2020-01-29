@@ -39,7 +39,12 @@ func loadToken() (string, error) {
 		return "", errors.New("Failed to load token\n")
 	}
 	defer f.Close()
-	return "yay", nil
+	token := make([]byte, 100)
+	_, err = f.Read(token)
+	if err != nil {
+		return "", errors.New("Failed to read token\n")
+	}
+	return string(token), nil
 }
 
 func deleteToken() {
