@@ -8,7 +8,7 @@ import (
 )
 
 type ChangeCallback func(relPath string, state FileState) error
-type cmpCallback func(relPath string, state FileState, hash *objectHash, isDir bool) error
+type cmpCallback func(relPath string, state FileState, hash *ObjectHash, isDir bool) error
 
 func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
 	index, err := loadIndex(p.Path)
@@ -35,7 +35,7 @@ func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
 
 	return compareTree(
 		p.Path, ".", root, index,
-		func(relPath string, state FileState, hash *objectHash, isDir bool) error {
+		func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
 			return untrackedFn(relPath, state)
 		},
 	)
@@ -146,7 +146,7 @@ func reportRemoved(rootPath, parentPath string, obj object, fn cmpCallback) erro
 	return fn(relPath, StateRemoved, &obj.Hash, false)
 }
 
-func compareDir(rootPath, relPath string, hash objectHash, index []indexEntry, fn cmpCallback) error {
+func compareDir(rootPath, relPath string, hash ObjectHash, index []indexEntry, fn cmpCallback) error {
 	inner, err := loadTree(rootPath, hash)
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func reportNewFile(rootPath, relPath string, index []indexEntry, fn cmpCallback)
 	return fn(relPath, StateNew, nil, false)
 }
 
-func reportRemovedDir(rootPath, relPath string, hash objectHash, fn cmpCallback) error {
+func reportRemovedDir(rootPath, relPath string, hash ObjectHash, fn cmpCallback) error {
 	tree, err := loadTree(rootPath, hash)
 	if err != nil {
 		return err
@@ -211,7 +211,7 @@ func reportRemovedDir(rootPath, relPath string, hash objectHash, fn cmpCallback)
 	return fn(relPath, StateRemoved, &hash, true)
 }
 
-func compareFile(rootPath, relPath string, hash objectHash, index []indexEntry, fn cmpCallback) error {
+func compareFile(rootPath, relPath string, hash ObjectHash, index []indexEntry, fn cmpCallback) error {
 	ind, tracked := findEntry(index, relPath)
 	if tracked {
 		entry := index[ind]

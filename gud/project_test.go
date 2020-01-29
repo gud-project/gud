@@ -16,7 +16,7 @@ func clearTest() {
 		panic(err)
 	}
 
-	err = os.Mkdir(testDir, os.ModeDir)
+	err = os.Mkdir(testDir, dirPerm)
 	if err != nil {
 		panic(err)
 	}
@@ -24,7 +24,7 @@ func clearTest() {
 
 func TestMain(m *testing.M) {
 	// Creates test directory
-	err := os.Mkdir(testDir, os.ModeDir)
+	err := os.Mkdir(testDir, dirPerm)
 	if err != nil {
 		panic(err)
 	}
@@ -139,7 +139,7 @@ func TestProject_CurrentBranch(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if firstBranch != firstBranchName {
+	if firstBranch != FirstBranchName {
 		t.Error("first branch name incorrect")
 	}
 }

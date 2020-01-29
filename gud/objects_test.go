@@ -11,8 +11,8 @@ import (
 func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
-	_ = os.Mkdir(filepath.Join(testDir, gudPath), os.ModeDir)
-	_, err := initObjectsDir(testDir)
+	_ = os.Mkdir(filepath.Join(testDir, gudPath), dirPerm)
+	err := initObjectsDir(testDir)
 	if err != nil {
 		t.Error(err)
 	}

@@ -4,9 +4,11 @@ package gud
 import (
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const gudPath = ".gud"
+const dirPerm = 0755
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -16,6 +18,40 @@ type Project struct {
 // Start creates a new Gud project in the path it receives.
 // It returns a struct representing it.
 func Start(dir string) (*Project, error) {
+	project, err := StartHeadless(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	tree, err := createTree(project.Path, "", tree{})
+	if err != nil {
+		return nil, err
+	}
+
+	obj, err := createVersion(project.Path, Version{
+		Message:  initialCommitName,
+		Time:     time.Now(),
+		TreeHash: tree.Hash,
+		prev:     nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = dumpBranch(project.Path, FirstBranchName, obj.Hash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dumpHead(project.Path, Head{IsDetached: false, Branch: FirstBranchName})
+	if err != nil {
+		return nil, err
+	}
+
+	return project, err
+}
+
+func StartHeadless(dir string) (*Project, error) {
 	// Check if got a path
 	if dir == "" {
 		wd, err := os.Getwd()
@@ -26,22 +62,22 @@ func Start(dir string) (*Project, error) {
 	}
 
 	gudDir := filepath.Join(dir, gudPath)
-	err := os.Mkdir(gudDir, os.ModeDir)
-	if err != nil {
-		return nil, err
-	}
-
-	firstHash, err := initObjectsDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	err = initBranches(dir, *firstHash)
+	err := os.Mkdir(gudDir, dirPerm)
 	if err != nil {
 		return nil, err
 	}
 
 	err = initIndex(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initObjectsDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initBranches(dir)
 	if err != nil {
 		return nil, err
 	}
