@@ -64,7 +64,7 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		request := gud.SignUpRequest{name, email, password}
+		request := gud.SignUpRequest{Username: name, Email: email, Password: password}
 
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(request)
@@ -85,7 +85,7 @@ to quickly create a Cobra application.`,
 				token = cookie.Value
 			}
 		}
-		err = saveToken(name, token)
+		err = saveToken(token)
 		if err != nil {
 			print(err.Error())
 		}
@@ -111,9 +111,8 @@ func getPassword() (string, error) {
 }
 
 func getValidPassword() (string, error) {
-	var bPassword string
-	fmt.Scanln(&bPassword)
-	password := string(bPassword)
+	var password string
+	fmt.Scanln(&password)
 	if len(password) < gud.PasswordLenMin {
 		return "1", errors.New("Password length must be more then 8 characters\n")
 	}

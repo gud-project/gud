@@ -1,15 +1,26 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 )
 
-const tokenPath = "path"
+const tokenName = ".gudToken"
 
-func saveToken(name, token string) error{
-	f, err := os.Create(filepath.Join(tokenPath, name))
+func getTokenPath() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	return filepath.Join(usr.HomeDir, tokenName)
+}
+
+func saveToken(token string) error{
+	f, err := os.Create(getTokenPath())
 	if err != nil {
 		return fmt.Errorf("Failed to create token file: %s\n", err.Error())
 	}
@@ -22,6 +33,18 @@ func saveToken(name, token string) error{
 	return nil
 }
 
-func loadToken(name string) (string, error) {
+func loadToken() (string, error) {
+	f, err := os.Open(getTokenPath())
+	if err != nil {
+		return "", errors.New("Failed to load token\n")
+	}
+	defer f.Close()
 	return "yay", nil
+}
+
+func deleteToken() {
+	err := os.Remove(getTokenPath())
+	if err != nil {
+		print(err.Error())
+	}
 }
