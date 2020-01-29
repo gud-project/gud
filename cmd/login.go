@@ -16,16 +16,19 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/spf13/cobra"
-	"os"
-	"path/filepath"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
-// branchCmd represents the branch command
-var branchCmd = &cobra.Command{
-	Use:   "branch <branch-subcommand>",
-	Short: "A brief description of your command",
+// loginCmd represents the login command
+var loginCmd = &cobra.Command{
+	Use:   "login",
+	Short: "Login into a user's account",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -33,21 +36,43 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		p, err := LoadProject()
+		print("Username: ")
+		var name string
+		fmt.Scanln(&name)
+		print("Password: ")
+		var password string
+		fmt.Scanln(&password)
+
+		request := gud.LoginRequest{name, password, true}
+
+		var buf bytes.Buffer
+		err := json.NewEncoder(&buf).Encode(request)
 		if err != nil {
+			println(err.Error())
 			return
 		}
-		branch, err := p.CurrentBranch()
-		fmt.Fprintf(os.Stdout, "Current branch is: \n%s\n", branch)
-		fmt.Fprintf(os.Stdout, "Other branches:\n")
-		err = p.ListBranches(func(branch string) error {
-			relBranch, _ := filepath.Rel(filepath.Join(p.Path, ".gud\\branches"), branch)
-			_, err:= fmt.Println(relBranch)
-			return err
-		})
+
+		resp, err := http.Post("http://localhost/api/v1/login", "application/json", &buf)
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		defer resp.Body.Close()
+
+		var token string
+		for _, cookie := range resp.Cookies() {
+			if cookie.Name == "session" {
+				token = cookie.Value
+			}
+		}
+		err = saveToken(name, token)
+		if err != nil {
+			print(err.Error())
+		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(branchCmd)
+	rootCmd.AddCommand(loginCmd)
+
 }

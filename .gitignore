@@ -1,4 +1,5 @@
 /**/vendor/
 /gud/gud.a
-/client/client
 /server/server
+
+/gud/test/

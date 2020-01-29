@@ -16,15 +16,19 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
-	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
+	"path/filepath"
+
+	"github.com/spf13/cobra"
 )
 
-// mergeCmd represents the merge command
-var mergeCmd = &cobra.Command{
-	Use:   "merge",
+var restartF bool
+
+// destructCmd represents the destruct command
+var destructCmd = &cobra.Command{
+	Use:   "destruct",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -33,38 +37,34 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Missing branch to merge\n")
-		}	else {
-			p, err := LoadProject()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
-				return
-			}
-
-			var dst gud.ObjectHash
-			err = stringToHash(&dst, args[0])
-			if err == nil {
-				_, err = p.MergeHash(dst)
-				if err != nil {
-					_ = mergeByName(p, args[0])
-				}
-
-			}	else {
-				_ = mergeByName(p, args[0])
-			}
+		wd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			return
+		}
+		root, err := getRoot(wd)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+		}
+		_ = os.RemoveAll(root)
+		if restartF {
+			startCmd.Run(cmd, args)
 		}
 	},
 }
 
-func mergeByName(p *gud.Project, name string) (*gud.Version) {
-	v, err := p.MergeBranch(name)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
+func getRoot(path string) (string, error) {
+	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
+		info, err := os.Stat(filepath.Join(path, ".gud"))
+		if !os.IsNotExist(err) && info.IsDir() {
+			return filepath.Join(path, ".gud"), nil
+		}
+		path = parent
 	}
-	return v
+	return "", errors.New("No Gud project found\n")
 }
 
 func init() {
-	rootCmd.AddCommand(mergeCmd)
+	destructCmd.Flags().BoolVar(&restartF, "restart", false, "recreate the project")
+	rootCmd.AddCommand(destructCmd)
 }

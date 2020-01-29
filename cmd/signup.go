@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
-	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 	"regexp"
 	"strings"
+
+	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$`)

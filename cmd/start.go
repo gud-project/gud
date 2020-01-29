@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
-	"os"
 )
 
 // startCmd represents the start command

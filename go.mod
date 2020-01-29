@@ -1,4 +1,4 @@
-module gitlab.com/magsh-2019/2/gud/client
+module gitlab.com/magsh-2019/2/gud
 
 go 1.13
 

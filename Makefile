@@ -1,26 +1,25 @@
 LIB_DIR=./gud/
-CLI_DIR=./client/
+CLI_DIR=.
 SERVER_DIR=./server/
 
-go_src=$(shell find $(1) -not -path '$(1)/vendor/**' -not -name *_test.go \( -name *.go -o -name go.* \))
+go_src=$(shell find $(1) -not -path '**/vendor/**' -not -name *_test.go \( -name '*.go' -o -name 'go.*' \))
 
 LIB_SRC=$(call go_src,$(LIB_DIR))
 CLI_SRC=$(call go_src,$(CLI_DIR))
 SERVER_SRC=$(call go_src,$(SERVER_DIR))
 
-.PHONY: client server
+.PHONY: all client server
 .ONESHELL: client server
 
-define build_with_lib
+define vendor
+	sed -i 's/"gitlab.com\/magsh-2019\/2\/gud\/gud"/\/\/ \0/g' $(call go_src,$(1))
 	cd $(1)
-	sed -i 's/"gitlab.com\/magsh-2019\/2\/gud\/gud"/\/\/ \0/g' **/*.go
 	go mod vendor
-	sed -i 's/\/\/ \("gitlab.com\/magsh-2019\/2\/gud\/gud"\)/\1/g' **/*.go
-	GO111MODULE=off go build
+	cd -
+	sed -i 's/\/\/ \("gitlab.com\/magsh-2019\/2\/gud\/gud"\)/\1/g' $(call go_src,$(1))
 endef
 
 all: client server
-client: client/client
 server: server/server
 
 gud/gud.a: $(LIB_SRC)
@@ -28,8 +27,13 @@ gud/gud.a: $(LIB_SRC)
 	go mod vendor
 	go build -o gud.a
 
-client/client: gud/gud.a $(CLI_SRC)
-	$(call build_with_lib,$(CLI_DIR))
+client: gud/gud.a $(CLI_SRC)
+	$(call vendor,$(CLI_DIR))
+	cd $(CLI_DIR)
+	GO111MODULE=off go install
+
 
 server/server: gud/gud.a $(SERVER_SRC)
-	$(call build_with_lib,$(SERVER_DIR))
+	$(call vendor,$(SERVER_DIR))
+	cd $(SERVER_DIR)
+	GO111MODULE=off go build
