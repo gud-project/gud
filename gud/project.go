@@ -7,12 +7,13 @@ import (
 	"time"
 )
 
-const gudPath = ".gud"
+const defaultGudPath = ".gud"
 const dirPerm = 0755
 
 // Project is a representation of a Gud project
 type Project struct {
 	Path string
+	gudPath string
 }
 
 // Start creates a new Gud project in the path it receives.
@@ -23,12 +24,12 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	tree, err := createTree(project.Path, "", tree{})
+	tree, err := createTree(project.gudPath, "", tree{})
 	if err != nil {
 		return nil, err
 	}
 
-	obj, err := createVersion(project.Path, Version{
+	obj, err := createVersion(project.gudPath, Version{
 		Message:  initialCommitName,
 		Time:     time.Now(),
 		TreeHash: tree.Hash,
@@ -37,12 +38,12 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	err = dumpBranch(project.Path, FirstBranchName, obj.Hash)
+	err = dumpBranch(project.gudPath, FirstBranchName, obj.Hash)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dumpHead(project.Path, Head{IsDetached: false, Branch: FirstBranchName})
+	err = dumpHead(project.gudPath, Head{IsDetached: false, Branch: FirstBranchName})
 	if err != nil {
 		return nil, err
 	}
@@ -51,46 +52,51 @@ func Start(dir string) (*Project, error) {
 }
 
 func StartHeadless(dir string) (*Project, error) {
+	return startGudDir(dir, defaultGudPath)
+}
+
+func startGudDir(path, gudRelPath string) (*Project, error) {
 	// Check if got a path
-	if dir == "" {
+	if path == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return nil, err
 		}
-		dir = wd
+		path = wd
 	}
 
-	gudDir := filepath.Join(dir, gudPath)
-	err := os.Mkdir(gudDir, dirPerm)
+	gudPath := filepath.Join(path, gudRelPath)
+	err := os.Mkdir(gudPath, dirPerm)
 	if err != nil {
 		return nil, err
 	}
 
-	err = initIndex(dir)
+	err = initIndex(gudPath)
 	if err != nil {
 		return nil, err
 	}
 
-	err = initObjectsDir(dir)
+	err = initObjectsDir(gudPath)
 	if err != nil {
 		return nil, err
 	}
 
-	err = initBranches(dir)
+	err = initBranches(gudPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the directory
-	return &Project{dir}, nil
+	return &Project{path, gudPath}, nil
 }
 
 // Load receives a path to a Gud project and returns a representation of it.
 func Load(dir string) (*Project, error) {
 	for parent := filepath.Dir(dir); dir != parent; parent = filepath.Dir(parent) {
-		info, err := os.Stat(filepath.Join(dir, ".gud"))
+		gudPath := filepath.Join(dir, defaultGudPath)
+		info, err := os.Stat(gudPath)
 		if !os.IsNotExist(err) && info.IsDir() {
-			return &Project{dir}, nil
+			return &Project{dir, gudPath}, nil
 		}
 		dir = parent
 	}
@@ -98,33 +104,23 @@ func Load(dir string) (*Project, error) {
 	return nil, Error{"No Gud project found at " + dir}
 }
 
-// Add adds files to the current version of the Gud project
-func (p Project) Add(paths ...string) error {
-	return addToIndex(p.Path, paths)
-}
-
-// Remove removes files from the current version of the Gud project
-func (p Project) Remove(paths ...string) error {
-	return removeFromProject(p.Path, paths)
-}
-
 // CurrentVersion returns the current version of the project
 func (p Project) CurrentVersion() (*Version, error) {
-	head, err := loadHead(p.Path)
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
 
-	hash, err := getCurrentHash(p.Path, *head)
+	hash, err := getCurrentHash(p.gudPath, *head)
 	if err != nil {
 		return nil, err
 	}
 
-	return loadVersion(p.Path, *hash)
+	return loadVersion(p.gudPath, *hash)
 }
 
 func (p Project) CurrentBranch() (string, error) {
-	head, err := loadHead(p.Path)
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return "", err
 	}
@@ -138,17 +134,17 @@ func (p Project) LatestVersion() (*Version, error) {
 		return nil, err
 	}
 
-	hash, err := loadBranch(p.Path, branch)
+	hash, err := loadBranch(p.gudPath, branch)
 	if err != nil {
 		return nil, err
 	}
 
-	return loadVersion(p.Path, *hash)
+	return loadVersion(p.gudPath, *hash)
 }
 
 // Save saves the current version of the project.
 func (p Project) Save(message string) (*Version, error) {
-	index, err := loadIndex(p.Path)
+	index, err := loadIndex(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +157,7 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	head, err := loadHead(p.Path)
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +166,12 @@ func (p Project) Save(message string) (*Version, error) {
 		return nil, Error{"cannot save when head is detached"}
 	}
 
-	currentHash, err := getCurrentHash(p.Path, *head)
+	currentHash, err := getCurrentHash(p.gudPath, *head)
 	if err != nil {
 		return nil, err
 	}
 
-	currentVersion, err := loadVersion(p.Path, *currentHash)
+	currentVersion, err := loadVersion(p.gudPath, *currentHash)
 	if err != nil {
 		return nil, err
 	}
@@ -185,37 +181,37 @@ func (p Project) Save(message string) (*Version, error) {
 		addToStructure(&dir, entry.Name, entry.Hash)
 	}
 
-	prev, err := loadTree(p.Path, currentVersion.TreeHash)
+	prev, err := loadTree(p.gudPath, currentVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
 
-	treeObj, err := buildTree(p.Path, "", dir, prev)
+	treeObj, err := buildTree(p.gudPath, "", dir, prev)
 	if err != nil {
 		return nil, err
 	}
 
 	if treeObj == nil {
-		treeObj, err = createTree(p.Path, message, tree{})
+		treeObj, err = createTree(p.gudPath, message, tree{})
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	newVersion, err := saveVersion(p.Path, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
+	newVersion, err := saveVersion(p.gudPath, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// reset index
-	err = initIndex(p.Path)
+	err = initIndex(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
 
 	if head.MergedHash != nil {
 		head.MergedHash = nil
-		err = dumpHead(p.Path, *head)
+		err = dumpHead(p.gudPath, *head)
 		if err != nil {
 			return nil, err
 		}
@@ -230,7 +226,7 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 		return nil, nil, Error{"The version has no predecessor"}
 	}
 
-	prev, err := loadVersion(p.Path, *version.prev)
+	prev, err := loadVersion(p.gudPath, *version.prev)
 	if err != nil {
 		return nil, nil, err
 	}

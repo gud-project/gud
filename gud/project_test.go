@@ -90,7 +90,7 @@ func TestProject_Save(t *testing.T) {
 		t.Error("CurrentVersion() did not return the latest version")
 	}
 
-	tree, err := loadTree(testDir, version.TreeHash)
+	tree, err := loadTree(p.gudPath, version.TreeHash)
 	if err != nil {
 		t.Fatal(err)
 	}

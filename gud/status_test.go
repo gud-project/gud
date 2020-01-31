@@ -31,7 +31,7 @@ func TestProject_Status(t *testing.T) {
 		t.Error(err)
 	}
 
-	_ = addToIndex(testDir, []string{testPath})
+	_ = p.Add(testPath)
 
 	err = p.Status(
 		func(relPath string, state FileState) error {

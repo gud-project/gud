@@ -35,7 +35,7 @@ func (p Project) PushBranch(out io.Writer, branch string, start *ObjectHash) (bo
 	}
 
 	versions := list.New()
-	err = getVersions(p.Path, *hash, start, versions)
+	err = getVersions(p.gudPath, *hash, start, versions)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +50,7 @@ func (p Project) PushBranch(out io.Writer, branch string, start *ObjectHash) (bo
 
 	for e := versions.Back(); e != nil; e = e.Prev() {
 		hash := e.Value.(ObjectHash)
-		err = pushVersion(p.Path, writer, hash)
+		err = pushVersion(p.gudPath, writer, hash)
 		if err != nil {
 			return "", err
 		}
@@ -59,7 +59,7 @@ func (p Project) PushBranch(out io.Writer, branch string, start *ObjectHash) (bo
 	return writer.Boundary(), nil
 }
 
-func getVersions(rootPath string, hash ObjectHash, start *ObjectHash, nexts *list.List) error {
+func getVersions(gudPath string, hash ObjectHash, start *ObjectHash, nexts *list.List) error {
 	if start != nil && hash == *start {
 		return nil
 	}
@@ -71,19 +71,19 @@ func getVersions(rootPath string, hash ObjectHash, start *ObjectHash, nexts *lis
 
 	nexts.PushBack(hash)
 
-	version, err := loadVersion(rootPath, hash)
+	version, err := loadVersion(gudPath, hash)
 	if err != nil {
 		return err
 	}
 
 	if version.HasPrev() {
-		err = getVersions(rootPath, *version.prev, start, nexts)
+		err = getVersions(gudPath, *version.prev, start, nexts)
 		if err != nil {
 			return err
 		}
 
 		if version.IsMergeVersion() {
-			err = getVersions(rootPath, *version.merged, start, nexts)
+			err = getVersions(gudPath, *version.merged, start, nexts)
 			if err != nil {
 				return err
 			}
@@ -93,13 +93,13 @@ func getVersions(rootPath string, hash ObjectHash, start *ObjectHash, nexts *lis
 	return nil
 }
 
-func pushVersion(rootPath string, writer *multipart.Writer, hash ObjectHash) error {
+func pushVersion(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
 	part, err := createPart(writer, hash, versionContentType)
 	if err != nil {
 		return err
 	}
 
-	src, err := os.Open(objectPath(rootPath, hash))
+	src, err := os.Open(objectPath(gudPath, hash))
 	if err != nil {
 		return err
 	}
@@ -110,16 +110,16 @@ func pushVersion(rootPath string, writer *multipart.Writer, hash ObjectHash) err
 		return err
 	}
 
-	return pushTree(rootPath, writer, version.TreeHash)
+	return pushTree(gudPath, writer, version.TreeHash)
 }
 
-func pushTree(rootPath string, writer *multipart.Writer, hash ObjectHash) error {
+func pushTree(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
 	part, err := createPart(writer, hash, versionContentType)
 	if err != nil {
 		return err
 	}
 
-	src, err := os.Open(objectPath(rootPath, hash))
+	src, err := os.Open(objectPath(gudPath, hash))
 	if err != nil {
 		return err
 	}
@@ -133,9 +133,9 @@ func pushTree(rootPath string, writer *multipart.Writer, hash ObjectHash) error 
 
 	for _, obj := range t {
 		if obj.Type == typeTree {
-			err = pushTree(rootPath, writer, obj.Hash)
+			err = pushTree(gudPath, writer, obj.Hash)
 		} else {
-			err = pushBlob(rootPath, writer, hash)
+			err = pushBlob(gudPath, writer, hash)
 		}
 		if err != nil {
 			return err
@@ -145,13 +145,13 @@ func pushTree(rootPath string, writer *multipart.Writer, hash ObjectHash) error 
 	return nil
 }
 
-func pushBlob(rootPath string, writer *multipart.Writer, hash ObjectHash) error {
+func pushBlob(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
 	part, err := createPart(writer, hash, versionContentType)
 	if err != nil {
 		return err
 	}
 
-	src, err := os.Open(objectPath(rootPath, hash))
+	src, err := os.Open(objectPath(gudPath, hash))
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (p Project) PullBranch(branch string, in io.Reader, contentType string) err
 	files := list.New()
 	objs := multipart.NewReader(in, params["boundary"])
 	for {
-		hash, err := pullVersion(temp.Path, objs, currentHash, files)
+		hash, err := pullVersion(temp.gudPath, objs, currentHash, files)
 		if err != nil {
 			return err
 		}
@@ -206,14 +206,14 @@ func (p Project) PullBranch(branch string, in io.Reader, contentType string) err
 
 	for e := files.Front(); e != nil; e = e.Next() {
 		name := e.Value.(string)
-		err = copyFile(filepath.Join(temp.Path, objectsDirPath, name), filepath.Join(p.Path, objectsDirPath, name))
+		err = copyFile(filepath.Join(temp.gudPath, objectsPath, name), filepath.Join(p.gudPath, objectsPath, name))
 		if err != nil {
 			return err
 		}
 	}
 
 	if currentHash != nil {
-		err = dumpBranch(p.Path, branch, *currentHash)
+		err = dumpBranch(p.gudPath, branch, *currentHash)
 		if err != nil {
 			return err
 		}
@@ -223,7 +223,7 @@ func (p Project) PullBranch(branch string, in io.Reader, contentType string) err
 }
 
 func pullVersion(
-	rootPath string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List) (hash *ObjectHash, err error) {
+	gudPath string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List) (hash *ObjectHash, err error) {
 	part, err := reader.NextPart()
 	if err == io.EOF {
 		return
@@ -233,13 +233,13 @@ func pullVersion(
 	}
 	defer part.Close()
 
-	hash, err = validatePart(rootPath, part, versionContentType)
+	hash, err = validatePart(gudPath, part, versionContentType)
 	if err != nil {
 		return
 	}
 
 	name := part.FileName()
-	dst, err := os.Create(objectPath(rootPath, *hash))
+	dst, err := os.Create(objectPath(gudPath, *hash))
 	if err != nil {
 		return
 	}
@@ -255,7 +255,7 @@ func pullVersion(
 		return
 	}
 
-	prev, err := validateVersion(rootPath, *current, *hash, prevHash)
+	prev, err := validateVersion(gudPath, *current, *hash, prevHash)
 	if err != nil {
 		return
 	}
@@ -264,25 +264,25 @@ func pullVersion(
 
 	var prevTree tree
 	if prev != nil {
-		prevTree, err = loadTree(rootPath, prev.TreeHash)
+		prevTree, err = loadTree(gudPath, prev.TreeHash)
 		if err != nil {
 			return
 		}
 	}
 
-	err = pullTree(rootPath, reader, current.TreeHash, prevTree, files)
+	err = pullTree(gudPath, reader, current.TreeHash, prevTree, files)
 	return
 }
 
 func pullTree(
-	rootPath string, reader *multipart.Reader, expectedHash ObjectHash, prev tree, files *list.List) error {
+	gudPath string, reader *multipart.Reader, expectedHash ObjectHash, prev tree, files *list.List) error {
 	part, err := reader.NextPart()
 	if err != nil {
 		return InputError{"invalid multipart data"}
 	}
 	defer part.Close()
 
-	hash, err := validatePart(rootPath, part, treeContentType)
+	hash, err := validatePart(gudPath, part, treeContentType)
 	if err != nil {
 		return err
 	}
@@ -291,7 +291,7 @@ func pullTree(
 	}
 
 	name := part.FileName()
-	dst, err := os.Create(objectPath(rootPath, *hash))
+	dst, err := os.Create(objectPath(gudPath, *hash))
 	if err != nil {
 		return err
 	}
@@ -329,7 +329,7 @@ func pullTree(
 		} else {
 			switch obj.Type {
 			case typeBlob:
-				err = pullBlob(rootPath, reader, obj.Hash, files)
+				err = pullBlob(gudPath, reader, obj.Hash, files)
 				if err != nil {
 					return err
 				}
@@ -337,13 +337,13 @@ func pullTree(
 			case typeTree:
 				var prevChild tree
 				if ind, found := searchTree(prev, obj.Name); found {
-					prevChild, err = loadTree(rootPath, prev[ind].Hash)
+					prevChild, err = loadTree(gudPath, prev[ind].Hash)
 					if err != nil {
 						return err
 					}
 				}
 
-				err = pullTree(rootPath, reader, obj.Hash, prevChild, files)
+				err = pullTree(gudPath, reader, obj.Hash, prevChild, files)
 				if err != nil {
 					return err
 				}
@@ -357,14 +357,14 @@ func pullTree(
 	return nil
 }
 
-func pullBlob(rootPath string, reader *multipart.Reader, expectedHash ObjectHash, files *list.List) error {
+func pullBlob(gudPath string, reader *multipart.Reader, expectedHash ObjectHash, files *list.List) error {
 	part, err := reader.NextPart()
 	if err != nil {
 		return InputError{"invalid multipart data"}
 	}
 	defer part.Close()
 
-	hash, err := validatePart(rootPath, part, blobContentType)
+	hash, err := validatePart(gudPath, part, blobContentType)
 	if err != nil {
 		return err
 	}
@@ -373,7 +373,7 @@ func pullBlob(rootPath string, reader *multipart.Reader, expectedHash ObjectHash
 	}
 
 	name := part.FileName()
-	dst, err := os.Create(objectPath(rootPath, *hash))
+	dst, err := os.Create(objectPath(gudPath, *hash))
 	if err != nil {
 		return err
 	}
@@ -399,7 +399,7 @@ func pullBlob(rootPath string, reader *multipart.Reader, expectedHash ObjectHash
 	return nil
 }
 
-func validatePart(rootPath string, part *multipart.Part, expectedType string) (*ObjectHash, error) {
+func validatePart(gudPath string, part *multipart.Part, expectedType string) (*ObjectHash, error) {
 	name := part.FileName()
 	var hash ObjectHash
 	n, err := hex.Decode(hash[:], []byte(name))
@@ -413,7 +413,7 @@ func validatePart(rootPath string, part *multipart.Part, expectedType string) (*
 			fmt.Sprintf("invalid content type: expected %s, got %s", expectedType, contentType)}
 	}
 
-	_, err = os.Stat(objectPath(rootPath, hash))
+	_, err = os.Stat(objectPath(gudPath, hash))
 	if !os.IsNotExist(err) {
 		return nil, InputError{fmt.Sprintf("object already exists: %s", name)}
 	}
@@ -485,13 +485,14 @@ func createTempProject(p Project) (temp *Project, err error) {
 		}
 	}()
 
-	dst := filepath.Join(tempDir, objectsDirPath)
+	dstGud := filepath.Join(tempDir, defaultGudPath)
+	dst := filepath.Join(dstGud, objectsPath)
 	err = os.MkdirAll(dst, 0700)
 	if err != nil {
 		return
 	}
 
-	src := filepath.Join(p.Path, objectsDirPath)
+	src := filepath.Join(p.gudPath, objectsPath)
 	objs, err := ioutil.ReadDir(src)
 	if err != nil {
 		return
@@ -503,7 +504,7 @@ func createTempProject(p Project) (temp *Project, err error) {
 		}
 	}
 
-	return &Project{tempDir}, nil
+	return &Project{tempDir, dstGud}, nil
 }
 
 func copyFile(srcPath, dstPath string) (err error) {

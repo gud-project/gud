@@ -6,21 +6,21 @@ import (
 	"testing"
 )
 
-func TestAddToIndex(t *testing.T) {
+func TestProject_Add(t *testing.T) {
 	defer clearTest()
 
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
-	_, _ = Start(testDir)
+	p, _ := Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
 
-	err := addToIndex(testDir, []string{testPath})
+	err := p.Add(testPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(testDir)
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,22 +30,22 @@ func TestAddToIndex(t *testing.T) {
 	}
 }
 
-func TestRemoveFromIndex(t *testing.T) {
+func TestProject_removeFromIndex(t *testing.T) {
 	defer clearTest()
 
 	testPath := filepath.Join(testDir, testFile)
 	data := []byte("random test data")
 
-	_, _ = Start(testDir)
+	p, _ := Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = addToIndex(testDir, []string{testPath})
+	_ = p.Add(testPath)
 
-	err := removeFromIndex(testDir, []string{testPath})
+	err := p.removeFromIndex([]string{testPath})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(testDir)
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestRemoveFromIndex(t *testing.T) {
 	}
 }
 
-func TestRemoveFromProject(t *testing.T) {
+func TestProject_Remove(t *testing.T) {
 	defer clearTest()
 
 	testPath := filepath.Join(testDir, testFile)
@@ -63,14 +63,14 @@ func TestRemoveFromProject(t *testing.T) {
 
 	p, _ := Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = addToIndex(testDir, []string{testPath})
+	_ = p.Add(testPath)
 
-	err := removeFromProject(testDir, []string{testPath})
+	err := p.Remove(testPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(testDir)
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,15 +78,15 @@ func TestRemoveFromProject(t *testing.T) {
 		t.Error("Index entry was not removed")
 	}
 
-	_ = p.Add(testDir, testPath)
+	_ = p.Add(testPath)
 	_, _ = p.Save("add test file")
 
-	err = removeFromProject(testDir, []string{testPath})
+	err = p.Remove(testPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err = loadIndex(testDir)
+	entries, err = loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}

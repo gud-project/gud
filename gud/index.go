@@ -12,7 +12,7 @@ import (
 	"gopkg.in/djherbis/times.v1"
 )
 
-const indexFilePath = gudPath + "/index"
+const indexFilePath = "index"
 
 type FileState int
 
@@ -37,19 +37,19 @@ type indexFile struct {
 	Entries []indexEntry
 }
 
-func createIndexEntry(rootPath, relPath string) (*indexEntry, error) {
+func (p Project) createIndexEntry(relPath string) (*indexEntry, error) {
 	if strings.HasPrefix(relPath, "..") {
-		return nil, Error{rootPath + " is not inside the root directory"}
+		return nil, Error{relPath + " is not inside the root directory"}
 	}
 
-	prevHash, err := findObject(rootPath, relPath)
+	prevHash, err := findObject(p.gudPath, relPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var state FileState
 	if prevHash != nil {
-		unchanged, err := compareToObject(rootPath, relPath, *prevHash)
+		unchanged, err := p.compareToObject(relPath, *prevHash)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +61,7 @@ func createIndexEntry(rootPath, relPath string) (*indexEntry, error) {
 		state = StateNew
 	}
 
-	fullPath := filepath.Join(rootPath, relPath)
+	fullPath := filepath.Join(p.Path, relPath)
 	info, err := os.Stat(fullPath)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func createIndexEntry(rootPath, relPath string) (*indexEntry, error) {
 		return nil, err
 	}
 
-	hash, err := createBlob(rootPath, relPath)
+	hash, err := p.createBlob(relPath)
 	if err != nil {
 		return nil, err
 	}
@@ -86,13 +86,14 @@ func createIndexEntry(rootPath, relPath string) (*indexEntry, error) {
 	}, nil
 }
 
-func initIndex(rootPath string) error {
-	return dumpIndex(rootPath, []indexEntry{})
+func initIndex(gudPath string) error {
+	return dumpIndex(gudPath, []indexEntry{})
 }
 
-func addToIndex(rootPath string, paths []string) error {
+// Add adds files to the current version of the Gud project
+func (p Project) Add(paths ...string) error {
 	// TODO: handle renames
-	entries, err := loadIndex(rootPath)
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		return err
 	}
@@ -108,13 +109,13 @@ func addToIndex(rootPath string, paths []string) error {
 	for e := files.Front(); e != nil; e = e.Next() {
 		fullPath := e.Value.(string)
 
-		relPath, err := filepath.Rel(rootPath, fullPath)
+		relPath, err := filepath.Rel(p.Path, fullPath)
 		if err != nil {
 			return err
 		}
 
 		ind, found := findEntry(newEntries, relPath)
-		entry, err := createIndexEntry(rootPath, relPath)
+		entry, err := p.createIndexEntry(relPath)
 		if err != nil {
 			if err == AddedUnmodifiedFileError && found && newEntries[ind].State == StateRemoved { // remode then add
 				copy(newEntries[ind:], newEntries[ind+1:])
@@ -131,11 +132,11 @@ func addToIndex(rootPath string, paths []string) error {
 		newEntries[ind] = *entry // update entry if the file was already added
 	}
 
-	return dumpIndex(rootPath, newEntries)
+	return dumpIndex(p.gudPath, newEntries)
 }
 
-func removeFromIndex(rootPath string, paths []string) error {
-	entries, err := loadIndex(rootPath)
+func (p Project) removeFromIndex(paths []string) error {
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		return err
 	}
@@ -150,7 +151,7 @@ func removeFromIndex(rootPath string, paths []string) error {
 	for e := files.Front(); e != nil; e = e.Next() {
 		path := e.Value.(string)
 
-		relPath, err := filepath.Rel(rootPath, path)
+		relPath, err := filepath.Rel(p.Path, path)
 		if err != nil {
 			return err
 		}
@@ -167,11 +168,12 @@ func removeFromIndex(rootPath string, paths []string) error {
 	if len(missing) > 0 {
 		return Error{string(len(missing)) + " files are not staged"}
 	}
-	return dumpIndex(rootPath, entries)
+	return dumpIndex(p.gudPath, entries)
 }
 
-func removeFromProject(rootPath string, paths []string) error {
-	entries, err := loadIndex(rootPath)
+// Remove removes files from the current version of the Gud project
+func (p Project) Remove(paths ...string) error {
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		return err
 	}
@@ -188,7 +190,7 @@ func removeFromProject(rootPath string, paths []string) error {
 	for e := files.Front(); e != nil; e = e.Next() {
 		path := e.Value.(string)
 
-		relPath, err := filepath.Rel(rootPath, path)
+		relPath, err := filepath.Rel(p.Path, path)
 		if err != nil {
 			return err
 		}
@@ -206,7 +208,7 @@ func removeFromProject(rootPath string, paths []string) error {
 
 		} else {
 			// check that the file existed before removing it
-			prevHash, err := findObject(rootPath, relPath)
+			prevHash, err := findObject(p.gudPath, relPath)
 			if err != nil {
 				return err
 			}
@@ -229,11 +231,11 @@ func removeFromProject(rootPath string, paths []string) error {
 	if len(missing) > 0 {
 		return Error{string(len(missing)) + " files are not tracked"}
 	}
-	return dumpIndex(rootPath, newEntries)
+	return dumpIndex(p.gudPath, newEntries)
 }
 
-func loadIndex(rootPath string) ([]indexEntry, error) {
-	file, err := os.Open(filepath.Join(rootPath, indexFilePath))
+func loadIndex(gudPath string) ([]indexEntry, error) {
+	file, err := os.Open(filepath.Join(gudPath, indexFilePath))
 
 	if err != nil {
 		return nil, err
@@ -247,7 +249,7 @@ func loadIndex(rootPath string) ([]indexEntry, error) {
 	}
 
 	if GetVersion() != index.Version { // version does not match
-		err := initIndex(rootPath)
+		err := initIndex(gudPath)
 		if err != nil {
 			return nil, err
 		}
@@ -257,8 +259,8 @@ func loadIndex(rootPath string) ([]indexEntry, error) {
 	return index.Entries, nil
 }
 
-func dumpIndex(rootPath string, entries []indexEntry) error {
-	file, err := os.Create(filepath.Join(rootPath, indexFilePath))
+func dumpIndex(gudPath string, entries []indexEntry) error {
+	file, err := os.Create(filepath.Join(gudPath, indexFilePath))
 	if err != nil {
 		return err
 	}
