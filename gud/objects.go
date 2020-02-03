@@ -3,6 +3,7 @@ package gud
 import (
 	"bytes"
 	"compress/zlib"
+	"container/list"
 	"crypto/sha1"
 	"encoding/gob"
 	"encoding/hex"
@@ -495,6 +496,81 @@ func buildTree(gudPath, relPath string, root dirStructure, prev tree) (*object, 
 		return nil, nil
 	}
 	return createTree(gudPath, relPath, newTree)
+}
+
+func removeVersion(gudPath string, last, afterLast Version, lastHash, afterLastHash ObjectHash) (err error) {
+	afterLastObjs, err := listTree(gudPath, afterLast.TreeHash)
+	if err != nil {
+		return
+	}
+
+	lastObjs, err := listTree(gudPath, last.TreeHash)
+	if err != nil {
+		return
+	}
+
+	for lastE := lastObjs.Front(); lastE != nil; lastE = lastE.Next() {
+		lastObj := lastE.Value.(ObjectHash)
+		toRemove := true
+		for afterLastE := afterLastObjs.Front(); afterLastE != nil; afterLastE = afterLastE.Next() {
+			if afterLastE.Value.(ObjectHash) == lastObj {
+				afterLastObjs.Remove(afterLastE)
+				toRemove = false
+				break
+			}
+
+			if toRemove {
+				err = os.Remove(objectPath(gudPath, lastObj))
+				if err != nil {
+					return
+				}
+			}
+		}
+	}
+
+	err = os.Remove(objectPath(gudPath, lastHash))
+	if err != nil {
+		return
+	}
+
+	dst, err := os.Create(objectPath(gudPath, afterLastHash))
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := dst.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	afterLast.prev = nil
+	return gob.NewEncoder(dst).Encode(versionToGob(afterLast))
+}
+
+func listTree(gudPath string, hash ObjectHash) (*list.List, error) {
+	l := list.New()
+
+	l.PushBack(hash)
+
+	t, err := loadTree(gudPath, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, obj := range t {
+		if obj.Type == typeTree {
+			inner, err := listTree(gudPath, obj.Hash)
+			if err != nil {
+				return nil, err
+			}
+			l.PushBackList(inner)
+		} else {
+			l.PushBack(obj.Hash)
+		}
+	}
+
+	return l, nil
 }
 
 func walkBlobs(gudPath, relPath string, root tree, fn func(relPath string, obj object) error) error {

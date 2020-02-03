@@ -37,59 +37,6 @@ type indexFile struct {
 	Entries []indexEntry
 }
 
-func (p Project) createIndexEntry(relPath string) (*indexEntry, error) {
-	if strings.HasPrefix(relPath, "..") {
-		return nil, Error{relPath + " is not inside the root directory"}
-	}
-
-	prevHash, err := findObject(p.gudPath, relPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var state FileState
-	if prevHash != nil {
-		unchanged, err := p.compareToObject(relPath, *prevHash)
-		if err != nil {
-			return nil, err
-		}
-		if unchanged {
-			return nil, AddedUnmodifiedFileError
-		}
-		state = StateModified
-	} else {
-		state = StateNew
-	}
-
-	fullPath := filepath.Join(p.Path, relPath)
-	info, err := os.Stat(fullPath)
-	if err != nil {
-		return nil, err
-	}
-	spec, err := times.Stat(fullPath)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := p.createBlob(relPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return &indexEntry{
-		Name:  relPath,
-		Hash:  *hash,
-		State: state,
-		Size:  info.Size(),
-		Mtime: info.ModTime(),
-		Ctime: spec.ChangeTime(),
-	}, nil
-}
-
-func initIndex(gudPath string) error {
-	return dumpIndex(gudPath, []indexEntry{})
-}
-
 // Add adds files to the current version of the Gud project
 func (p Project) Add(paths ...string) error {
 	// TODO: handle renames
@@ -133,42 +80,6 @@ func (p Project) Add(paths ...string) error {
 	}
 
 	return dumpIndex(p.gudPath, newEntries)
-}
-
-func (p Project) removeFromIndex(paths []string) error {
-	entries, err := loadIndex(p.gudPath)
-	if err != nil {
-		return err
-	}
-
-	files, err := walkFiles(paths)
-	if err != nil {
-		return nil
-	}
-
-	missing := make([]string, 0, files.Len())
-
-	for e := files.Front(); e != nil; e = e.Next() {
-		path := e.Value.(string)
-
-		relPath, err := filepath.Rel(p.Path, path)
-		if err != nil {
-			return err
-		}
-
-		ind, found := findEntry(entries, relPath)
-		if found {
-			copy(entries[ind:], entries[ind+1:]) // keep the slice sorted
-			entries = entries[:len(entries)-1]
-		} else {
-			missing = append(missing, path)
-		}
-	}
-
-	if len(missing) > 0 {
-		return Error{string(len(missing)) + " files are not staged"}
-	}
-	return dumpIndex(p.gudPath, entries)
 }
 
 // Remove removes files from the current version of the Gud project
@@ -232,6 +143,95 @@ func (p Project) Remove(paths ...string) error {
 		return Error{string(len(missing)) + " files are not tracked"}
 	}
 	return dumpIndex(p.gudPath, newEntries)
+}
+
+func (p Project) createIndexEntry(relPath string) (*indexEntry, error) {
+	if strings.HasPrefix(relPath, "..") {
+		return nil, Error{relPath + " is not inside the root directory"}
+	}
+
+	prevHash, err := findObject(p.gudPath, relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var state FileState
+	if prevHash != nil {
+		unchanged, err := p.compareToObject(relPath, *prevHash)
+		if err != nil {
+			return nil, err
+		}
+		if unchanged {
+			return nil, AddedUnmodifiedFileError
+		}
+		state = StateModified
+	} else {
+		state = StateNew
+	}
+
+	fullPath := filepath.Join(p.Path, relPath)
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return nil, err
+	}
+	spec, err := times.Stat(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	hash, err := p.createBlob(relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &indexEntry{
+		Name:  relPath,
+		Hash:  *hash,
+		State: state,
+		Size:  info.Size(),
+		Mtime: info.ModTime(),
+		Ctime: spec.ChangeTime(),
+	}, nil
+}
+
+func initIndex(gudPath string) error {
+	return dumpIndex(gudPath, []indexEntry{})
+}
+
+func (p Project) removeFromIndex(paths []string) error {
+	entries, err := loadIndex(p.gudPath)
+	if err != nil {
+		return err
+	}
+
+	files, err := walkFiles(paths)
+	if err != nil {
+		return nil
+	}
+
+	missing := make([]string, 0, files.Len())
+
+	for e := files.Front(); e != nil; e = e.Next() {
+		path := e.Value.(string)
+
+		relPath, err := filepath.Rel(p.Path, path)
+		if err != nil {
+			return err
+		}
+
+		ind, found := findEntry(entries, relPath)
+		if found {
+			copy(entries[ind:], entries[ind+1:]) // keep the slice sorted
+			entries = entries[:len(entries)-1]
+		} else {
+			missing = append(missing, path)
+		}
+	}
+
+	if len(missing) > 0 {
+		return Error{string(len(missing)) + " files are not staged"}
+	}
+	return dumpIndex(p.gudPath, entries)
 }
 
 func loadIndex(gudPath string) ([]indexEntry, error) {

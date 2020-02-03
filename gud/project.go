@@ -9,6 +9,7 @@ import (
 
 const defaultGudPath = ".gud"
 const dirPerm = 0755
+const defaultCheckpointNum = 5
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -18,8 +19,26 @@ type Project struct {
 
 // Start creates a new Gud project in the path it receives.
 // It returns a struct representing it.
-func Start(dir string) (*Project, error) {
-	project, err := StartHeadless(dir)
+func Start(path string) (*Project, error) {
+	project, err := startProject(path, defaultGudPath)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = startProject(project.Path, filepath.Join(defaultGudPath, defaultGudPath))
+	if err != nil {
+		return nil, err
+	}
+
+	return project, nil
+}
+
+func StartHeadless(dir string) (*Project, error) {
+	return startGudDir(dir, defaultGudPath)
+}
+
+func startProject(path, gudRelPath string) (*Project, error) {
+	project, err := startGudDir(path, gudRelPath)
 	if err != nil {
 		return nil, err
 	}
@@ -48,25 +67,21 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
-	return project, err
-}
-
-func StartHeadless(dir string) (*Project, error) {
-	return startGudDir(dir, defaultGudPath)
+	return project, nil
 }
 
 func startGudDir(path, gudRelPath string) (*Project, error) {
 	// Check if got a path
 	if path == "" {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, err
-		}
-		path = wd
+		path = "."
+	}
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
 	}
 
-	gudPath := filepath.Join(path, gudRelPath)
-	err := os.Mkdir(gudPath, dirPerm)
+	gudPath := filepath.Join(abs, gudRelPath)
+	err = os.Mkdir(gudPath, dirPerm)
 	if err != nil {
 		return nil, err
 	}
@@ -87,21 +102,21 @@ func startGudDir(path, gudRelPath string) (*Project, error) {
 	}
 
 	// Create the directory
-	return &Project{path, gudPath}, nil
+	return &Project{abs, gudPath}, nil
 }
 
 // Load receives a path to a Gud project and returns a representation of it.
-func Load(dir string) (*Project, error) {
-	for parent := filepath.Dir(dir); dir != parent; parent = filepath.Dir(parent) {
-		gudPath := filepath.Join(dir, defaultGudPath)
+func Load(path string) (*Project, error) {
+	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
+		gudPath := filepath.Join(path, defaultGudPath)
 		info, err := os.Stat(gudPath)
 		if !os.IsNotExist(err) && info.IsDir() {
-			return &Project{dir, gudPath}, nil
+			return &Project{path, gudPath}, nil
 		}
-		dir = parent
+		path = parent
 	}
 
-	return nil, Error{"No Gud project found at " + dir}
+	return nil, Error{"No Gud project found at " + path}
 }
 
 // CurrentVersion returns the current version of the project
@@ -232,4 +247,44 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 	}
 
 	return version.prev, prev, nil
+}
+
+func (p Project) Checkpoint(message string) error {
+	inner := Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
+
+	err := inner.Add(inner.Path)
+	if err != nil {
+		return err
+	}
+
+	version, err := inner.Save(message)
+	if err != nil {
+		return err
+	}
+
+	var lastHash, afterLastHash ObjectHash
+	var afterLast Version
+	last := *version
+	i := 0
+	for ; i < defaultCheckpointNum; i++ {
+		tmpHash, tmp, err := inner.Prev(last)
+		if err != nil {
+			return err
+		}
+		if tmp == nil {
+			break
+		}
+
+		afterLast, afterLastHash = last, lastHash
+		last, lastHash = *tmp, *tmpHash
+	}
+
+	if i == defaultCheckpointNum {
+		err = removeVersion(p.gudPath, last, afterLast, lastHash, afterLastHash)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
