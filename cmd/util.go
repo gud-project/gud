@@ -52,3 +52,16 @@ func stringToHash(dst *gud.ObjectHash, src string) error{
 	}
 	return nil
 }
+
+const modeMin = "min"
+const modeMax = "max"
+
+func checkArgsNum(size , argc int, mode string) error {
+	if size > argc && mode != modeMax{
+		return fmt.Errorf("not enough arguments in command usage(%d of %d)\n", size, argc)
+	}
+	if size < argc && mode != modeMin{
+		return fmt.Errorf("to many arguments in command usage - %d required\n", argc)
+	}
+	return nil
+}

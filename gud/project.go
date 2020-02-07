@@ -237,3 +237,7 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 
 	return version.prev, prev, nil
 }
+
+func (p Project) Undo() error {
+	return nil
+}

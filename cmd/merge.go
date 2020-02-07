@@ -34,26 +34,28 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			fmt.Fprintf(os.Stderr, "Missing branch to merge\n")
-		}	else {
-			p, err := LoadProject()
+		err := checkArgsNum(1, len(args), "")
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		p, err := LoadProject()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
+			return
+		}
+
+		var dst gud.ObjectHash
+		err = stringToHash(&dst, args[0])
+		if err == nil {
+			_, err = p.MergeHash(dst)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
-				return
-			}
-
-			var dst gud.ObjectHash
-			err = stringToHash(&dst, args[0])
-			if err == nil {
-				_, err = p.MergeHash(dst)
-				if err != nil {
-					_ = mergeByName(p, args[0])
-				}
-
-			}	else {
 				_ = mergeByName(p, args[0])
 			}
+
+		}	else {
+			_ = mergeByName(p, args[0])
 		}
 	},
 }

@@ -22,27 +22,29 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Fprintf(os.Stderr, "missing files to remove")
-		} else {
-			if !recursF {
-				var dirs []string
-				for _, path := range args {
-					file, err := os.Stat(path)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, err.Error())
-						return
-					}
-					if mode := file.Mode(); mode.IsDir() {
-						dirs = append(dirs, path)
-					}
+		err := checkArgsNum(1, len(args), modeMin)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		if !recursF {
+			var dirs []string
+			for _, path := range args {
+				file, err := os.Stat(path)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, err.Error())
+					return
 				}
-				if len(dirs) > 0 {
-					fmt.Fprintf(os.Stderr, "can not remove directories %s recursivle without -r", dirs)
+				if mode := file.Mode(); mode.IsDir() {
+					dirs = append(dirs, path)
 				}
 			}
-			removeFiles(args)
+			if len(dirs) > 0 {
+				fmt.Fprintf(os.Stderr, "can not remove directories %s recursivle without -r", dirs)
+			}
 		}
+		removeFiles(args)
 		if !keepF {
 			deleteFiles(args)
 		}
