@@ -228,7 +228,7 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		index := make([]indexEntry, 0, conflicts.Len())
 		for p := conflicts.Front(); p != nil; p = p.Next() {
 			index = append(index, indexEntry{
-				Name:  p.Value.(string),
+				Path:  p.Value.(string),
 				State: StateConflict,
 			})
 		}

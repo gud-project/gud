@@ -193,7 +193,7 @@ func (p Project) Save(message string) (*Version, error) {
 
 	dir := dirStructure{Name: "."}
 	for _, entry := range index {
-		addToStructure(&dir, entry.Name, entry.Hash)
+		addToStructure(&dir, entry.Path, entry.Hash)
 	}
 
 	prev, err := loadTree(p.gudPath, currentVersion.TreeHash)
@@ -252,7 +252,7 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 func (p Project) Checkpoint(message string) error {
 	inner := Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
 
-	err := inner.Add(inner.Path)
+	err := inner.AddAll()
 	if err != nil {
 		return err
 	}

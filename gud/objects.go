@@ -335,7 +335,7 @@ func loadVersion(gudPath string, hash ObjectHash) (*Version, error) {
 	return &ret, nil
 }
 
-func findObject(gudPath, relPath string) (*ObjectHash, error) {
+func findObject(gudPath, relPath string) (*object, error) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
 	head, err := loadHead(gudPath)
 	if err != nil {
@@ -352,9 +352,9 @@ func findObject(gudPath, relPath string) (*ObjectHash, error) {
 		return nil, err
 	}
 
-	hash := version.TreeHash
+	obj := object{".", version.TreeHash, typeTree}
 	for _, name := range dirs {
-		tree, err := loadTree(gudPath, hash)
+		tree, err := loadTree(gudPath, obj.Hash)
 		if err != nil {
 			return nil, err
 		}
@@ -363,10 +363,10 @@ func findObject(gudPath, relPath string) (*ObjectHash, error) {
 		if !found {
 			return nil, nil
 		}
-		hash = tree[ind].Hash
+		obj = tree[ind]
 	}
 
-	return &hash, nil
+	return &obj, nil
 }
 
 func (p Project) compareToObject(relPath string, hash ObjectHash) (bool, error) {
@@ -573,7 +573,7 @@ func listTree(gudPath string, hash ObjectHash) (*list.List, error) {
 	return l, nil
 }
 
-func walkBlobs(gudPath, relPath string, root tree, fn func(relPath string, obj object) error) error {
+func walkObjects(gudPath, relPath string, root tree, fn func(relPath string, obj object) error) error {
 	for _, obj := range root {
 		objRelPath := filepath.Join(relPath, obj.Name)
 
@@ -582,7 +582,7 @@ func walkBlobs(gudPath, relPath string, root tree, fn func(relPath string, obj o
 			if err != nil {
 				return err
 			}
-			err = walkBlobs(gudPath, objRelPath, inner, fn)
+			err = walkObjects(gudPath, objRelPath, inner, fn)
 			if err != nil {
 				return err
 			}

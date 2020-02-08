@@ -17,7 +17,7 @@ func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
 	}
 
 	for _, entry := range index {
-		err = trackedFn(entry.Name, entry.State)
+		err = trackedFn(entry.Path, entry.State)
 		if err != nil {
 			return err
 		}
@@ -202,8 +202,8 @@ func reportRemovedDir(gudPath, relPath string, hash ObjectHash, fn cmpCallback) 
 		return err
 	}
 
-	err = walkBlobs(gudPath, relPath, tree, func(relPath string, obj object) error {
-		return fn(relPath, StateRemoved, &hash, false)
+	err = walkObjects(gudPath, relPath, tree, func(relPath string, obj object) error {
+		return fn(relPath, StateRemoved, &hash, false) // TODO: pretty sure that's a mistake
 	})
 	if err != nil {
 		return err
