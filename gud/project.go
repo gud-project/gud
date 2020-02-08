@@ -250,7 +250,7 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 }
 
 func (p Project) Checkpoint(message string) error {
-	inner := Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
+	inner := p.innerProject()
 
 	err := inner.AddAll()
 	if err != nil {
@@ -287,4 +287,59 @@ func (p Project) Checkpoint(message string) error {
 	}
 
 	return nil
+}
+
+func (p Project) Undo() error {
+	inner := p.innerProject()
+
+	head, err := loadHead(inner.gudPath)
+	if err != nil {
+		return err
+	}
+	hash, err := getCurrentHash(inner.gudPath, *head)
+	if err != nil {
+		return err
+	}
+
+	current, err := loadVersion(inner.gudPath, *hash)
+	if err != nil {
+		return err
+	}
+
+	if !current.HasPrev() {
+		return Error{"nothing to undo"}
+	}
+
+	prevHash, _, err := inner.Prev(*current)
+	if err != nil {
+		return err
+	}
+
+	err = inner.Checkout(*prevHash)
+	if err != nil {
+		return err
+	}
+
+	tree, err := loadTree(inner.gudPath, current.TreeHash)
+	if err != nil {
+		return err
+	}
+	err = walkObjects(inner.gudPath, ".", tree, func(relPath string, obj object) error {
+		return os.Remove(objectPath(inner.gudPath, obj.Hash))
+	})
+	err = os.Remove(objectPath(inner.gudPath, *hash))
+	if err != nil {
+		return err
+	}
+
+	err = dumpBranch(inner.gudPath, head.Branch, *prevHash)
+	if err != nil {
+		return err
+	}
+
+	return dumpHead(inner.gudPath, *head)
+}
+
+func (p Project) innerProject() Project {
+	return Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
 }
