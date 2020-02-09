@@ -25,6 +25,5 @@ cli:
         - git clone https://github.com/bats-core/bats-core.git
         - cd bats-core
         - ./install.sh /usr/local
-        - make -C /go/src/gitlab.com/magsh-2019/2/gud/ cli
     script:
         - bats /go/src/gitlab.com/magsh-2019/2/gud/test.bats
