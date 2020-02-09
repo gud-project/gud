@@ -1,23 +1,21 @@
-image: golang:1.12
-
-cache:
-    paths:
-        - /apt-cache
-        - /go/src/golang.org
-        - /go/src/gopkg.in
-        - /go/src/github.com
+image: golang:1.13
 
 before_script:
-    - mkdir -p /go/src/gitlab.com/magsh-2019/2/
-    - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
+    - pkg_name=gitlab.com/magsh-2019/2/gud
+    - mkdir -p /go/src/$(dirname $pkg_name)
+    - cp -r $CI_PROJECT_DIR /go/src/$pkg_name
+    
     - git clone https://github.com/bats-core/bats-core.git
     - cd bats-core
     - ./install.sh /usr/local
+    
+    - cd /go/src/$pkg_name
+    - make lib
 
 lib:
     stage: test
     script:
-        - go test gitlab.com/magsh-2019/2/gud/gud
+        - GO111MODULE=off go test $pkg_name/gud
     only:
         changes:
             - gud/*
@@ -25,4 +23,5 @@ lib:
 cli:
     stage: test
     script:
-        - bats /go/src/gitlab.com/magsh-2019/2/gud/test.bats
+        - cd /go/src/$pkg_name
+        - bats test.bats

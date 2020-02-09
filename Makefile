@@ -8,20 +8,21 @@ LIB_SRC=$(call go_src,$(LIB_DIR))
 CLI_SRC=$(call go_src,$(CLI_DIR))
 SERVER_SRC=$(call go_src,$(SERVER_DIR))
 
-.PHONY: all cli server
-.ONESHELL: cli server
+.PHONY: all cli server lib
+.ONESHELL: cli server lib
 
 define vendor
 	sed -i 's/"gitlab.com\/magsh-2019\/2\/gud\/gud"/\/\/ \0/g' $(call go_src,$(1))
 	cd $(1)
 	go mod vendor
-	cd -
+	cd - >/dev/null
 	sed -i 's/\/\/ \("gitlab.com\/magsh-2019\/2\/gud\/gud"\)/\1/g' $(call go_src,$(1))
 endef
 
 all: cli server
 server: server/server
 
+lib: gud/gud.a
 gud/gud.a: $(LIB_SRC)
 	cd gud
 	go mod vendor
