@@ -25,23 +25,25 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		token, err := loadToken()
+		p , err:= LoadProject()
 		if err != nil {
 			print(err)
 			return
 		}
-		_ = token
 
-		name := "name" // token.name
-		pname := "pname" // token.pname
-		data := "data" // token.data
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
+			return
+		}
 
-		req, err := http.NewRequest("GET", fmt.Sprintf("localhost/api/v1/project/%s/%s/branch/%s", name, pname, args[0]), nil)
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, config.Name, config.ProjectName, args[0]), nil)
 		if err != nil {
 			println(err)
 			return
 		}
-		req.AddCookie(&http.Cookie{Name: "session", Value: data})
+		req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -62,21 +64,15 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		p , err:= LoadProject()
-		if err != nil {
-			println(err)
-			return
-		}
-
 		var buf bytes.Buffer
 		boundary, err := p.PushBranch(&buf, args[0], &hash)
-		req, err = http.NewRequest("POST", fmt.Sprintf("localhost/api/v1/project/%s/%s/push?branch=%s", name, pname, args[0]), &buf)
+		req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, args[0]), &buf)
 		if err != nil {
 			println(err)
 			return
 		}
 
-		req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: data})
+		req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: config.Token})
 		req.Header.Add("Content-Type", "multipart/mixed; boundary=" +boundary)
 
 		resp, err = client.Do(req)

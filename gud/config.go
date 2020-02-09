@@ -20,7 +20,7 @@ type Config struct {
 }
 
 func (p *Project)ConfigInit() error{
-	config := Config{"", "", "", "localhost", 3, true}
+	config := Config{"", filepath.Base(p.Path), "", "localhost", 3, true}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return err

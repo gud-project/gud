@@ -65,9 +65,26 @@ to quickly create a Cobra application.`,
 				token = cookie.Value
 			}
 		}
-		err = saveToken(token)
+
+		p , err:= LoadProject()
 		if err != nil {
-			print(err.Error())
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
+			return
+		}
+
+		config.Name = name
+		config.Token = token
+
+		err = p.WriteConfig(config)
+		if err != nil {
+			print(err)
 		}
 	},
 }

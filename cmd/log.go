@@ -37,6 +37,7 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 		}
+
 	},
 }
 

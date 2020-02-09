@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 )
 
@@ -23,13 +24,16 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		name := "name" // token.name
-		pname := "pname" // token.pname
-		data := "data" // token.data
-
 		p , err:= LoadProject()
 		if err != nil {
-			println(err)
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
 			return
 		}
 
@@ -45,14 +49,14 @@ to quickly create a Cobra application.`,
 		}
 
 		req, err := http.NewRequest("GET",
-			fmt.Sprintf("localhost/api/v1/project/%s/%s/pull?branch=%s&start=%s", name, pname, branch, hash),
+			fmt.Sprintf("%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
 			nil)
 		if err != nil {
 			println(err)
 			return
 		}
 
-		req.AddCookie(&http.Cookie{Name: "session", Value: data})
+		req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {

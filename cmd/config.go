@@ -51,6 +51,21 @@ to quickly create a Cobra application.`,
 		return
 	}
 
+	changeConfig(args)
+	},
+}
+
+func printConfig() {
+	p, err := LoadProject()
+	if err != nil {
+		print(err.Error())
+		return
+	}
+	b, err := p.ReadConfig()
+	print(string(b))
+}
+
+func changeConfig(args []string) {
 	p, err := LoadProject()
 	if err != nil {
 		print(err.Error())
@@ -63,7 +78,7 @@ to quickly create a Cobra application.`,
 		return
 	}
 
-	switch key := strings.ToLower(args[0]); key {
+	switch strings.ToLower(args[0]) {
 	case "name":
 		config.Name = args[1]
 	case "projectname":
@@ -74,7 +89,9 @@ to quickly create a Cobra application.`,
 		config.ServerDomain = args[1]
 	case "checkpoints":
 		config.Checkpoints, err = strconv.Atoi(args[1])
-		fmt.Fprintf(os.Stderr, "%s is not an integer\n", args[1])
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s is not an integer\n", args[1])
+		}
 	case "autopush":
 		config.AutoPush = strings.ToLower(args[1]) == "true"
 	default:
@@ -86,17 +103,6 @@ to quickly create a Cobra application.`,
 		print(err.Error())
 		return
 	}
-	},
-}
-
-func printConfig() {
-	p, err := LoadProject()
-	if err != nil {
-		print(err.Error())
-		return
-	}
-	b, err := p.ReadConfig()
-	print(string(b))
 }
 
 func init() {
