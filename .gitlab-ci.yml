@@ -10,6 +10,9 @@ cache:
 before_script:
     - mkdir -p /go/src/gitlab.com/magsh-2019/2/
     - cp -r $CI_PROJECT_DIR /go/src/gitlab.com/magsh-2019/2/gud/
+    - git clone https://github.com/bats-core/bats-core.git
+    - cd bats-core
+    - ./install.sh /usr/local
 
 lib:
     stage: test
@@ -21,9 +24,5 @@ lib:
 
 cli:
     stage: test
-    before_script:
-        - git clone https://github.com/bats-core/bats-core.git
-        - cd bats-core
-        - ./install.sh /usr/local
     script:
         - bats /go/src/gitlab.com/magsh-2019/2/gud/test.bats
