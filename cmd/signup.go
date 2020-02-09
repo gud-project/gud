@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/howeyc/gopass"
 	"net/http"
 	"regexp"
 	"strings"
@@ -128,8 +129,11 @@ func getPassword() (string, error) {
 }
 
 func getValidPassword() (string, error) {
-	var password string
-	fmt.Scanln(&password)
+	b, err := gopass.GetPasswd()
+	if err != nil {
+		return "", err
+	}
+	password := string(b)
 	if len(password) < gud.PasswordLenMin {
 		return "1", errors.New("Password length must be more then 8 characters\n")
 	}

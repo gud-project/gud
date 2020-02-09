@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -39,14 +40,19 @@ to quickly create a Cobra application.`,
 		print("Username: ")
 		var name string
 		fmt.Scanln(&name)
+
 		print("Password: ")
-		var password string
-		fmt.Scanln(&password)
+		b, err := gopass.GetPasswd()
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		password := string(b)
 
 		request := gud.LoginRequest{Username: name, Password: password, Remember: true}
 
 		var buf bytes.Buffer
-		err := json.NewEncoder(&buf).Encode(request)
+		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
 			println(err.Error())
 			return
