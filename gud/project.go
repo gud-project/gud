@@ -47,6 +47,11 @@ func Start(dir string) (*Project, error) {
 		return nil, err
 	}
 
+	err = project.ConfigInit()
+	if err != nil {
+		return nil, err
+	}
+
 	return project, err
 }
 
