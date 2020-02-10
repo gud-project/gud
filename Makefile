@@ -33,7 +33,6 @@ cli: gud/gud.a $(CLI_SRC)
 	cd $(CLI_DIR)
 	GO111MODULE=off go install
 
-
 server/server: gud/gud.a $(SERVER_SRC)
 	$(call vendor,$(SERVER_DIR))
 	cd $(SERVER_DIR)

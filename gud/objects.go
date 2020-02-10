@@ -392,6 +392,9 @@ func (p Project) compareToObject(relPath string, hash ObjectHash) (bool, error) 
 
 	var buf1, buf2 [bufSiz]byte
 	for {
+		// weird inconsistency: upon reaching end-of-file, the zip reader will return (n, io.EOF)
+		// while the file reader will return (n, nil) and then (0, io.EOF) on the next read
+		// shouldn't affect our code though
 		n1, err1 := file.Read(buf1[:])
 		if err1 != nil && err1 != io.EOF {
 			return false, err1
@@ -401,13 +404,14 @@ func (p Project) compareToObject(relPath string, hash ObjectHash) (bool, error) 
 			return false, err2
 		}
 
-		if err1 == io.EOF || err2 == io.EOF {
-			n1, err1 = file.Read(buf1[:])
-			n2, err2 = unzip.Read(buf2[:])
-			return n1 == 0 && n2 == 0 && err1 == io.EOF && err2 == io.EOF, nil
+		if n1 != n2 {
+			return false, nil
 		}
 		if !bytes.Equal(buf1[:n1], buf2[:n2]) {
 			return false, nil
+		}
+		if err1 == io.EOF && err2 == io.EOF {
+			return true, nil
 		}
 	}
 }
