@@ -67,24 +67,16 @@ func (p Project) CheckoutBranch(branch string) error {
 		return err
 	}
 
-	return p.Checkout(*hash)
+	err = p.Checkout(*hash)
+	if err != nil {
+		return err
+	}
+
+	return dumpHead(p.gudPath, Head{IsDetached: false, Branch: branch})
 }
 
 func (p Project) Checkout(hash ObjectHash) error {
-	err := p.assertNoChanges()
-	if err != nil {
-		return err
-	}
-
-	version, err := loadVersion(p.gudPath, hash)
-	if err != nil {
-		return err
-	}
-	tree, err := loadTree(p.gudPath, version.TreeHash)
-	if err != nil {
-		return err
-	}
-	err = p.removeChanges(tree)
+	err := p.checkoutHash(hash)
 	if err != nil {
 		return err
 	}
@@ -99,6 +91,24 @@ func (p Project) Checkout(hash ObjectHash) error {
 		Hash:       hash,
 		Branch:     head.Branch,
 	})
+}
+
+func (p Project) checkoutHash(hash ObjectHash) error {
+	err := p.assertNoChanges()
+	if err != nil {
+		return err
+	}
+
+	version, err := loadVersion(p.gudPath, hash)
+	if err != nil {
+		return err
+	}
+	tree, err := loadTree(p.gudPath, version.TreeHash)
+	if err != nil {
+		return err
+	}
+
+	return p.removeChanges(tree)
 }
 
 func (p Project) MergeBranch(from string) (*Version, error) {

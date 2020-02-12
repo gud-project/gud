@@ -54,10 +54,7 @@ func checkout(p *gud.Project, target string) error {
 	var dst gud.ObjectHash
 	err := stringToHash(&dst, target)
 	if err != nil {
-		err = p.CheckoutBranch(target)
-		if err != nil {
-			return err
-		}
+		return p.CheckoutBranch(target)
 	}
 	err = p.Checkout(dst)
 	if err != nil {

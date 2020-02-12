@@ -20,7 +20,6 @@ define vendor
 endef
 
 all: cli server
-server: server/server
 
 lib: gud/gud.a
 gud/gud.a: $(LIB_SRC)
@@ -33,6 +32,7 @@ cli: gud/gud.a $(CLI_SRC)
 	cd $(CLI_DIR)
 	GO111MODULE=off go install
 
+server: server/server
 server/server: gud/gud.a $(SERVER_SRC)
 	$(call vendor,$(SERVER_DIR))
 	cd $(SERVER_DIR)

@@ -288,7 +288,7 @@ func (p Project) extractBlob(relPath string, hash ObjectHash) (err error) {
 		}
 	}()
 
-	_, err = io.Copy(dst, src)
+	_, err = io.Copy(dst, zip)
 	return
 }
 
