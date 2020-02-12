@@ -14,7 +14,7 @@ var keepF bool
 // rmCmd represents the rm command
 var rmCmd = &cobra.Command{
 	Use:   "rm <file>...",
-	Short: "rm receives the path of files in the project needed to be removed in the next save",
+	Short: "remove given files from the project's version",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

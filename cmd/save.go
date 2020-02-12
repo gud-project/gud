@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/AlecAivazis/survey"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -27,7 +28,16 @@ to quickly create a Cobra application.`,
 		}
 
 		if message == "" {
-			fmt.Fprintf(os.Stderr, "version message required. use -m\n")
+			text := ""
+			prompt := &survey.Multiline{
+				Message: "Enter commit message:",
+			}
+			err = survey.AskOne(prompt, &text, icons)
+			if err != nil {
+				print(err.Error())
+				return
+			}
+			saveVersion(text)
 		} else {
 			saveVersion(message)
 		}

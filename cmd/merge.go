@@ -25,8 +25,8 @@ import (
 
 // mergeCmd represents the merge command
 var mergeCmd = &cobra.Command{
-	Use:   "merge",
-	Short: "A brief description of your command",
+	Use:   "merge <branch>",
+	Short: "Merge the given branch into the current one",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -60,7 +60,7 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func mergeByName(p *gud.Project, name string) (*gud.Version) {
+func mergeByName(p *gud.Project, name string) *gud.Version {
 	v, err := p.MergeBranch(name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())

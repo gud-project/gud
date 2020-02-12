@@ -26,7 +26,7 @@ import (
 // checkoutCmd represents the checkout command
 var checkoutCmd = &cobra.Command{
 	Use:   "checkout <branch>\ncheckout <commit-hash>",
-	Short: "A brief description of your command",
+	Short: "Transfer to another version of your project",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

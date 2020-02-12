@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/AlecAivazis/survey"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
@@ -37,40 +38,12 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := checkArgsNum(0, len(args), "")
-	if err == nil {
-		if printF {
-			printConfig()
-		}
-		return
-	}
-
-	err = checkArgsNum(2, len(args), "")
-	if err != nil {
-		print(err.Error())
-		return
-	}
-
-	changeConfig(args)
-	},
-}
-
-func printConfig() {
 	p, err := LoadProject()
 	if err != nil {
 		print(err.Error())
 		return
 	}
-	b, err := p.ReadConfig()
-	print(string(b))
-}
 
-func changeConfig(args []string) {
-	p, err := LoadProject()
-	if err != nil {
-		print(err.Error())
-		return
-	}
 	var config gud.Config
 	err = p.LoadConfig(&config)
 	if err != nil {
@@ -78,31 +51,99 @@ func changeConfig(args []string) {
 		return
 	}
 
-	switch strings.ToLower(args[0]) {
-	case "name":
-		config.Name = args[1]
-	case "projectname":
-		config.ProjectName = args[1]
-	case "token":
-		config.Token = args[1]
-	case "serverdomain":
-		config.ServerDomain = args[1]
-	case "checkpoints":
-		config.Checkpoints, err = strconv.Atoi(args[1])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s is not an integer\n", args[1])
+	err = checkArgsNum(0, len(args), "")
+	if err == nil {
+		if printF {
+			err = printConfig(p)
+			if err != nil {
+				print(err.Error())
+			}
+			return
 		}
-	case "autopush":
-		config.AutoPush = strings.ToLower(args[1]) == "true"
-	default:
-		fmt.Fprintf(os.Stderr, "%s is not a configuration field\n", args[0])
+	}
+
+	if len(args) != 2 && len(args) != 0 {
+		print(err.Error())
+		return
+	}
+
+	err = getConfigChanges(args, &config)
+	if err != nil {
+		print(err.Error())
+		return
 	}
 
 	err = p.WriteConfig(config)
 	if err != nil {
 		print(err.Error())
-		return
 	}
+	},
+}
+
+func printConfig(p *gud.Project) error{
+	b, err := p.ReadConfig()
+	print(string(b))
+	return err
+}
+
+func getConfigChanges(args []string, config *gud.Config) error{
+	var field, value string
+	var err error
+	if len(args) == 0 {
+		prompt := &survey.Select{
+			Message: "Choose field:",
+			Options: []string{"Name", "Project name", "Token", "Server domain", "Checkpoints", "Automatic push"},
+		}
+		err = survey.AskOne(prompt, &field, icons)
+		if err != nil {
+			return err
+		}
+
+		if field == "Automatic push" {
+			value := false
+			prompt := &survey.Confirm{
+				Message: "Do you want automatic push?",
+			}
+			err = survey.AskOne(prompt, &value, icons)
+			if err != nil {
+				return err
+			}
+			config.AutoPush = value
+			return nil
+		}
+
+		newValue := &survey.Input{
+			Message: "New value:",
+		}
+		err = survey.AskOne(newValue, &value, icons)
+		if err != nil {
+			return err
+		}
+	} else {
+		field = args[0]
+		value = args[1]
+	}
+
+	switch strings.ToLower(field) {
+	case "name":
+		config.Name = value
+	case "projectname":
+		config.ProjectName = value
+	case "token":
+		config.Token = value
+	case "serverdomain":
+		config.ServerDomain = value
+	case "checkpoints":
+		var err error
+		config.Checkpoints, err = strconv.Atoi(value)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s is not an integer\n", value)
+		}
+	default:
+		fmt.Fprintf(os.Stderr, "%s is not a configuration field\n", field)
+	}
+
+	return nil
 }
 
 func init() {

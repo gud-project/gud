@@ -168,7 +168,7 @@ func createVersion(rootPath string, version Version) (*object, error) {
 }
 
 func (v *Version) String() string {
-	return fmt.Sprintf("Message: %s\nTime: %s\n", v.Message, v.Time.Format("2006-01-02 15:04:05"))
+	return fmt.Sprintf("Message: %s\nTime: %s\nHash: %s", v.Message, v.Time.Format("2006-01-02 15:04:05"), v.TreeHash.String())
 }
 
 func createGobObject(rootPath, relPath string, obj interface{}, objectType objectType) (*object, error) {

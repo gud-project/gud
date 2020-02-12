@@ -18,10 +18,9 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"github.com/AlecAivazis/survey"
 	"net/http"
 
-	"github.com/howeyc/gopass"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -37,17 +36,21 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		print("Username: ")
-		var name string
-		fmt.Scanln(&name)
+		name := ""
+		prompt := &survey.Input{
+			Message: "Username",
+		}
+		err := survey.AskOne(prompt, &name, icons)
+		if err != nil {
+			print(err.Error())
+			return
+		}
 
-		print("Password: ")
-		b, err := gopass.GetPasswd()
+		password, err := getValidPassword("Password")
 		if err != nil {
 			println(err.Error())
 			return
 		}
-		password := string(b)
 
 		request := gud.LoginRequest{Username: name, Password: password, Remember: true}
 
