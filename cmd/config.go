@@ -139,6 +139,8 @@ func getConfigChanges(args []string, config *gud.Config) error{
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s is not an integer\n", value)
 		}
+	case "autopush":
+		config.AutoPush = value == "true"
 	default:
 		fmt.Fprintf(os.Stderr, "%s is not a configuration field\n", field)
 	}

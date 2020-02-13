@@ -41,20 +41,21 @@ to quickly create a Cobra application.`,
 			return
 		}
 
+		branchName := args[0]
 		p, err := LoadProject()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
 			return
 		}
 
-		err = p.CreateBranch(args[0])
+		err = p.CreateBranch(branchName)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
 			return
 		}
 
 		if !stayF {
-			err = checkout(p, args[0])
+			err = checkout(p, branchName)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
 			}

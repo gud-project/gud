@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/AlecAivazis/survey"
-	"os"
-
 	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 var message string
@@ -28,31 +26,51 @@ to quickly create a Cobra application.`,
 		}
 
 		if message == "" {
-			text := ""
 			prompt := &survey.Multiline{
 				Message: "Enter commit message:",
 			}
-			err = survey.AskOne(prompt, &text, icons)
+			err = survey.AskOne(prompt, &message, icons)
 			if err != nil {
 				print(err.Error())
 				return
 			}
-			saveVersion(text)
-		} else {
-			saveVersion(message)
 		}
+
+		p , err:= LoadProject()
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		_, err = saveVersion(p, message)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		if config.AutoPush {
+			err = pushBranch(message)
+			if err != nil {
+				print(err.Error())
+			}
+		}
+
 	},
 }
 
-func saveVersion(message string) {
-	p, err := LoadProject()
+func saveVersion(p *gud.Project, message string) (*gud.Version, error){
+	v, err := p.Save(message)
 	if err != nil {
-		return
+		return nil, err
 	}
-	_, err = p.Save(message)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-	}
+	return v, nil
 }
 
 func init() {

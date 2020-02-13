@@ -58,10 +58,10 @@ const modeMax = "max"
 
 func checkArgsNum(size , argc int, mode string) error {
 	if size > argc && mode != modeMax{
-		return fmt.Errorf("not enough arguments in command usage(%d of %d)\n", size, argc)
+		return fmt.Errorf("not enough arguments in command usage(%d of %d)\n", argc, size)
 	}
 	if size < argc && mode != modeMin{
-		return fmt.Errorf("to many arguments in command usage - %d required\n", argc)
+		return fmt.Errorf("to many arguments in command usage - %d required\n", size)
 	}
 	return nil
 }

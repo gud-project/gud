@@ -25,8 +25,8 @@ import (
 
 // branchCmd represents the branch command
 var branchCmd = &cobra.Command{
-	Use:   "branch <branch-subcommand>",
-	Short: "Create a new branch of your project to work on",
+	Use:   "branch, branch <sub-command>",
+	Short: "Gives you information about your project's branches. Also takes place as the branch root command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

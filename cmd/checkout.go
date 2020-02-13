@@ -62,7 +62,6 @@ func checkout(p *gud.Project, target string) error {
 	}
 	err = p.Checkout(dst)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error() + "\n")
 		err = p.CheckoutBranch(target)
 		if err != nil {
 			return err
