@@ -75,7 +75,7 @@ func (p Project) compareTree(relPath string, root tree, index []indexEntry, fn c
 
 			fileInd++
 		} else if obj.Name < basePath { // removed file/dir
-			err = reportRemoved(p.gudPath, relPath, obj, fn)
+			err = reportRemoved(p.gudPath, relPath, obj, index, fn)
 			if err != nil {
 				return err
 			}
@@ -93,7 +93,7 @@ func (p Project) compareTree(relPath string, root tree, index []indexEntry, fn c
 				}
 
 			} else if obj.Type == typeTree && !info.IsDir() { // removed directory and added file
-				err = reportRemovedDir(p.gudPath, childPath, obj.Hash, fn)
+				err = reportRemovedDir(p.gudPath, childPath, obj.Hash, index, fn)
 				if err != nil {
 					return err
 				}
@@ -126,7 +126,7 @@ func (p Project) compareTree(relPath string, root tree, index []indexEntry, fn c
 	}
 	for ; objInd < len(root); objInd++ {
 		obj := root[objInd]
-		err = reportRemoved(p.gudPath, relPath, obj, fn)
+		err = reportRemoved(p.gudPath, relPath, obj, index, fn)
 	}
 
 	return nil
@@ -139,12 +139,12 @@ func (p Project) reportNew(relPath string, isDir bool, index []indexEntry, fn cm
 	return p.reportNewFile(relPath, index, fn)
 }
 
-func reportRemoved(gudPath, parentPath string, obj object, fn cmpCallback) error {
+func reportRemoved(gudPath, parentPath string, obj object, index []indexEntry, fn cmpCallback) error {
 	relPath := filepath.Join(parentPath, obj.Name)
 	if obj.Type == typeTree {
-		return reportRemovedDir(gudPath, relPath, obj.Hash, fn)
+		return reportRemovedDir(gudPath, relPath, obj.Hash, index, fn)
 	}
-	return fn(relPath, StateRemoved, &obj.Hash, false)
+	return reportRemovedFile(relPath, obj.Hash, index, fn)
 }
 
 func (p Project) compareDir(relPath string, hash ObjectHash, index []indexEntry, fn cmpCallback) error {
@@ -161,19 +161,15 @@ func (p Project) reportNewDir(relPath string, index []indexEntry, fn cmpCallback
 		if err != nil {
 			return err
 		}
-
-		if !info.IsDir() {
-			newRelPath, err := filepath.Rel(p.Path, path)
-			if err != nil {
-				return err
-			}
-			err = p.reportNewFile(newRelPath, index, fn)
-			if err != nil {
-				return err
-			}
+		newRelPath, err := filepath.Rel(p.Path, path)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		if info.IsDir() {
+			return fn(newRelPath, StateNew, nil, true)
+		}
+		return p.reportNewFile(newRelPath, index, fn)
 	})
 }
 
@@ -196,14 +192,26 @@ func (p Project) reportNewFile(relPath string, index []indexEntry, fn cmpCallbac
 	return fn(relPath, StateNew, nil, false)
 }
 
-func reportRemovedDir(gudPath, relPath string, hash ObjectHash, fn cmpCallback) error {
+func reportRemovedFile(relPath string, hash ObjectHash, index []indexEntry, fn cmpCallback) error {
+	ind, tracked := findEntry(index, relPath)
+	if !tracked || index[ind].State != StateRemoved {
+		return fn(relPath, StateRemoved, &hash, false)
+	}
+
+	return nil
+}
+
+func reportRemovedDir(gudPath, relPath string, hash ObjectHash, index []indexEntry, fn cmpCallback) error {
 	tree, err := loadTree(gudPath, hash)
 	if err != nil {
 		return err
 	}
 
 	err = walkObjects(gudPath, relPath, tree, func(relPath string, obj object) error {
-		return fn(relPath, StateRemoved, &hash, false) // TODO: pretty sure that's a mistake
+		if obj.Type == typeBlob {
+			return reportRemovedFile(relPath, obj.Hash, index, fn)
+		}
+		return fn(relPath, StateRemoved, &obj.Hash, true)
 	})
 	if err != nil {
 		return err

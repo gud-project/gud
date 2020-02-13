@@ -2,16 +2,7 @@
 
 make -s cli
 
-# test data
-readonly file='f.txt'
 readonly dir="$BATS_TMPDIR/test"
-readonly abs_file="$dir/$file"
-
-readonly data1='test data'
-readonly data2='new test data'
-
-readonly msg1='first version'
-readonly msg2='second version'
 
 
 setup() {
@@ -28,27 +19,27 @@ teardown() {
 	gud start
 	[ -d '.gud' ]
 
-	run gud branch
-	[ "$status" -eq 0 ]
-	[ "${lines[1]}" = 'master' ]
-
 	run gud status
 	[ "$status" -eq 0 ]
 	[ -z "$output" ]
 
 	# add file
-	echo "$data1" >"$abs_file"
+	local -r file='f.txt'
+	local -r data1='test data'
+
+	echo "$data1" >"$file"
 	run gud status
 	[ "$status" -eq 0 ]
 	[ "$output" = "non-update new:$file" ]
 
-	gud add "$abs_file"
+	gud add "$file"
 
 	run gud status
 	[ "$status" -eq 0 ]
 	[ "$output" = "new: $file" ]
 
 	# save
+	local -r msg1='first version'
 	gud save -m "$msg1"
 
 	run gud status
@@ -56,13 +47,14 @@ teardown() {
 	[ -z "$output" ]
 
 	# change file
-	echo "$data2" >"$abs_file"
+	local -r data2='new test data'
+	echo "$data2" >"$file"
 
 	run gud status
 	[ "$status" -eq 0 ]
 	[ "$output" = "non-update modified: $file" ]
 
-	run gud add "$abs_file"
+	run gud add "$file"
 	[ "$status" -eq 0 ]
 
 	run gud status
@@ -70,6 +62,7 @@ teardown() {
 	[ "$output" = "modified: $file" ]
 
 	# save change
+	local -r msg2='second version'
 	run gud save -m "$msg2"
 	[ "$status" -eq 0 ]
 
@@ -77,15 +70,21 @@ teardown() {
 	[ "$status" -eq 0 ]
 	[ -z "$output" ]
 
-	# go back to previous version
-	run gud checkout "$hash1"
+	# remove file
+	rm "$file"
+	run gud status
 	[ "$status" -eq 0 ]
-	[ "$(cat "$abs_file")" = "$data1" ]
+	echo "$output"
+	[ "$output" = "non-update deleted: $file" ]
 
-	# go to new version
-	run gud checkout 'master'
+	echo "$data2" >"$file"
+	gud rm "$file"
+	run gud status
 	[ "$status" -eq 0 ]
-	[ "$(cat "$abs_file")" = "$data2" ]
+	echo "$output"
+	[ "$output" = "deleted: $file" ]
+
+	gud save -m 'third version'
 }
 
 @test "checkout" {
@@ -93,9 +92,12 @@ teardown() {
 	gud start
 
 	# add file
-	echo "$data1" >"$abs_file"
+	local -r file='f.txt'
+	local -r data1='test data'
+	echo "$data1" >"$file"
 
-	gud add "$abs_file"
+	local -r msg1='first version'
+	gud add "$file"
 	gud save -m "$msg1"
 
 	run gud log
@@ -107,11 +109,13 @@ teardown() {
 	[ -n "$hash1" ]
 
 	# change file
-	echo "$data2" >"$abs_file"
-	run gud add "$abs_file"
+	local -r data2='new test data'
+	echo "$data2" >"$file"
+	run gud add "$file"
 	[ "$status" -eq 0 ]
 
 	# save change
+	local -r msg2='second version'
 	run gud save -m "$msg2"
 	[ "$status" -eq 0 ]
 
@@ -122,10 +126,61 @@ teardown() {
 	# go back to previous version
 	run gud checkout "$hash1"
 	[ "$status" -eq 0 ]
-	[ "$(cat "$abs_file")" = "$data1" ]
+	[ "$(cat "$file")" = "$data1" ]
 
 	# go to new version
 	run gud checkout 'master'
 	[ "$status" -eq 0 ]
-	[ "$(cat "$abs_file")" = "$data2" ]
+	[ "$(cat "$file")" = "$data2" ]
+}
+
+@test "merge two separate branches" {
+	cd "$dir"
+	gud start
+
+	run gud branch
+	[ "$status" -eq 0 ]
+	[ "${lines[1]}" = 'master' ]
+
+	local -r branch='secondary'
+	gud branch create "$branch"
+
+	run gud branch
+	[ "$status" -eq 0 ]
+	[ "${lines[1]}" = "$branch" ]
+
+	gud checkout master
+	run gud branch
+	[ "$status" -eq 0 ]
+	[ "${lines[1]}" = 'master' ]
+
+	local -r file1='f.txt'
+	local -r data1='test data'
+	echo "$data1" >"$file1"
+	gud add "$file1"
+
+	local -r msg1='master version'
+	gud save -m "$msg1"
+
+	gud checkout "$branch"
+	[ ! -e "$file1" ]
+
+	local -r file2='g.txt'
+	local -r data2='different data'
+	echo "$data2" >"$file2"
+	gud add "$file2"
+
+	local -r msg2='secondary version'
+	gud save -m "$msg2"
+
+	gud checkout 'master'
+	[ ! -e "$file2" ]
+	[   -e "$file1" ]
+	[ "$(cat "$file1")" = "$data1" ]
+
+	gud merge "$branch"
+	[ -e "$file1" ]
+	[ -e "$file2" ]
+	[ "$(cat "$file1")" = "$data1" ]
+	[ "$(cat "$file2")" = "$data2" ]
 }
