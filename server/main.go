@@ -36,6 +36,7 @@ func main() {
 // reportError reports an error to the client side (e.g. invalid input, unauthorized)
 func reportError(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(gud.ErrorResponse{message})
 }
 

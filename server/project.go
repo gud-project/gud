@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -68,7 +68,7 @@ func importProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func projectBranch(w http.ResponseWriter, r *http.Request) {
-	project, err := gud.Load(projectPath(context.Get(r, KeyUserId).(int), context.Get(r, KeyProjectId).(int)))
+	project, err := gud.Load(contextProjectPath(r.Context()))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -95,7 +95,7 @@ func pushProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := gud.Load(projectPath(context.Get(r, KeyUserId).(int), context.Get(r, KeyProjectId).(int)))
+	project, err := gud.Load(contextProjectPath(r.Context()))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -136,7 +136,7 @@ func pullProject(w http.ResponseWriter, r *http.Request) {
 		start = &startHash
 	}
 
-	project, err := gud.Load(projectPath(context.Get(r, KeyUserId).(int), context.Get(r, KeyProjectId).(int)))
+	project, err := gud.Load(contextProjectPath(r.Context()))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -164,7 +164,7 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 		return "", "invalid project name", nil
 	}
 
-	userId := context.Get(r, KeyUserId).(int)
+	userId := r.Context().Value(KeyUserId).(int)
 
 	projectExists, err := checkExists(projectExistsStmt, name, userId)
 	if err != nil {
@@ -196,7 +196,7 @@ func verifyProject(next http.Handler) http.Handler {
 		username := vars["user"]
 		projectName := vars["project"]
 
-		userId := context.Get(r, KeyUserId).(uint)
+		userId := r.Context().Value(KeyUserId).(uint)
 		matches, err := checkExists(userIdMatchesNameStmt, userId, username)
 		if err != nil {
 			handleError(w, err)
@@ -219,9 +219,12 @@ func verifyProject(next http.Handler) http.Handler {
 			return
 		}
 
-		context.Set(r, KeyProjectId, projectId)
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyProjectId, projectId)))
 	})
+}
+
+func contextProjectPath(ctx context.Context) string {
+	return projectPath(ctx.Value(KeyUserId).(int), ctx.Value(KeyProjectId).(int))
 }
 
 func projectPath(userId, projectId int) string {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
 	"gitlab.com/magsh-2019/2/gud/gud"
 	"golang.org/x/crypto/bcrypt"
@@ -22,7 +22,6 @@ var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0
 var namePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type ContextKey int
-
 const (
 	KeyUserId ContextKey = iota
 	KeyProjectId
@@ -39,7 +38,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	}
 	if errs != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(gud.MultiErrorResponse{errs})
+		_ = json.NewEncoder(w).Encode(gud.MultiErrorResponse{Errors: errs})
 		return
 	}
 
@@ -189,8 +188,7 @@ func verifySession(next http.Handler) http.Handler {
 		if !sess.IsNew {
 			id, ok := sess.Values["id"].(uint)
 			if ok {
-				context.Set(r, KeyUserId, id)
-				next.ServeHTTP(w, r)
+				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserId, id)))
 				return
 			}
 		}
