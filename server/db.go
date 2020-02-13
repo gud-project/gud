@@ -2,9 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
-	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -20,7 +18,7 @@ var newUserStmt,
 
 func init() {
 	var err error
-	db, err = sql.Open("postgres", fmt.Sprintf("user=gud password=%s", os.Getenv("PQ_PASS")))
+	db, err = sql.Open("postgres", "") // set PGUSER and PGPASSWORD
 	if err != nil {
 		log.Fatal(err)
 	}
