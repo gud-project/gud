@@ -36,6 +36,11 @@ func (p Project) CreateBranch(name string) error {
 		}
 	}
 
+	_, err := os.Stat(filepath.Join(p.gudPath, branchesPath, name))
+	if !os.IsNotExist(err) {
+		return Error{"branch already exists"}
+	}
+
 	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return err
@@ -108,7 +113,7 @@ func (p Project) checkoutHash(hash ObjectHash) error {
 		return err
 	}
 
-	return p.removeChanges(tree)
+	return p.removeChanges(tree, nil)
 }
 
 func (p Project) MergeBranch(from string) (*Version, error) {
@@ -125,7 +130,7 @@ func (p Project) MergeHash(from ObjectHash) (*Version, error) {
 		return nil, err
 	}
 
-	return p.merge(from, fmt.Sprintf("\"%s\"", version.Message))
+	return p.merge(from, fmt.Sprintf(`"%s"`, version.Message))
 }
 
 func (p Project) ListBranches(fn func(branch string) error) error {
@@ -191,6 +196,17 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		tree, err := loadTree(p.gudPath, fromVersion.TreeHash)
+		if err != nil {
+			return nil, err
+		}
+
+		err = p.removeChanges(tree, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		return fromVersion, nil
 	}
 
@@ -259,13 +275,42 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return nil, err
 	}
 
-	return saveVersion(
+	version, err := saveVersion(
 		p.gudPath, fmt.Sprintf("merged %s into %s", name, head.Branch),
 		head.Branch, treeObj.Hash, to, &from)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.removeChanges(tree, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }
 
-func (p Project) removeChanges(tree tree) error {
-	return p.compareTree(".", tree, []indexEntry{},
+func (p Project) Reset() error {
+	version, err := p.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	tree, err := loadTree(p.gudPath, version.TreeHash)
+	if err != nil {
+		return err
+	}
+
+	index, err := loadIndex(p.gudPath)
+	if err != nil {
+		return err
+	}
+
+	return p.removeChanges(tree, index)
+}
+
+func (p Project) removeChanges(tree tree, index []indexEntry) error {
+	return p.compareTree(".", tree, index,
 		func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
 			path := filepath.Join(p.Path, relPath)
 			if isDir && state == StateNew {
