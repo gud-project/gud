@@ -12,11 +12,14 @@ import (
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/sessions"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_KEY")))
+
 var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$`)
+var namePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 
 type ContextKey int
 
@@ -36,7 +39,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	}
 	if errs != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(MultiErrorResponse{errs})
+		_ = json.NewEncoder(w).Encode(gud.MultiErrorResponse{errs})
 		return
 	}
 
@@ -62,7 +65,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
-	var req LoginRequest
+	var req gud.LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		reportError(w, http.StatusBadRequest, err.Error())
@@ -123,11 +126,11 @@ func logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func validateSignUp(r *http.Request) (*SignUpRequest, []string, error) {
+func validateSignUp(r *http.Request) (*gud.SignUpRequest, []string, error) {
 	const maxErrs = 3
 	errs := make([]string, 0, maxErrs)
 
-	var req SignUpRequest
+	var req gud.SignUpRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		errs = append(errs, err.Error())
@@ -136,7 +139,7 @@ func validateSignUp(r *http.Request) (*SignUpRequest, []string, error) {
 
 	if req.Username == "" {
 		errs = append(errs, "missing username")
-	} else if !validName(req.Username) {
+	} else if !namePattern.MatchString(req.Username) {
 		errs = append(errs, "invalid username")
 	} else {
 		userExists, intErr := checkExists(userExistsStmt, req.Username)

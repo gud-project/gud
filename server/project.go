@@ -89,8 +89,8 @@ func projectBranch(w http.ResponseWriter, r *http.Request) {
 }
 
 func pushProject(w http.ResponseWriter, r *http.Request) {
-	branches := r.URL.Query()["branch"]
-	if len(branches) == 0 || branches[0] == "" {
+	branchArr := r.URL.Query()["branch"]
+	if len(branchArr) == 0 || branchArr[0] == "" {
 		reportError(w, http.StatusBadRequest, "missing branch")
 		return
 	}
@@ -101,7 +101,7 @@ func pushProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = project.PullBranch(branches[0], r.Body, r.Header.Get("Content-Type"))
+	err = project.PullBranch(branchArr[0], r.Body, r.Header.Get("Content-Type"))
 	if err != nil {
 		if inputErr, ok := err.(gud.InputError); ok {
 			reportError(w, http.StatusBadRequest, inputErr.Error())
@@ -153,14 +153,14 @@ func pullProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
-	names, ok := r.URL.Query()["name"]
+	nameArr := r.URL.Query()["name"]
 
-	if !ok || len(names) == 0 || names[0] == "" {
+	if len(nameArr) == 0 {
 		return "", "missing project name", nil
 	}
 
-	name := names[0]
-	if !validName(name) {
+	name := nameArr[0]
+	if !namePattern.MatchString(name) {
 		return "", "invalid project name", nil
 	}
 

@@ -4,37 +4,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"sort"
-	"strconv"
 
 	"github.com/gorilla/mux"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
-
-var illegalNameChars = []int{' ', '@'}
-
-type SignUpRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Remember bool   `json:"remember"`
-}
-
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-type MultiErrorResponse struct {
-	Errors []string `json:"errors"`
-}
 
 func main() {
 	defer closeDB()
-	sort.Ints(illegalNameChars)
 
 	api := mux.NewRouter()
 	api.HandleFunc("/signup", signUp).Methods(http.MethodPost)
@@ -57,28 +33,14 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func validName(name string) bool {
-	for _, r := range name {
-		if !strconv.IsPrint(r) {
-			return false
-		}
-
-		ind := sort.SearchInts(illegalNameChars, int(r))
-		if ind < len(illegalNameChars) && int(r) == illegalNameChars[ind] {
-			return false
-		}
-	}
-
-	return true
-}
-
+// reportError reports an error to the client side (e.g. invalid input, unauthorized)
 func reportError(w http.ResponseWriter, code int, message string) {
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(ErrorResponse{message})
+	_ = json.NewEncoder(w).Encode(gud.ErrorResponse{message})
 }
 
+// handleError handles a server-side error without reporting to the user (e.g. SQL errors)
 func handleError(w http.ResponseWriter, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 	log.Println(err)
-	log.Writer()
 }
