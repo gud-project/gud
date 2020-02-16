@@ -8,31 +8,31 @@ LIB_SRC=$(call go_src,$(LIB_DIR))
 CLI_SRC=$(call go_src,$(CLI_DIR))
 SERVER_SRC=$(call go_src,$(SERVER_DIR))
 
-.PHONY: all client server
-.ONESHELL: client server
+.PHONY: all cli server lib
+.ONESHELL: cli server lib
 
 define vendor
 	sed -i 's/"gitlab.com\/magsh-2019\/2\/gud\/gud"/\/\/ \0/g' $(call go_src,$(1))
 	cd $(1)
 	go mod vendor
-	cd -
+	cd - >/dev/null
 	sed -i 's/\/\/ \("gitlab.com\/magsh-2019\/2\/gud\/gud"\)/\1/g' $(call go_src,$(1))
 endef
 
-all: client server
-server: server/server
+all: cli server
 
+lib: gud/gud.a
 gud/gud.a: $(LIB_SRC)
 	cd gud
 	go mod vendor
 	go build -o gud.a
 
-client: gud/gud.a $(CLI_SRC)
+cli: gud/gud.a $(CLI_SRC)
 	$(call vendor,$(CLI_DIR))
 	cd $(CLI_DIR)
 	GO111MODULE=off go install
 
-
+server: server/server
 server/server: gud/gud.a $(SERVER_SRC)
 	$(call vendor,$(SERVER_DIR))
 	cd $(SERVER_DIR)

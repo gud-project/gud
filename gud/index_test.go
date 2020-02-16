@@ -6,56 +6,7 @@ import (
 	"testing"
 )
 
-func TestAddToIndex(t *testing.T) {
-	defer clearTest()
-
-	testPath := filepath.Join(testDir, testFile)
-	data := []byte("random test data")
-
-	_, _ = Start(testDir)
-	_ = ioutil.WriteFile(testPath, data, 0644)
-
-	err := addToIndex(testDir, []string{testPath})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entries, err := loadIndex(testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(entries) != 1 || entries[0].Name != testFile || entries[0].Size != int64(len(data)) {
-		t.Fail()
-	}
-}
-
-func TestRemoveFromIndex(t *testing.T) {
-	defer clearTest()
-
-	testPath := filepath.Join(testDir, testFile)
-	data := []byte("random test data")
-
-	_, _ = Start(testDir)
-	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = addToIndex(testDir, []string{testPath})
-
-	err := removeFromIndex(testDir, []string{testPath})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	entries, err := loadIndex(testDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(entries) > 0 {
-		t.Fail()
-	}
-}
-
-func TestRemoveFromProject(t *testing.T) {
+func TestProject_Add(t *testing.T) {
 	defer clearTest()
 
 	testPath := filepath.Join(testDir, testFile)
@@ -63,14 +14,38 @@ func TestRemoveFromProject(t *testing.T) {
 
 	p, _ := Start(testDir)
 	_ = ioutil.WriteFile(testPath, data, 0644)
-	_ = addToIndex(testDir, []string{testPath})
 
-	err := removeFromProject(testDir, []string{testPath})
+	err := p.Add(testPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(testDir)
+	entries, err := loadIndex(p.gudPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(entries) != 1 || entries[0].Path != testFile {
+		t.Fail()
+	}
+}
+
+func TestProject_Remove(t *testing.T) {
+	defer clearTest()
+
+	testPath := filepath.Join(testDir, testFile)
+	data := []byte("random test data")
+
+	p, _ := Start(testDir)
+	_ = ioutil.WriteFile(testPath, data, 0644)
+	_ = p.Add(testPath)
+
+	err := p.Remove(testPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,20 +53,20 @@ func TestRemoveFromProject(t *testing.T) {
 		t.Error("Index entry was not removed")
 	}
 
-	_ = p.Add(testDir, testPath)
+	_ = p.Add(testPath)
 	_, _ = p.Save("add test file")
 
-	err = removeFromProject(testDir, []string{testPath})
+	err = p.Remove(testPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	entries, err = loadIndex(testDir)
+	entries, err = loadIndex(p.gudPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(entries) != 1 || entries[0].Name != testFile || entries[0].State != StateRemoved {
+	if len(entries) != 1 || entries[0].Path != testFile || entries[0].State != StateRemoved {
 		t.Error("Index entry was not added")
 	}
 }

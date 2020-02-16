@@ -1,7 +1,6 @@
 package gud
 
 import (
-	"encoding/hex"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,29 +10,30 @@ import (
 func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
-	_ = os.Mkdir(filepath.Join(testDir, gudPath), dirPerm)
-	err := initObjectsDir(testDir)
+	gudPath := filepath.Join(testDir, defaultGudPath)
+	_ = os.Mkdir(gudPath, dirPerm)
+	err := initObjectsDir(gudPath)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if _, err := os.Stat(filepath.Join(testDir, objectsDirPath)); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(gudPath, objectsPath)); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }
 
-func TestCreateBlob(t *testing.T) {
+func TestProject_createBlob(t *testing.T) {
 	defer clearTest()
 
-	_, _ = Start(testDir)
+	p, _ := Start(testDir)
 	_ = ioutil.WriteFile(filepath.Join(testDir, testFile), []byte("hello\nthis is a test"), 0644)
 
-	hash, err := createBlob(testDir, testFile)
+	hash, err := p.createBlob(testFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err = os.Stat(filepath.Join(testDir, objectsDirPath, hex.EncodeToString(hash[:]))); os.IsNotExist(err) {
+	if _, err = os.Stat(objectPath(p.gudPath, *hash)); os.IsNotExist(err) {
 		t.Error(err)
 	}
 }

@@ -14,8 +14,8 @@ import (
 
 const FirstBranchName = "master"
 
-const branchesDirPath = gudPath + "/branches"
-const headFileName = gudPath + "/head"
+const branchesPath = "branches"
+const headFileName = "head"
 
 type Head struct {
 	IsDetached bool
@@ -30,27 +30,32 @@ func (p Project) CreateBranch(name string) error {
 	}
 
 	if strings.ContainsRune(name, os.PathSeparator) {
-		err := os.MkdirAll(filepath.Join(p.Path, branchesDirPath, filepath.Dir(name)), dirPerm)
+		err := os.MkdirAll(filepath.Join(p.gudPath, branchesPath, filepath.Dir(name)), dirPerm)
 		if err != nil {
 			return err
 		}
 	}
 
-	head, err := loadHead(p.Path)
+	_, err := os.Stat(filepath.Join(p.gudPath, branchesPath, name))
+	if !os.IsNotExist(err) {
+		return Error{"branch already exists"}
+	}
+
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return err
 	}
 
-	hash, err := getCurrentHash(p.Path, *head)
+	hash, err := getCurrentHash(p.gudPath, *head)
 	if err != nil {
 		return err
 	}
 
-	return dumpBranch(p.Path, name, *hash)
+	return dumpBranch(p.gudPath, name, *hash)
 }
 
 func (p Project) GetBranch(name string) (*ObjectHash, error) {
-	_, err := os.Stat(filepath.Join(p.Path, branchesDirPath, name))
+	_, err := os.Stat(filepath.Join(p.gudPath, branchesPath, name))
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
@@ -58,51 +63,61 @@ func (p Project) GetBranch(name string) (*ObjectHash, error) {
 		return nil, err
 	}
 
-	return loadBranch(p.Path, name)
+	return loadBranch(p.gudPath, name)
 }
 
 func (p Project) CheckoutBranch(branch string) error {
-	hash, err := loadBranch(p.Path, branch)
+	hash, err := loadBranch(p.gudPath, branch)
 	if err != nil {
 		return err
 	}
 
-	return p.Checkout(*hash)
+	err = p.Checkout(*hash)
+	if err != nil {
+		return err
+	}
+
+	return dumpHead(p.gudPath, Head{IsDetached: false, Branch: branch})
 }
 
 func (p Project) Checkout(hash ObjectHash) error {
-	err := p.assertNoChanges()
+	err := p.checkoutHash(hash)
 	if err != nil {
 		return err
 	}
 
-	version, err := loadVersion(p.Path, hash)
-	if err != nil {
-		return err
-	}
-	tree, err := loadTree(p.Path, version.TreeHash)
-	if err != nil {
-		return err
-	}
-	err = removeChanges(p.Path, tree)
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return err
 	}
 
-	head, err := loadHead(p.Path)
-	if err != nil {
-		return err
-	}
-
-	return dumpHead(p.Path, Head{
+	return dumpHead(p.gudPath, Head{
 		IsDetached: true,
 		Hash:       hash,
 		Branch:     head.Branch,
 	})
 }
 
+func (p Project) checkoutHash(hash ObjectHash) error {
+	err := p.assertNoChanges()
+	if err != nil {
+		return err
+	}
+
+	version, err := loadVersion(p.gudPath, hash)
+	if err != nil {
+		return err
+	}
+	tree, err := loadTree(p.gudPath, version.TreeHash)
+	if err != nil {
+		return err
+	}
+
+	return p.removeChanges(tree, nil)
+}
+
 func (p Project) MergeBranch(from string) (*Version, error) {
-	hash, err := loadBranch(p.Path, from)
+	hash, err := loadBranch(p.gudPath, from)
 	if err != nil {
 		return nil, err
 	}
@@ -110,22 +125,24 @@ func (p Project) MergeBranch(from string) (*Version, error) {
 }
 
 func (p Project) MergeHash(from ObjectHash) (*Version, error) {
-	version, err := loadVersion(p.Path, from)
+	version, err := loadVersion(p.gudPath, from)
 	if err != nil {
 		return nil, err
 	}
 
-	return p.merge(from, fmt.Sprintf("\"%s\"", version.Message))
+	return p.merge(from, fmt.Sprintf(`"%s"`, version.Message))
 }
 
 func (p Project) ListBranches(fn func(branch string) error) error {
-	return filepath.Walk(filepath.Join(p.Path, branchesDirPath), func(path string, info os.FileInfo, err error) error {
+	branchesRoot := filepath.Join(p.gudPath, branchesPath)
+	return filepath.Walk(branchesRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if !info.IsDir() {
-			err = fn(path)
+			relPath, _ := filepath.Rel(branchesRoot, path)
+			err = fn(relPath)
 			if err != nil {
 				return err
 			}
@@ -140,7 +157,7 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return nil, err
 	}
 
-	head, err := loadHead(p.Path)
+	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
@@ -148,21 +165,21 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return nil, Error{"cannot merge while head is detached"}
 	}
 
-	to, err := getCurrentHash(p.Path, *head)
+	to, err := getCurrentHash(p.gudPath, *head)
 	if err != nil {
 		return nil, err
 	}
 
-	toVersion, err := loadVersion(p.Path, *to)
+	toVersion, err := loadVersion(p.gudPath, *to)
 	if err != nil {
 		return nil, err
 	}
-	fromVersion, err := loadVersion(p.Path, from)
+	fromVersion, err := loadVersion(p.gudPath, from)
 	if err != nil {
 		return nil, err
 	}
 
-	oldToNew, err := isDescendent(p.Path, *to, from)
+	oldToNew, err := isDescendent(p.gudPath, *to, from)
 	if err != nil {
 		return nil, err
 	}
@@ -170,22 +187,33 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return toVersion, nil
 	}
 
-	newToOld, err := isDescendent(p.Path, from, *to)
+	newToOld, err := isDescendent(p.gudPath, from, *to)
 	if err != nil {
 		return nil, err
 	}
 	if newToOld {
-		err = dumpBranch(p.Path, head.Branch, from)
+		err = dumpBranch(p.gudPath, head.Branch, from)
 		if err != nil {
 			return nil, err
 		}
+
+		tree, err := loadTree(p.gudPath, fromVersion.TreeHash)
+		if err != nil {
+			return nil, err
+		}
+
+		err = p.removeChanges(tree, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		return fromVersion, nil
 	}
 
 	base := from
 	foundBase := false
 	for !foundBase {
-		baseVersion, err := loadVersion(p.Path, base)
+		baseVersion, err := loadVersion(p.gudPath, base)
 		if err != nil {
 			return nil, err
 		}
@@ -194,30 +222,30 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		}
 
 		base = *baseVersion.prev
-		foundBase, err = isDescendent(p.Path, *to, base)
+		foundBase, err = isDescendent(p.gudPath, *to, base)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	baseVersion, err := loadVersion(p.Path, base)
+	baseVersion, err := loadVersion(p.gudPath, base)
 	if err != nil {
 		return nil, err
 	}
-	toTree, err := loadTree(p.Path, toVersion.TreeHash)
+	toTree, err := loadTree(p.gudPath, toVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
-	fromTree, err := loadTree(p.Path, fromVersion.TreeHash)
+	fromTree, err := loadTree(p.gudPath, fromVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
-	baseTree, err := loadTree(p.Path, baseVersion.TreeHash)
+	baseTree, err := loadTree(p.gudPath, baseVersion.TreeHash)
 	if err != nil {
 		return nil, err
 	}
 
-	tree, conflicts, err := mergeTrees(p.Path, ".", toTree, fromTree, head.Branch, name, baseTree)
+	tree, conflicts, err := p.mergeTrees(".", toTree, fromTree, head.Branch, name, baseTree)
 	if err != nil {
 		return nil, err
 	}
@@ -226,12 +254,12 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		index := make([]indexEntry, 0, conflicts.Len())
 		for p := conflicts.Front(); p != nil; p = p.Next() {
 			index = append(index, indexEntry{
-				Name:  p.Value.(string),
+				Path:  p.Value.(string),
 				State: StateConflict,
 			})
 		}
 
-		err = dumpHead(p.Path, Head{
+		err = dumpHead(p.gudPath, Head{
 			IsDetached: false,
 			Branch:     head.Branch,
 			MergedHash: &from,
@@ -242,21 +270,49 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return nil, Error{"there are merge conflicts. please solve them and save the changes"}
 	}
 
-	treeObj, err := createTree(p.Path, ".", tree)
+	treeObj, err := createTree(p.gudPath, ".", tree)
 	if err != nil {
 		return nil, err
 	}
 
-	return saveVersion(
-		p.Path, fmt.Sprintf("merged %s into %s", name, head.Branch),
+	version, err := saveVersion(
+		p.gudPath, fmt.Sprintf("merged %s into %s", name, head.Branch),
 		head.Branch, treeObj.Hash, to, &from)
+	if err != nil {
+		return nil, err
+	}
+
+	err = p.removeChanges(tree, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }
 
-func removeChanges(rootPath string, tree tree) error {
-	return compareTree(
-		rootPath, ".", tree, []indexEntry{},
+func (p Project) Reset() error {
+	version, err := p.CurrentVersion()
+	if err != nil {
+		return err
+	}
+
+	tree, err := loadTree(p.gudPath, version.TreeHash)
+	if err != nil {
+		return err
+	}
+
+	index, err := loadIndex(p.gudPath)
+	if err != nil {
+		return err
+	}
+
+	return p.removeChanges(tree, index)
+}
+
+func (p Project) removeChanges(tree tree, index []indexEntry) error {
+	return p.compareTree(".", tree, index,
 		func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
-			path := filepath.Join(rootPath, relPath)
+			path := filepath.Join(p.Path, relPath)
 			if isDir && state == StateNew {
 				return os.Remove(path)
 			}
@@ -266,21 +322,21 @@ func removeChanges(rootPath string, tree tree) error {
 			if state == StateNew {
 				return os.Remove(path)
 			}
-			return extractBlob(rootPath, relPath, *hash)
+			return p.extractBlob(relPath, *hash)
 		},
 	)
 }
 
-func getCurrentHash(rootPath string, head Head) (*ObjectHash, error) {
+func getCurrentHash(gudPath string, head Head) (*ObjectHash, error) {
 	if head.IsDetached {
 		return &head.Hash, nil
 	}
-	return loadBranch(rootPath, head.Branch)
+	return loadBranch(gudPath, head.Branch)
 }
 
-func isDescendent(rootPath string, new, old ObjectHash) (bool, error) {
+func isDescendent(gudPath string, new, old ObjectHash) (bool, error) {
 	for new != old {
-		version, err := loadVersion(rootPath, new)
+		version, err := loadVersion(gudPath, new)
 		if err != nil {
 			return false, err
 		}
@@ -304,7 +360,8 @@ func (p Project) assertNoChanges() error {
 	)
 }
 
-func mergeTrees(rootPath, relPath string, to, from tree, toName, fromName string, base tree) (tree, *list.List, error) {
+func (p Project) mergeTrees(
+	relPath string, to, from tree, toName, fromName string, base tree) (tree, *list.List, error) {
 	res := make(tree, len(to), len(to)+len(from))
 	conflicts := list.New()
 	copy(res, to)
@@ -329,7 +386,7 @@ func mergeTrees(rootPath, relPath string, to, from tree, toName, fromName string
 				if found {
 					baseObj := base[baseInd]
 					if toObj.Hash != baseObj.Hash && fromObj.Hash != baseObj.Hash { // conflicting changes
-						mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, toObj, fromObj, toName, fromName, &baseObj)
+						mergedObj, newConflicts, err := p.mergeDiff(relPath, toObj, fromObj, toName, fromName, &baseObj)
 						if err != nil {
 							return nil, nil, err
 						}
@@ -343,7 +400,7 @@ func mergeTrees(rootPath, relPath string, to, from tree, toName, fromName string
 						res[toInd] = fromObj
 					}
 				} else { // conflicting changes
-					mergedObj, newConflicts, err := mergeDiff(rootPath, relPath, toObj, fromObj, toName, fromName, nil)
+					mergedObj, newConflicts, err := p.mergeDiff(relPath, toObj, fromObj, toName, fromName, nil)
 					if err != nil {
 						return nil, nil, err
 					}
@@ -369,8 +426,8 @@ func mergeTrees(rootPath, relPath string, to, from tree, toName, fromName string
 	return res, nil, nil
 }
 
-func mergeDiff(
-	rootPath, parentPath string,
+func (p Project) mergeDiff(
+	parentPath string,
 	to, from object,
 	toName, fromName string,
 	base *object) (*object, *list.List, error) {
@@ -380,7 +437,7 @@ func mergeDiff(
 		return nil, nil, Error{"cannot merge directory and file: " + relPath}
 	}
 	if to.Type == typeBlob {
-		err := writeConflict(rootPath, relPath, to.Hash, from.Hash, toName, fromName)
+		err := p.writeConflict(relPath, to.Hash, from.Hash, toName, fromName)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -390,20 +447,20 @@ func mergeDiff(
 		return nil, conflicts, nil
 	}
 
-	toTree, err := loadTree(rootPath, to.Hash)
+	toTree, err := loadTree(p.gudPath, to.Hash)
 	if err != nil {
 		return nil, nil, err
 	}
-	fromTree, err := loadTree(rootPath, from.Hash)
+	fromTree, err := loadTree(p.gudPath, from.Hash)
 	if err != nil {
 		return nil, nil, err
 	}
 	var baseTree tree
 	if base != nil && base.Type == typeTree {
-		baseTree, err = loadTree(rootPath, base.Hash)
+		baseTree, err = loadTree(p.gudPath, base.Hash)
 	}
 
-	newTree, conflicts, err := mergeTrees(rootPath, relPath, toTree, fromTree, toName, fromName, baseTree)
+	newTree, conflicts, err := p.mergeTrees(relPath, toTree, fromTree, toName, fromName, baseTree)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -411,7 +468,7 @@ func mergeDiff(
 		return nil, conflicts, nil
 	}
 
-	newObj, err := createTree(rootPath, relPath, newTree)
+	newObj, err := createTree(p.gudPath, relPath, newTree)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -419,20 +476,20 @@ func mergeDiff(
 	return newObj, nil, nil
 }
 
-func writeConflict(
-	rootPath, relPath string,
+func (p Project) writeConflict(
+	relPath string,
 	to, from ObjectHash,
 	toName, fromName string) (err error) {
-	toText, err := readBlob(rootPath, to)
+	toText, err := readBlob(p.gudPath, to)
 	if err != nil {
 		return
 	}
-	fromText, err := readBlob(rootPath, from)
+	fromText, err := readBlob(p.gudPath, from)
 	if err != nil {
 		return
 	}
 
-	dst, err := os.Create(filepath.Join(rootPath, relPath))
+	dst, err := os.Create(filepath.Join(p.Path, relPath))
 	if err != nil {
 		return
 	}
@@ -467,12 +524,12 @@ func writeChange(w io.Writer, changeType, name, change string) (int, error) {
 	return fmt.Fprintf(w, "%s\n%s\n%s", label, change, strings.Repeat("}", len(label)))
 }
 
-func initBranches(rootPath string) error {
-	return os.Mkdir(filepath.Join(rootPath, branchesDirPath), dirPerm)
+func initBranches(gudPath string) error {
+	return os.Mkdir(filepath.Join(gudPath, branchesPath), dirPerm)
 }
 
-func dumpBranch(rootPath string, name string, hash ObjectHash) (err error) {
-	file, err := os.Create(filepath.Join(rootPath, branchesDirPath, name))
+func dumpBranch(gudPath string, name string, hash ObjectHash) (err error) {
+	file, err := os.Create(filepath.Join(gudPath, branchesPath, name))
 	if err != nil {
 		return
 	}
@@ -487,10 +544,10 @@ func dumpBranch(rootPath string, name string, hash ObjectHash) (err error) {
 	return
 }
 
-func loadBranch(rootPath, name string) (*ObjectHash, error) {
+func loadBranch(gudPath, name string) (*ObjectHash, error) {
 	var hash ObjectHash
 
-	file, err := os.Open(filepath.Join(rootPath, branchesDirPath, name))
+	file, err := os.Open(filepath.Join(gudPath, branchesPath, name))
 	if err != nil {
 		return nil, err
 	}
@@ -507,8 +564,8 @@ func loadBranch(rootPath, name string) (*ObjectHash, error) {
 	return &hash, nil
 }
 
-func dumpHead(rootPath string, head Head) (err error) {
-	file, err := os.Create(filepath.Join(rootPath, headFileName))
+func dumpHead(gudPath string, head Head) (err error) {
+	file, err := os.Create(filepath.Join(gudPath, headFileName))
 	if err != nil {
 		return err
 	}
@@ -522,8 +579,8 @@ func dumpHead(rootPath string, head Head) (err error) {
 	return gob.NewEncoder(file).Encode(head)
 }
 
-func loadHead(rootPath string) (*Head, error) {
-	file, err := os.Open(filepath.Join(rootPath, headFileName))
+func loadHead(gudPath string) (*Head, error) {
+	file, err := os.Open(filepath.Join(gudPath, headFileName))
 	if err != nil {
 		return nil, err
 	}

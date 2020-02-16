@@ -1,0 +1,19 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="server" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="gud" />
+    <working_directory value="$PROJECT_DIR$/" />
+    <go_parameters value="-i" />
+    <envs>
+      <env name="PGPASSWORD" value="NITAI_PUT_PASSWORD_HERE" />
+      <env name="PGUSER" value="NITAI_PUT_USERNAME_HERE" />
+      <env name="GO111MODULE" value="off" />
+    </envs>
+    <kind value="PACKAGE" />
+    <filePath value="$PROJECT_DIR$/" />
+    <package value="gitlab.com/magsh-2019/2/gud/server" />
+    <directory value="$PROJECT_DIR$/" />
+    <method v="2">
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="make server" run_configuration_type="MAKEFILE_TARGET_RUN_CONFIGURATION" />
+    </method>
+  </configuration>
+</component>

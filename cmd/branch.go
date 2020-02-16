@@ -18,8 +18,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	
+
 	"github.com/spf13/cobra"
 )
 
@@ -42,8 +41,7 @@ to quickly create a Cobra application.`,
 		fmt.Fprintf(os.Stdout, "Current branch is: \n%s\n", branch)
 		fmt.Fprintf(os.Stdout, "Other branches:\n")
 		err = p.ListBranches(func(branch string) error {
-			relBranch, _ := filepath.Rel(filepath.Join(p.Path, ".gud\\branches"), branch)
-			_, err:= fmt.Println(relBranch)
+			_, err := fmt.Println(branch)
 			return err
 		})
 	},
