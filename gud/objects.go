@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
+	"hash"
 	"io"
 	"io/ioutil"
 	"os"
@@ -145,19 +146,30 @@ func saveVersion(gudPath, message, branch string, tree ObjectHash, prev, merged 
 	return &v, err
 }
 
-func (p Project) createBlob(relPath string) (*ObjectHash, error) {
+func (p Project) createBlob(relPath string) (h *ObjectHash, err error) {
 	src, err := os.Open(filepath.Join(p.Path, relPath))
 	if err != nil {
-		return nil, err
+		return
 	}
 	defer src.Close()
 
-	hash, err := createObject(p.gudPath, relPath, src)
+	dst, err := newObjectWriter(relPath)
 	if err != nil {
-		return nil, err
+		return
+	}
+	defer func() {
+		cerr := dst.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	_, err = io.Copy(dst, src)
+	if err != nil {
+		return
 	}
 
-	return hash, err
+	return dst.Dump(p.gudPath)
 }
 
 func createTree(gudPath, relPath string, tree tree) (*object, error) {
@@ -172,54 +184,61 @@ func (v *Version) String() string {
 	return fmt.Sprintf("Message: %s\nTime: %s\n", v.Message, v.Time.Format("2006-01-02 15:04:05"))
 }
 
-func createGobObject(gudPath, relPath string, obj interface{}, objectType objectType) (*object, error) {
-	var buffer bytes.Buffer
-
-	err := gob.NewEncoder(&buffer).Encode(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := createObject(gudPath, relPath, &buffer)
-	if err != nil {
-		return nil, err
-	}
-	return &object{
-		Name: filepath.Base(relPath),
-		Hash: *hash,
-		Type: objectType,
-	}, nil
-}
-
-func createObject(gudPath, name string, src io.Reader) (hash *ObjectHash, err error) {
-	var zipData bytes.Buffer
-
-	sha := sha1.New()
-	_, err = fmt.Fprintf(sha, name)
+func createGobObject(gudPath, relPath string, ret interface{}, objectType objectType) (obj *object, err error) {
+	w, err := newObjectWriter(relPath)
 	if err != nil {
 		return
 	}
-
-	// use compressed data for both the object content and the hash
-	zip := zlib.NewWriter(io.MultiWriter(&zipData, sha))
 	defer func() {
-		cerr := zip.Close()
+		cerr := w.Close()
 		if err == nil {
 			err = cerr
 		}
 	}()
 
-	_, err = io.Copy(zip, src)
+	err = gob.NewEncoder(w).Encode(ret)
 	if err != nil {
 		return
 	}
 
-	err = zip.Close()
+	h, err := w.Dump(gudPath)
 	if err != nil {
 		return
 	}
 
-	sum := sha.Sum(nil)
+	return &object{
+		Name: filepath.Base(relPath),
+		Hash: *h,
+		Type: objectType,
+	}, nil
+}
+
+type objectWriter struct {
+	io.WriteCloser
+	data bytes.Buffer
+	sha  hash.Hash
+}
+
+func newObjectWriter(name string) (*objectWriter, error) {
+	w := &objectWriter{
+		sha: sha1.New(),
+	}
+	_, err := fmt.Fprintf(w.sha, name)
+	if err != nil {
+		return nil, err
+	}
+
+	w.WriteCloser = zlib.NewWriter(io.MultiWriter(&w.data, w.sha))
+	return w, nil
+}
+
+func (w *objectWriter) Dump(gudPath string) (h *ObjectHash, err error) {
+	err = w.Close()
+	if err != nil {
+		return
+	}
+
+	sum := w.sha.Sum(nil)
 	var ret ObjectHash
 	copy(ret[:], sum)
 
@@ -235,7 +254,7 @@ func createObject(gudPath, name string, src io.Reader) (hash *ObjectHash, err er
 		}
 	}()
 
-	_, err = zipData.WriteTo(dst)
+	_, err = w.data.WriteTo(dst)
 	if err != nil {
 		return
 	}
