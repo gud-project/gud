@@ -184,3 +184,18 @@ teardown() {
 	[ "$(cat "$file1")" = "$data1" ]
 	[ "$(cat "$file2")" = "$data2" ]
 }
+
+# TODO: not sure how to set this up
+#@test "server" {
+#	local -r user='nitai'
+#	local -r pass='gudpass'
+#	psql -d 'gud' -v "user=$user" -v "pass=$pass" \
+#		-c "INSERT INTO users (username, email, password, created_at) VALUES (':user', a@b.com, ':pass', NOW());"
+#
+#	[ "$(psql -d 'gud' -v "user=$user" -At  -c "SELECT EXISTS(SELECT 1 FROM users WHERE username = ':user');")" = 't' ]
+#
+#	cd "$dir"
+#	gud start
+#
+#	printf "%s\n$%s\n" "$user" "$pass" | gud login
+#}

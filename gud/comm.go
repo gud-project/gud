@@ -114,7 +114,7 @@ func pushVersion(gudPath string, writer *multipart.Writer, hash ObjectHash) erro
 }
 
 func pushTree(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
-	part, err := createPart(writer, hash, versionContentType)
+	part, err := createPart(writer, hash, treeContentType)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func pushTree(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
 		if obj.Type == typeTree {
 			err = pushTree(gudPath, writer, obj.Hash)
 		} else {
-			err = pushBlob(gudPath, writer, hash)
+			err = pushBlob(gudPath, writer, obj.Hash)
 		}
 		if err != nil {
 			return err
@@ -146,7 +146,7 @@ func pushTree(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
 }
 
 func pushBlob(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
-	part, err := createPart(writer, hash, versionContentType)
+	part, err := createPart(writer, hash, blobContentType)
 	if err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func pullVersion(
 	gudPath string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List) (hash *ObjectHash, err error) {
 	part, err := reader.NextPart()
 	if err == io.EOF {
-		return
+		return nil, nil
 	}
 	if err != nil {
 		return nil, InputError{"invalid multipart data"}
@@ -418,7 +418,7 @@ func validatePart(gudPath string, part *multipart.Part, expectedType string) (*O
 		return nil, InputError{fmt.Sprintf("object already exists: %s", name)}
 	}
 
-	return &hash, err
+	return &hash, nil
 }
 
 func validateVersion(rootPath string, v Version, hash ObjectHash, prevHash *ObjectHash) (*Version, error) {
@@ -441,7 +441,7 @@ func validateVersion(rootPath string, v Version, hash ObjectHash, prevHash *Obje
 	if !v.HasPrev() {
 		return nil, InputError{fmt.Sprintf("unexpected first version: %s", hash)}
 	}
-	if v.prev != prevHash {
+	if *v.prev != *prevHash {
 		return nil, InputError{fmt.Sprintf("unexpected version: %s", hash)}
 	}
 	if !prev.Time.Before(v.Time) {
