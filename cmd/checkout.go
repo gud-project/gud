@@ -17,8 +17,6 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
@@ -35,32 +33,44 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := LoadProject()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
+			return err
 		}
+
+		err = p.Checkpoint("checkpoint")
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
 
 		if len(args) == 0 {
 			for back := true; back ; {
 				back, err = checkoutSelect(p)
 				if err != nil {
-					print(err.Error())
+					return err
 				}
 			}
-			return
+			return nil
 		}
 
 		err = checkArgsNum(1, len(args), "")
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		err = checkout(p, args[0])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
+			return err
 		}
+
+		return nil
 	},
 }
 
@@ -128,7 +138,7 @@ func getVersion(p *gud.Project, v *gud.Version) error {
 	}
 
 	if err != nil && err.Error() != "The version has no predecessor" {
-		return errors.New("no versions created\n")
+		return errors.New("no versions created")
 	}
 
 	versionMessages = append(versionMessages, "back")

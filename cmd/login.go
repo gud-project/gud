@@ -35,21 +35,19 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		prompt := &survey.Input{
 			Message: "Username",
 		}
 		err := survey.AskOne(prompt, &name, icons)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		password, err := getValidPassword("Password")
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
 		request := gud.LoginRequest{Username: name, Password: password, Remember: true}
@@ -57,14 +55,12 @@ to quickly create a Cobra application.`,
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
 		resp, err := http.Post("http://localhost/api/v1/login", "application/json", &buf)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 		defer resp.Body.Close()
 
@@ -77,15 +73,13 @@ to quickly create a Cobra application.`,
 
 		p , err:= LoadProject()
 		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		var config gud.Config
 		err = p.LoadConfig(&config)
 		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		config.Name = name
@@ -93,8 +87,10 @@ to quickly create a Cobra application.`,
 
 		err = p.WriteConfig(config)
 		if err != nil {
-			print(err)
+			return err
 		}
+
+		return nil
 	},
 }
 

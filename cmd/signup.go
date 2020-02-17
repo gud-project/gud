@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -41,15 +42,14 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		prompt := &survey.Input{
 			Message: "Username:",
 		}
 		err := survey.AskOne(prompt, &name, icons)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		email := ""
@@ -58,8 +58,7 @@ to quickly create a Cobra application.`,
 		}
 		err = survey.AskOne(prompt, &email, icons)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		for !emailPattern.MatchString(email) {
@@ -69,13 +68,12 @@ to quickly create a Cobra application.`,
 
 		password, err := getPassword()
 		for err != nil && password == "1"{
-			print(err.Error())
+			fmt.Fprintf(os.Stderr, err.Error())
 			password, err = getPassword()
 		}
 
 		if err != nil && password == "2" {
-			print(err.Error())
-			return
+			return err
 		}
 
 		request := gud.SignUpRequest{Username: name, Email: email, Password: password}
@@ -83,14 +81,12 @@ to quickly create a Cobra application.`,
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
 		resp, err := http.Post("http://localhost/api/v1/signup", "application/json", &buf)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 		defer resp.Body.Close()
 		var token string
@@ -102,24 +98,19 @@ to quickly create a Cobra application.`,
 
 		p , err:= LoadProject()
 		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		var config gud.Config
 		err = p.LoadConfig(&config)
 		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		config.Name = name
 		config.Token = token
 
-		err = p.WriteConfig(config)
-		if err != nil {
-			print(err)
-		}
+		return p.WriteConfig(config)
 	},
 }
 

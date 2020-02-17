@@ -18,11 +18,10 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(0, len(args), "")
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		if message == "" {
@@ -31,37 +30,45 @@ to quickly create a Cobra application.`,
 			}
 			err = survey.AskOne(prompt, &message, icons)
 			if err != nil {
-				print(err.Error())
-				return
+				return err
 			}
 		}
 
 		p , err:= LoadProject()
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
+
+		err = p.Checkpoint("save")
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
 
 		_, err = saveVersion(p, message)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		var config gud.Config
 		err = p.LoadConfig(&config)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		if config.AutoPush {
 			err = pushBranch(message)
 			if err != nil {
-				print(err.Error())
+				return err
 			}
 		}
 
+		return nil
 	},
 }
 

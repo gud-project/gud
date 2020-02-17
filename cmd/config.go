@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -38,18 +37,16 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := LoadProject()
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		var config gud.Config
 		err = p.LoadConfig(&config)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		err = checkArgsNum(0, len(args), "")
@@ -57,37 +54,48 @@ to quickly create a Cobra application.`,
 			if printF {
 				err = printConfig(p)
 				if err != nil {
-					print(err)
+					return err
 				}
-				return
+				return nil
 			}
 		}
 
 		if len(args) != 2 && len(args) != 0 {
-			print(err)
-			return
+			return err
 		}
 
 		err = getConfigChanges(args, &config)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
+
+		err = p.Checkpoint("config-change")
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
 
 		err = p.WriteConfig(config)
 		if err != nil {
-			print(err.Error())
+			return err
 		}
+
+		return nil
 	},
 }
 
-func printConfig(p *gud.Project) error{
+func printConfig(p *gud.Project) error {
 	b, err := p.ReadConfig()
 	print(string(b))
 	return err
 }
 
-func getConfigChanges(args []string, config *gud.Config) error{
+func getConfigChanges(args []string, config *gud.Config) error {
 	var field, value string
 	var err error
 	if len(args) == 0 {
@@ -128,22 +136,22 @@ func getConfigChanges(args []string, config *gud.Config) error{
 	switch strings.ToLower(field) {
 	case "name":
 		config.Name = value
-	case "projectname":
+	case "project name":
 		config.ProjectName = value
 	case "token":
 		config.Token = value
-	case "serverdomain":
+	case "server domain":
 		config.ServerDomain = value
 	case "checkpoints":
 		var err error
 		config.Checkpoints, err = strconv.Atoi(value)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s is not an integer\n", value)
+			return fmt.Errorf("%s is not an integer\n", value)
 		}
-	case "autopush":
+	case "automatic push":
 		config.AutoPush = value == "true"
 	default:
-		fmt.Fprintf(os.Stderr, "%s is not a configuration field\n", field)
+		return fmt.Errorf("%s is not a configuration field\n", field)
 	}
 
 	return nil

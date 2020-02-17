@@ -32,10 +32,10 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := LoadProject()
 		if err != nil {
-			return
+			return err
 		}
 		branch, err := p.CurrentBranch()
 		fmt.Fprintf(os.Stdout, "Current branch is: \n%s\n", branch)
@@ -44,6 +44,8 @@ to quickly create a Cobra application.`,
 			_, err := fmt.Println(branch)
 			return err
 		})
+
+		return nil
 	},
 }
 
