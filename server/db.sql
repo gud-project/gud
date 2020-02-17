@@ -3,8 +3,7 @@ CREATE TABLE users (
     username   varchar   NOT NULL,
     email      varchar   NOT NULL,
     password   bytea     NOT NULL,
-    created_at timestamp NOT NULL,
-    active     bool      NOT NULL
+    created_at timestamp NOT NULL
 );
 
 CREATE TABLE projects (

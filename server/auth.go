@@ -43,15 +43,10 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	res, err := newUserStmt.Exec(req.Username, req.Email, hash)
+	id, err := execReturningId(newUserStmt, req.Username, req.Email, hash)
 	if err != nil {
 		handleError(w, err)
 		return
-	}
-
-	id, err := res.LastInsertId()
-	if err != nil {
-		handleError(w, err)
 	}
 
 	err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(int(id))), dirPerm)

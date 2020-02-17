@@ -26,7 +26,7 @@ func init() {
 	// language=PostgreSQL
 	{
 		newUserStmt = mustPrepare(
-			"INSERT INTO users (username, email, password, created_at) VALUES ($1, $2, $3, NOW());")
+			"INSERT INTO users (username, email, password, created_at) VALUES ($1, $2, $3, NOW()) RETURNING user_id;")
 
 		userExistsStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);")
@@ -38,7 +38,7 @@ func init() {
 			"SELECT EXISTS(SELECT 1 FROM users WHERE user_id = $1 AND username = $2);")
 
 		createProjectStmt = mustPrepare(
-			"INSERT INTO projects (name, user_id, created_at) VALUES ($1, $2, NOW());")
+			"INSERT INTO projects (name, user_id, created_at) VALUES ($1, $2, NOW()) RETURNING project_id;")
 
 		projectExistsStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM projects WHERE name = $1 AND user_id = $2);")
@@ -54,6 +54,13 @@ func checkExists(stmt *sql.Stmt, args ...interface{}) (bool, error) {
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+func execReturningId(stmt *sql.Stmt, args ...interface{}) (int64, error) {
+	var id int64
+
+	err := stmt.QueryRow(args...).Scan(&id)
+	return id, err
 }
 
 func mustPrepare(query string) *sql.Stmt {
