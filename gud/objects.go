@@ -180,10 +180,6 @@ func createVersion(gudPath string, version Version) (*object, error) {
 	return createGobObject(gudPath, version.Message, versionToGob(version), typeVersion)
 }
 
-func (v *Version) String() string {
-	return fmt.Sprintf("Message: %s\nTime: %s\nHash: %s", v.Message, v.Time.Format("2006-01-02 15:04:05"), v.TreeHash.String())
-}
-
 func createGobObject(gudPath, relPath string, ret interface{}, objectType objectType) (obj *object, err error) {
 	w, err := newObjectWriter(relPath)
 	if err != nil {
@@ -354,26 +350,21 @@ func loadVersion(gudPath string, hash ObjectHash) (*Version, error) {
 	return &ret, nil
 }
 
-func findObject(gudPath, relPath string) (*object, error) {
+func (p Project) findObject(relPath string) (*object, error) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
-	head, err := loadHead(gudPath)
+	versionHash, err := p.CurrentHash()
 	if err != nil {
 		return nil, err
 	}
 
-	versionHash, err := getCurrentHash(gudPath, *head)
-	if err != nil {
-		return nil, err
-	}
-
-	version, err := loadVersion(gudPath, *versionHash)
+	version, err := loadVersion(p.gudPath, *versionHash)
 	if err != nil {
 		return nil, err
 	}
 
 	obj := object{".", version.TreeHash, typeTree}
 	for _, name := range dirs {
-		tree, err := loadTree(gudPath, obj.Hash)
+		tree, err := loadTree(p.gudPath, obj.Hash)
 		if err != nil {
 			return nil, err
 		}

@@ -18,9 +18,9 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/AlecAivazis/survey"
 	"net/http"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )

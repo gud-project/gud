@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/AlecAivazis/survey"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )

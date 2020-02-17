@@ -17,12 +17,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey"
-	"github.com/spf13/cobra"
-	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 var printF = false
@@ -38,45 +39,45 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-	p, err := LoadProject()
-	if err != nil {
-		print(err.Error())
-		return
-	}
-
-	var config gud.Config
-	err = p.LoadConfig(&config)
-	if err != nil {
-		print(err.Error())
-		return
-	}
-
-	err = checkArgsNum(0, len(args), "")
-	if err == nil {
-		if printF {
-			err = printConfig(p)
-			if err != nil {
-				print(err.Error())
-			}
+		p, err := LoadProject()
+		if err != nil {
+			print(err.Error())
 			return
 		}
-	}
 
-	if len(args) != 2 && len(args) != 0 {
-		print(err.Error())
-		return
-	}
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err.Error())
+			return
+		}
 
-	err = getConfigChanges(args, &config)
-	if err != nil {
-		print(err.Error())
-		return
-	}
+		err = checkArgsNum(0, len(args), "")
+		if err == nil {
+			if printF {
+				err = printConfig(p)
+				if err != nil {
+					print(err)
+				}
+				return
+			}
+		}
 
-	err = p.WriteConfig(config)
-	if err != nil {
-		print(err.Error())
-	}
+		if len(args) != 2 && len(args) != 0 {
+			print(err)
+			return
+		}
+
+		err = getConfigChanges(args, &config)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		err = p.WriteConfig(config)
+		if err != nil {
+			print(err.Error())
+		}
 	},
 }
 

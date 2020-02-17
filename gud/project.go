@@ -124,14 +124,18 @@ func Load(path string) (*Project, error) {
 	return nil, Error{"No Gud project found at " + path}
 }
 
-// CurrentVersion returns the current version of the project
-func (p Project) CurrentVersion() (*Version, error) {
+func (p Project) CurrentHash() (*ObjectHash, error) {
 	head, err := loadHead(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
 
-	hash, err := getCurrentHash(p.gudPath, *head)
+	return getCurrentHash(p.gudPath, *head)
+}
+
+// CurrentVersion returns the current version of the project
+func (p Project) CurrentVersion() (*Version, error) {
+	hash, err := p.CurrentHash()
 	if err != nil {
 		return nil, err
 	}

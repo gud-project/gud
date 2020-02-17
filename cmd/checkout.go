@@ -18,10 +18,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"github.com/AlecAivazis/survey"
 	"os"
-	"path/filepath"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -97,8 +96,7 @@ func getVersionType() (string, error) {
 func getBranch(p *gud.Project) (string, error) {
 	var branches []string
 	err := p.ListBranches(func(branch string) error {
-		relBranch, _ := filepath.Rel(filepath.Join(p.Path, ".gud\\branches"), branch)
-		branches = append(branches, relBranch)
+		branches = append(branches, branch)
 		return nil
 	})
 
@@ -123,7 +121,7 @@ func getVersion(p *gud.Project, v *gud.Version) error {
 
 	var prev *gud.Version
 	var err error
-	for v, err = p.CurrentVersion() ; err == nil && v.Message != "initial commit" ;  v = prev {
+	for v, err = p.CurrentVersion(); err == nil && v.Message != "initial commit"; v = prev {
 		versions = append(versions, v)
 		versionMessages = append(versionMessages, v.Message)
 		_, prev, err = p.Prev(*v)

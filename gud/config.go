@@ -2,54 +2,65 @@ package gud
 
 import (
 	"fmt"
-	"github.com/pelletier/go-toml"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	)
 
-const configFile = ".gud/config.toml"
+	"github.com/pelletier/go-toml"
+)
+
+const configFile = "config.toml"
 
 type Config struct {
-	Name string
-	ProjectName string
-	Token string
+	Name         string
+	ProjectName  string
+	Token        string
 	ServerDomain string
-	Checkpoints int
-	AutoPush bool
+	Checkpoints  int
+	AutoPush     bool
 }
 
-func (p *Project)ConfigInit() error{
+func (p *Project) ConfigInit() (err error) {
 	config := Config{"", filepath.Base(p.Path), "", "localhost", 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
-		return err
+		return
 	}
 
-	f, err := os.Create(filepath.Join(p.Path, configFile))
+	f, err := os.Create(filepath.Join(p.gudPath, configFile))
 	if err != nil {
 		return fmt.Errorf("Failed to create configuration file: %s\n", err.Error())
 	}
-	defer f.Close()
+	defer func() {
+		cerr := f.Close()
+		if err != nil {
+			err = cerr
+		}
+	}()
 
 	_, err = f.Write(b)
 	if err != nil {
 		return fmt.Errorf("Failed to write configuration: %s\n", err.Error())
 	}
-	return nil
+	return
 }
 
-func (p *Project)WriteConfig(config Config) error {
+func (p *Project) WriteConfig(config Config) (err error) {
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return err
 	}
 
-	f, err :=  os.OpenFile(filepath.Join(p.Path, configFile), os.O_RDWR, 0660)
+	f, err :=  os.Create(filepath.Join(p.gudPath, configFile))
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		cerr := f.Close()
+		if err != nil {
+			err = cerr
+		}
+	}()
 
 	_, err = f.Write(b)
 	if err != nil {
@@ -58,7 +69,7 @@ func (p *Project)WriteConfig(config Config) error {
 	return nil
 }
 
-func (p *Project)LoadConfig(config *Config) error {
+func (p *Project) LoadConfig(config *Config) error {
 	b ,err := p.ReadConfig()
 	if err != nil {
 		return err
@@ -66,8 +77,8 @@ func (p *Project)LoadConfig(config *Config) error {
 	return toml.Unmarshal(b, config)
 }
 
-func (p *Project)ReadConfig() ([]byte, error) {
-	f, err := os.Open(filepath.Join(p.Path, configFile))
+func (p *Project) ReadConfig() ([]byte, error) {
+	f, err := os.Open(filepath.Join(p.gudPath, configFile))
 	if err != nil {
 		return nil, err
 	}

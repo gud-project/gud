@@ -21,44 +21,45 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		p, err := LoadProject()
 		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			return
+		}
+
+		hash, err := p.CurrentHash()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
 			return
 		}
 		v, err := p.CurrentVersion()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
+			return
 		}
 
-		_, _, err = p.Prev(*v)
-		if err != nil {
-			fmt.Fprintf(os.Stdout, err.Error())
-		}
-
-		err = printLog(*p, v)
+		err = printLog(*p, *hash, *v)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 		}
 
+		cmd.Print()
 	},
 }
 
-func printLog(p gud.Project, cv *gud.Version) error {
-	_, prev, err := p.Prev(*cv)
-
-	if err != nil {
-		if err.Error() == "The version has no predecessor" {
-			return nil
+func printLog(p gud.Project, hash gud.ObjectHash, version gud.Version) error {
+	if version.HasPrev() {
+		prevHash, prev, err := p.Prev(version)
+		if err != nil {
+			return err
 		}
-		fmt.Fprintf(os.Stdout, cv.String())
-		return err
+
+		err = printLog(p, *prevHash, *prev)
+		if err != nil {
+			return err
+		}
 	}
-	if prev == nil {
-		return nil
-	}
-	err = printLog(p, prev)
-	if err != nil {
-		return err
-	}
-	println(cv.String() + "\n")
+
+	fmt.Fprintf(os.Stdout, "Message: %s\nTime: %s\nHash: %s\n\n",
+		version.Message, version.Time.Format("2006-01-02 15:04:05"), hash)
 	return nil
 }
 

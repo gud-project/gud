@@ -20,11 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/AlecAivazis/survey"
 	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )

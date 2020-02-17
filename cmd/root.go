@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/AlecAivazis/survey"
-	"github.com/spf13/cobra"
 	"os"
+
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands

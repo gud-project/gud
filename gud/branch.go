@@ -41,12 +41,7 @@ func (p Project) CreateBranch(name string) error {
 		return Error{"branch already exists"}
 	}
 
-	head, err := loadHead(p.gudPath)
-	if err != nil {
-		return err
-	}
-
-	hash, err := getCurrentHash(p.gudPath, *head)
+	hash, err := p.CurrentHash()
 	if err != nil {
 		return err
 	}

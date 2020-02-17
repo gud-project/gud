@@ -8,5 +8,3 @@ type Error struct {
 func (e Error) Error() string {
 	return e.s
 }
-
-var AddedUnmodifiedFileError = Error{"the added file has not been modified"}

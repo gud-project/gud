@@ -53,7 +53,7 @@ func (p Project) Add(paths ...string) error {
 			return err
 		}
 
-		prev, err := findObject(p.gudPath, rel)
+		prev, err := p.findObject(rel)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func (p Project) Remove(paths ...string) error {
 			return err
 		}
 
-		prev, err := findObject(p.gudPath, rel)
+		prev, err := p.findObject(rel)
 		if err != nil {
 			return err
 		}
