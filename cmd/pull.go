@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
-	"net/http"
 )
 
 // pullCmd represents the pull command
@@ -17,59 +18,43 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		err := checkArgsNum(1, len(args), "")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := LoadProject()
 		if err != nil {
-			print(err.Error())
-			return
-		}
-
-		p , err:= LoadProject()
-		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		var config gud.Config
 		err = p.LoadConfig(&config)
 		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		branch, err := p.CurrentBranch()
 		if err != nil {
-			println(err)
-			return
+			return err
 		}
 		hash, err := p.GetBranch(branch)
 		if err != nil {
-			println(err)
-			return
+			return err
 		}
 
 		req, err := http.NewRequest("GET",
-			fmt.Sprintf("%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
+			fmt.Sprintf("http://%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
 			nil)
 		if err != nil {
-			println(err)
-			return
+			return err
 		}
 
 		req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
-			println(err)
-			return
+			return err
 		}
 		defer resp.Body.Close()
 
-		err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
-		if err != nil {
-			println(err)
-			return
-		}
+		return p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
 	},
 }
 

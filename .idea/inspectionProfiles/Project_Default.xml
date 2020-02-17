@@ -11,6 +11,7 @@
         <function importPath="fmt" name="Fprintf" />
         <function importPath="gitlab.com/magsh-2019/2/gud/server" name="closeDB" />
         <function importPath="fmt" name="Scanln" />
+        <function importPath="fmt" name="Fprintln" />
       </functions>
       <methods>
         <method importPath="hash" receiver="Hash" name="Write" />

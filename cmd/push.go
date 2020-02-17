@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
-	"net/http"
 )
 
 // pushCmd represents the push command
@@ -19,17 +19,13 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(1, len(args), "")
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
-		err = pushBranch(args[0])
-		if err != nil {
-			print(err.Error())
-		}
+		return pushBranch(args[0])
 	},
 }
 
@@ -45,7 +41,7 @@ func pushBranch(branch string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, config.Name, config.ProjectName, branch), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, config.Name, config.ProjectName, branch), nil)
 	if err != nil {
 		return err
 	}
@@ -53,28 +49,24 @@ func pushBranch(branch string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		println("c1")
-		println(config.Token)
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		return errors.New("branch not found\n")
-	}
-
-	var hash gud.ObjectHash
-	_, err = resp.Body.Read(hash[:])
-	if err != nil {
-		println("2")
-		return err
+	var startHash *gud.ObjectHash
+	if resp.StatusCode != http.StatusNotFound {
+		var hash gud.ObjectHash
+		_, err = resp.Body.Read(hash[:])
+		if err != nil {
+			return err
+		}
+		startHash = &hash
 	}
 
 	var buf bytes.Buffer
-	boundary, err := p.PushBranch(&buf, branch, &hash)
-	req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
+	boundary, err := p.PushBranch(&buf, branch, startHash)
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
 	if err != nil {
-		println("3")
 		return err
 	}
 
