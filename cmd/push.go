@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
@@ -19,76 +20,74 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 1 {
-			println("To many arguments in command call")
-			return
-		}
-		if len(args) == 0 {
-			println("Branch name required")
-			return
-		}
-
-		token, err := loadToken()
+		err := checkArgsNum(1, len(args), "")
 		if err != nil {
-			print(err)
+			print(err.Error())
 			return
 		}
-		_ = token
 
-		name := "name" // token.name
-		pname := "pname" // token.pname
-		data := "data" // token.data
-
-		req, err := http.NewRequest("GET", fmt.Sprintf("localhost/api/v1/project/%s/%s/branch/%s", name, pname, args[0]), nil)
+		err = pushBranch(args[0])
 		if err != nil {
-			println(err)
-			return
+			print(err.Error())
 		}
-		req.AddCookie(&http.Cookie{Name: "session", Value: data})
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			println(err)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusNotFound {
-			print("branch not found")
-			return
-		}
-
-		var hash gud.ObjectHash
-		_, err = resp.Body.Read(hash[:])
-		if err != nil {
-			println(err)
-			return
-		}
-
-		p , err:= LoadProject()
-		if err != nil {
-			println(err)
-			return
-		}
-
-		var buf bytes.Buffer
-		boundary, err := p.PushBranch(&buf, args[0], &hash)
-		req, err = http.NewRequest("POST", fmt.Sprintf("localhost/api/v1/project/%s/%s/push?branch=%s", name, pname, args[0]), &buf)
-		if err != nil {
-			println(err)
-			return
-		}
-
-		req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: data})
-		req.Header.Add("Content-Type", "multipart/mixed; boundary=" +boundary)
-
-		resp, err = client.Do(req)
-		if err != nil {
-			println(err)
-			return
-		}
-		resp.Body.Close()
 	},
+}
+
+func pushBranch(branch string) error {
+	p , err:= LoadProject()
+	if err != nil {
+		return err
+	}
+
+	var config gud.Config
+	err = p.LoadConfig(&config)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, config.Name, config.ProjectName, branch), nil)
+	if err != nil {
+		return err
+	}
+	req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		println("c1")
+		println(config.Token)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.New("branch not found\n")
+	}
+
+	var hash gud.ObjectHash
+	_, err = resp.Body.Read(hash[:])
+	if err != nil {
+		println("2")
+		return err
+	}
+
+	var buf bytes.Buffer
+	boundary, err := p.PushBranch(&buf, branch, &hash)
+	req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
+	if err != nil {
+		println("3")
+		return err
+	}
+
+	req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: config.Token})
+	req.Header.Add("Content-Type", "multipart/mixed; boundary=" +boundary)
+
+	resp, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+
+	return nil
 }
 
 func init() {

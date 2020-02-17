@@ -18,7 +18,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"github.com/AlecAivazis/survey"
 	"net/http"
 
 	"github.com/spf13/cobra"
@@ -36,17 +36,26 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		print("Username: ")
-		var name string
-		fmt.Scanln(&name)
-		print("Password: ")
-		var password string
-		fmt.Scanln(&password)
+		name := ""
+		prompt := &survey.Input{
+			Message: "Username",
+		}
+		err := survey.AskOne(prompt, &name, icons)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		password, err := getValidPassword("Password")
+		if err != nil {
+			println(err.Error())
+			return
+		}
 
 		request := gud.LoginRequest{Username: name, Password: password, Remember: true}
 
 		var buf bytes.Buffer
-		err := json.NewEncoder(&buf).Encode(request)
+		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
 			println(err.Error())
 			return
@@ -65,9 +74,26 @@ to quickly create a Cobra application.`,
 				token = cookie.Value
 			}
 		}
-		err = saveToken(token)
+
+		p , err:= LoadProject()
 		if err != nil {
-			print(err.Error())
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
+			return
+		}
+
+		config.Name = name
+		config.Token = token
+
+		err = p.WriteConfig(config)
+		if err != nil {
+			print(err)
 		}
 	},
 }

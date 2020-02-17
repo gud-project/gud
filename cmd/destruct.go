@@ -29,7 +29,7 @@ var restartF bool
 // destructCmd represents the destruct command
 var destructCmd = &cobra.Command{
 	Use:   "destruct",
-	Short: "A brief description of your command",
+	Short: "Delete .gud folder",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

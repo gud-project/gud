@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/AlecAivazis/survey"
 	"net/http"
 	"regexp"
 	"strings"
@@ -41,13 +42,26 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		print("Username: ")
-		var name string
-		fmt.Scanln(&name)
+		name := ""
+		prompt := &survey.Input{
+			Message: "Username:",
+		}
+		err := survey.AskOne(prompt, &name, icons)
+		if err != nil {
+			print(err.Error())
+			return
+		}
 
-		print("Email: ")
-		var email string
-		fmt.Scanln(&email)
+		email := ""
+		prompt = &survey.Input{
+			Message: "Email:",
+		}
+		err = survey.AskOne(prompt, &email, icons)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
 		for !emailPattern.MatchString(email) {
 			print("Use email format\nEmail: ")
 			fmt.Scanln(&email)
@@ -85,21 +99,36 @@ to quickly create a Cobra application.`,
 				token = cookie.Value
 			}
 		}
-		err = saveToken(token)
+
+		p , err:= LoadProject()
 		if err != nil {
-			print(err.Error())
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
+			return
+		}
+
+		config.Name = name
+		config.Token = token
+
+		err = p.WriteConfig(config)
+		if err != nil {
+			print(err)
 		}
 	},
 }
 
 func getPassword() (string, error) {
-	print("Password: ")
-	p, err := getValidPassword()
+	p, err := getValidPassword("Password:")
 	if err != nil {
 		return p, err
 	}
-	print("password verification: ")
-	vp, err := getValidPassword()
+	vp, err := getValidPassword("password verification:")
 	if err != nil {
 		return vp, err
 	}
@@ -110,11 +139,17 @@ func getPassword() (string, error) {
 	return p, nil
 }
 
-func getValidPassword() (string, error) {
-	var password string
-	fmt.Scanln(&password)
+func getValidPassword(message string) (string, error) {
+	password := ""
+	prompt := &survey.Password{
+		Message: message,
+	}
+	err := survey.AskOne(prompt, &password, icons)
+	if err != nil {
+		return "", nil
+	}
 	if len(password) < gud.PasswordLenMin {
-		return "1", errors.New("Password length must be more then 8 characters\n")
+		return "1", fmt.Errorf("Password length must be %d characters or more\n", gud.PasswordLenMin)
 	}
 	if strings.Contains(password, "@") {
 		return "1", errors.New("Password can't contain @\n")

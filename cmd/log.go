@@ -11,7 +11,7 @@ import (
 // logCmd represents the log command
 var logCmd = &cobra.Command{
 	Use:   "log",
-	Short: "A brief description of your command",
+	Short: "Show saved versions log",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -37,11 +37,12 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 		}
+
 	},
 }
 
 func printLog(p gud.Project, cv *gud.Version) error {
-	v, prev, err := p.Prev(*cv)
+	_, prev, err := p.Prev(*cv)
 
 	if err != nil {
 		if err.Error() == "The version has no predecessor" {
@@ -57,7 +58,7 @@ func printLog(p gud.Project, cv *gud.Version) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stdout, "%s\nHash: %s\n\n", cv.String(), v)
+	println(cv.String() + "\n")
 	return nil
 }
 

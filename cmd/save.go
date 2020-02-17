@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/AlecAivazis/survey"
 	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 var message string
@@ -20,27 +19,58 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 0 {
-			fmt.Fprintf(os.Stderr, "warning: no arguments required\n")
+		err := checkArgsNum(0, len(args), "")
+		if err != nil {
+			print(err.Error())
+			return
 		}
 
 		if message == "" {
-			fmt.Fprintf(os.Stderr, "version message required. use -m\n")
-		} else {
-			saveVersion(message)
+			prompt := &survey.Multiline{
+				Message: "Enter commit message:",
+			}
+			err = survey.AskOne(prompt, &message, icons)
+			if err != nil {
+				print(err.Error())
+				return
+			}
 		}
+
+		p , err:= LoadProject()
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		_, err = saveVersion(p, message)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err.Error())
+			return
+		}
+
+		if config.AutoPush {
+			err = pushBranch(message)
+			if err != nil {
+				print(err.Error())
+			}
+		}
+
 	},
 }
 
-func saveVersion(message string) {
-	p, err := LoadProject()
+func saveVersion(p *gud.Project, message string) (*gud.Version, error){
+	v, err := p.Save(message)
 	if err != nil {
-		return
+		return nil, err
 	}
-	_, err = p.Save(message)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-	}
+	return v, nil
 }
 
 func init() {

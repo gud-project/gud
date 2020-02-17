@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 // logoutCmd represents the logout command
@@ -30,7 +31,25 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		deleteToken()
+		p , err:= LoadProject()
+		if err != nil {
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
+			return
+		}
+
+		config.Token = ""
+
+		err = p.WriteConfig(config)
+		if err != nil {
+			print(err)
+		}
 	},
 }
 

@@ -11,7 +11,7 @@ import (
 // statusCmd represents the status command
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "A brief description of your command",
+	Short: "Prints the status of the current version compared to the last one",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 )
 
@@ -17,22 +18,22 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 1 {
-			println("To many arguments in command call")
+		err := checkArgsNum(1, len(args), "")
+		if err != nil {
+			print(err.Error())
 			return
 		}
-		if len(args) == 0 {
-			println("url name required")
-			return
-		}
-
-		name := "name" // token.name
-		pname := "pname" // token.pname
-		data := "data" // token.data
 
 		p , err:= LoadProject()
 		if err != nil {
-			println(err)
+			print(err)
+			return
+		}
+
+		var config gud.Config
+		err = p.LoadConfig(&config)
+		if err != nil {
+			print(err)
 			return
 		}
 
@@ -48,14 +49,14 @@ to quickly create a Cobra application.`,
 		}
 
 		req, err := http.NewRequest("GET",
-			fmt.Sprintf("localhost/api/v1/project/%s/%s/pull?branch=%s&start=%s", name, pname, branch, hash),
+			fmt.Sprintf("%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
 			nil)
 		if err != nil {
 			println(err)
 			return
 		}
 
-		req.AddCookie(&http.Cookie{Name: "session", Value: data})
+		req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {

@@ -18,14 +18,15 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
 
 // branchCmd represents the branch command
 var branchCmd = &cobra.Command{
-	Use:   "branch <branch-subcommand>",
-	Short: "A brief description of your command",
+	Use:   "branch",
+	Short: "Gives you information about your project's branches. Also takes place as the branch root command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
