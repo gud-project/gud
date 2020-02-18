@@ -43,36 +43,9 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		name := ""
-		prompt := &survey.Input{
-			Message: "Username:",
-		}
-		err := survey.AskOne(prompt, &name, icons)
+		var name, email, password string
+		err := getUserData(&name, &email, &password)
 		if err != nil {
-			return err
-		}
-
-		email := ""
-		prompt = &survey.Input{
-			Message: "Email:",
-		}
-		err = survey.AskOne(prompt, &email, icons)
-		if err != nil {
-			return err
-		}
-
-		for !emailPattern.MatchString(email) {
-			print("Use email format\nEmail: ")
-			fmt.Scanln(&email)
-		}
-
-		password, err := getPassword()
-		for err != nil && password == "1"{
-			fmt.Fprintf(os.Stderr, err.Error())
-			password, err = getPassword()
-		}
-
-		if err != nil && password == "2" {
 			return err
 		}
 
@@ -112,6 +85,40 @@ to quickly create a Cobra application.`,
 
 		return p.WriteConfig(config)
 	},
+}
+
+func getUserData(name, email, password *string) error {
+	prompt := &survey.Input{
+		Message: "Username:",
+	}
+	err := survey.AskOne(prompt, name, icons)
+	if err != nil {
+		return err
+	}
+
+	prompt = &survey.Input{
+		Message: "Email:",
+	}
+	err = survey.AskOne(prompt, email, icons)
+	if err != nil {
+		return err
+	}
+
+	for !emailPattern.MatchString(*email) {
+		print("Use email format\nEmail: ")
+		fmt.Scanln(email)
+	}
+
+	*password, err = getPassword()
+	for err != nil && *password == "1"{
+		fmt.Fprintf(os.Stderr, err.Error())
+		*password, err = getPassword()
+	}
+
+	if err != nil && *password == "2" {
+		return err
+	}
+	return nil
 }
 
 func getPassword() (string, error) {

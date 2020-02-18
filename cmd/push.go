@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
+
+const projectNotFound = ""
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
@@ -49,7 +52,18 @@ func pushBranch(branch string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		if err.Error() == projectNotFound {
+			err = createServerProject(config.ProjectName, config.Token)
+			if err != nil {
+				return err
+			}
+			resp, err = client.Do(req)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	defer resp.Body.Close()
 
@@ -78,6 +92,31 @@ func pushBranch(branch string) error {
 		return err
 	}
 	resp.Body.Close()
+
+	return nil
+}
+
+func createServerProject(name, token string) error {
+	request := gud.CreateProjectRequest{Name: name}
+
+	var buf bytes.Buffer
+	err := json.NewEncoder(&buf).Encode(request)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost/api/v1/create"), &buf)
+	if err != nil {
+		return err
+	}
+
+	req.AddCookie(&http.Cookie{Name: "session", Value: token})
+
+	client := &http.Client{}
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
