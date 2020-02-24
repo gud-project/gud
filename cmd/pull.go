@@ -30,6 +30,12 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		var gConfig gud.GlobalConfig
+		err = gud.LoadConfig(gConfig, gConfig.GetPath())
+		if err != nil {
+			return err
+		}
+
 		branch, err := p.CurrentBranch()
 		if err != nil {
 			return err
@@ -40,13 +46,13 @@ to quickly create a Cobra application.`,
 		}
 
 		req, err := http.NewRequest("GET",
-			fmt.Sprintf("http://%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
+			fmt.Sprintf("http://%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, gConfig.Name, config.ProjectName, branch, hash),
 			nil)
 		if err != nil {
 			return err
 		}
 
-		req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
+		req.AddCookie(&http.Cookie{Name: "session", Value: gConfig.Token})
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {

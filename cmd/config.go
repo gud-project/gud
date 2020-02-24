@@ -101,7 +101,7 @@ func getConfigChanges(args []string, config *gud.Config) error {
 	if len(args) == 0 {
 		prompt := &survey.Select{
 			Message: "Choose field:",
-			Options: []string{"Name", "Project name", "Token", "Server domain", "Checkpoints", "Automatic push"},
+			Options: []string{"Project name", "Server domain", "Checkpoints", "Automatic push"},
 		}
 		err = survey.AskOne(prompt, &field, icons)
 		if err != nil {
@@ -134,12 +134,8 @@ func getConfigChanges(args []string, config *gud.Config) error {
 	}
 
 	switch strings.ToLower(field) {
-	case "name":
-		config.Name = value
 	case "project name":
 		config.ProjectName = value
-	case "token":
-		config.Token = value
 	case "server domain":
 		config.ServerDomain = value
 	case "checkpoints":

@@ -38,14 +38,14 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		prompt := &survey.Input{
-			Message: "Username",
+			Message: "Username:",
 		}
 		err := survey.AskOne(prompt, &name, icons)
 		if err != nil {
 			return err
 		}
 
-		password, err := getValidPassword("Password")
+		password, err := getValidPassword("Password:")
 		if err != nil {
 			return err
 		}
@@ -71,13 +71,8 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		p , err:= LoadProject()
-		if err != nil {
-			return err
-		}
-
-		var config gud.Config
-		err = p.LoadConfig(&config)
+		var config gud.GlobalConfig
+		err = gud.LoadConfig(&config, config.GetPath())
 		if err != nil {
 			return err
 		}
@@ -85,7 +80,7 @@ to quickly create a Cobra application.`,
 		config.Name = name
 		config.Token = token
 
-		err = p.WriteConfig(config)
+		err = gud.WriteConfig(&config, config.GetPath())
 		if err != nil {
 			return err
 		}

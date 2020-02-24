@@ -3,31 +3,42 @@ package gud
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/pelletier/go-toml"
 )
 
-const configFile = "config.toml"
+const localConfigPath = "config.toml"
 
 type Config struct {
-	Name         string
-	ProjectName  string
-	Token        string
-	ServerDomain string
+	ProjectName, ServerDomain string
 	Checkpoints  int
 	AutoPush     bool
 }
 
+type GlobalConfig struct {
+	Name, Token string
+}
+
+func (config GlobalConfig) GetPath() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	return filepath.Join(usr.HomeDir, ".gudConfig.toml")
+}
+
 func (p *Project) ConfigInit() (err error) {
-	config := Config{"", filepath.Base(p.Path), "", "localhost", 3, false}
+	config := Config{filepath.Base(p.Path), "localhost", 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return
 	}
 
-	f, err := os.Create(filepath.Join(p.gudPath, configFile))
+	f, err := os.Create(filepath.Join(p.gudPath, localConfigPath))
 	if err != nil {
 		return fmt.Errorf("Failed to create configuration file: %s\n", err.Error())
 	}
@@ -46,12 +57,16 @@ func (p *Project) ConfigInit() (err error) {
 }
 
 func (p *Project) WriteConfig(config Config) (err error) {
+	return WriteConfig(config, filepath.Join(p.gudPath, localConfigPath))
+}
+
+func WriteConfig(config interface{}, path string) (err error) {
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return err
 	}
 
-	f, err :=  os.Create(filepath.Join(p.gudPath, configFile))
+	f, err :=  os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -77,8 +92,21 @@ func (p *Project) LoadConfig(config *Config) error {
 	return toml.Unmarshal(b, config)
 }
 
+func LoadConfig(config interface{}, path string) error {
+	b ,err := ReadConfig(path)
+	if err != nil {
+		return err
+	}
+	return toml.Unmarshal(b, config)
+}
+
+
 func (p *Project) ReadConfig() ([]byte, error) {
-	f, err := os.Open(filepath.Join(p.gudPath, configFile))
+	return ReadConfig(filepath.Join(p.gudPath, localConfigPath))
+}
+
+func ReadConfig(path string) ([]byte, error) {
+	f, err := os.Create(path)
 	if err != nil {
 		return nil, err
 	}

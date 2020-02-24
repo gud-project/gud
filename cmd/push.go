@@ -44,16 +44,22 @@ func pushBranch(branch string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, config.Name, config.ProjectName, branch), nil)
+	var gConfig gud.GlobalConfig
+	err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 	if err != nil {
 		return err
 	}
-	req.AddCookie(&http.Cookie{Name: "session", Value: config.Token})
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, gConfig.Name, config.ProjectName, branch), nil)
+	if err != nil {
+		return err
+	}
+	req.AddCookie(&http.Cookie{Name: "session", Value: gConfig.Token})
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		if err.Error() == projectNotFound {
-			err = createServerProject(config.ProjectName, config.Token)
+			err = createServerProject(config.ProjectName, gConfig.Token)
 			if err != nil {
 				return err
 			}
@@ -79,12 +85,12 @@ func pushBranch(branch string) error {
 
 	var buf bytes.Buffer
 	boundary, err := p.PushBranch(&buf, branch, startHash)
-	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, gConfig.Name, config.ProjectName, branch), &buf)
 	if err != nil {
 		return err
 	}
 
-	req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: config.Token})
+	req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: gConfig.Token})
 	req.Header.Add("Content-Type", "multipart/mixed; boundary=" +boundary)
 
 	resp, err = client.Do(req)

@@ -69,13 +69,8 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		p , err:= LoadProject()
-		if err != nil {
-			return err
-		}
-
-		var config gud.Config
-		err = p.LoadConfig(&config)
+		var config gud.GlobalConfig
+		err = gud.LoadConfig(&config, config.Token)
 		if err != nil {
 			return err
 		}
@@ -83,7 +78,7 @@ to quickly create a Cobra application.`,
 		config.Name = name
 		config.Token = token
 
-		return p.WriteConfig(config)
+		return gud.WriteConfig(&config, config.GetPath())
 	},
 }
 
@@ -105,8 +100,11 @@ func getUserData(name, email, password *string) error {
 	}
 
 	for !emailPattern.MatchString(*email) {
-		print("Use email format\nEmail: ")
-		fmt.Scanln(email)
+		fmt.Fprintf(os.Stderr, "Use email format\n")
+		err = survey.AskOne(prompt, email, icons)
+		if err != nil {
+			return err
+		}
 	}
 
 	*password, err = getPassword()
