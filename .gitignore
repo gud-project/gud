@@ -1,6 +1,8 @@
 /**/vendor/
 /gud/gud.a
 /server/server
+/server/front/dist/
+/server/front/node_modules/
 
 /gud/test/
 /server/projects/
