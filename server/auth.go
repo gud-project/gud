@@ -163,9 +163,10 @@ func createSession(w http.ResponseWriter, r *http.Request, id int, remember bool
 	sess, _ := store.Get(r, "session")
 	sess.Values["id"] = id
 
+	_, inProd := os.LookupEnv("PROD")
 	options := sessions.Options{
 		MaxAge:   0, // deletes when session ends
-		Secure:   true,
+		Secure:   inProd,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}

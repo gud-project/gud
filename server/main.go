@@ -12,16 +12,13 @@ import (
 func main() {
 	defer closeDB()
 
-	root := mux.NewRouter()
-	api := root.PathPrefix("/api/v1").Subrouter()
-
+	api := mux.NewRouter()
 	api.HandleFunc("/signup", signUp)
 	api.HandleFunc("/login", login).Methods(http.MethodPost)
 	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
 	projects := api.PathPrefix("/projects").Subrouter()
 	projects.Use(verifySession)
-
 	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
 	projects.HandleFunc("/import", importProject).Methods(http.MethodPost)
 
@@ -31,7 +28,8 @@ func main() {
 	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
 	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
 
-	log.Fatal(http.ListenAndServe(":8080", root))
+	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 // reportError reports an error to the client side (e.g. invalid input, unauthorized)
