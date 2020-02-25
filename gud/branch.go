@@ -347,10 +347,10 @@ func isDescendent(gudPath string, new, old ObjectHash) (bool, error) {
 func (p Project) assertNoChanges() error {
 	return p.Status(
 		func(relPath string, state FileState) error {
-			return Error{"the index must be empty when checking out"}
+			return ErrUnstagedChanges
 		},
 		func(relPath string, state FileState) error {
-			return Error{"uncommitted changes must be cleaned before checking out"}
+			return ErrUnsavedChanges
 		},
 	)
 }

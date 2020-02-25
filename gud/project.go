@@ -301,6 +301,14 @@ func (p Project) Checkpoint(message string) error {
 func (p Project) Undo() error {
 	inner := p.innerProject()
 
+	err := inner.assertNoChanges()
+	if err == ErrUnstagedChanges || err == ErrUnsavedChanges {
+		return inner.Reset()
+	}
+	if err != nil {
+		return err
+	}
+
 	head, err := loadHead(inner.gudPath)
 	if err != nil {
 		return err
