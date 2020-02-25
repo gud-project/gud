@@ -481,8 +481,10 @@ func buildTree(gudPath, relPath string, root dirStructure, prev tree) (*object, 
 		}
 
 		if obj != nil {
-			newTree = append(newTree, object{})
-			copy(newTree[ind+1:], newTree[ind:])
+			if !found {
+				newTree = append(newTree, object{})
+				copy(newTree[ind+1:], newTree[ind:])
+			}
 			newTree[ind] = *obj
 		}
 	}
