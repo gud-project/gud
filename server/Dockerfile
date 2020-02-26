@@ -1,16 +1,17 @@
-FROM golang
+FROM golang:1.13
 
 WORKDIR /go/src/gitlab.com/magsh-2019/2/gud
 COPY gud gud
 COPY server server
 COPY Makefile .
 
-RUN make server
-RUN mv server/server /usr/local/bin
+RUN CGO_ENABLED=0 make server
+RUN mv server/server /
 
 FROM scratch
-COPY --from=0 /usr/local/bin/server /usr/local/bin/server
+COPY --from=0 /server /var/www/server
 
+VOLUME /var/www/projects
 EXPOSE 8080
 
-CMD ["/usr/local/bin/server"]
+CMD ["/var/www/server"]
