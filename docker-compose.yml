@@ -10,7 +10,7 @@ services:
         environment:
             PGHOST: postgres
             PGUSER: gud
-            PGPASSWORD: nanidafuq
+            PGPASSWORD: ${POSTGRES_PASSWORD}
             PGSSLMODE: disable
         depends_on:
             - postgres
@@ -22,7 +22,7 @@ services:
             - db-data:/var/lib/postgresql/data/
         environment:
             POSTGRES_USER: gud
-            POSTGRES_PASSWORD: nanidafuq
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
 volumes:
     db-data:
