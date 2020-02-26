@@ -17,6 +17,13 @@ import (
 const projectsPath = "projects"
 const dirPerm = 0755
 
+func init() {
+	err := os.MkdirAll(projectsPath, 0755)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func createProject(w http.ResponseWriter, r *http.Request) {
 	dir, msg, err := createProjectDir(r)
 	if err != nil {

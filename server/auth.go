@@ -105,9 +105,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, inProd := os.LookupEnv("PROD")
 	sess.Options = &sessions.Options{
 		MaxAge:   -1, // delete
-		Secure:   true,
+		Secure:   inProd,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
