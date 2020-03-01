@@ -10,7 +10,7 @@ CLI_SRC=$(call go_src,$(CLI_DIR))
 SERVER_SRC=$(call go_src,$(SERVER_DIR))
 FRONT_SRC=$(shell find $(FRONT_DIR)/src/ \( -name *.js -o -name *.vue \))
 
-.PHONY: all cli server back front lib
+.PHONY: all cli server back front lib clean
 .ONESHELL: cli back lib
 
 define vendor
@@ -23,13 +23,13 @@ endef
 
 all: cli server
 
-lib: gud/gud.a
-gud/gud.a: $(LIB_SRC)
+lib: $(LIB_DIR)/gud.a
+$(LIB_DIR)/gud.a: $(LIB_SRC)
 	cd gud
 	go mod vendor
 	go build -o gud.a
 
-cli: gud/gud.a $(CLI_SRC)
+cli: $(LIB_DIR)/gud.a $(CLI_SRC)
 	$(call vendor,$(CLI_DIR))
 	cd $(CLI_DIR)
 	GO111MODULE=off go install
@@ -37,7 +37,7 @@ cli: gud/gud.a $(CLI_SRC)
 server: back front
 
 back: $(SERVER_DIR)/server
-$(SERVER_DIR)/server: gud/gud.a $(SERVER_SRC)
+$(SERVER_DIR)/server: $(LIB_DIR)/gud.a $(SERVER_SRC)
 	$(call vendor,$(SERVER_DIR))
 	cd $(SERVER_DIR)
 	GO111MODULE=off go build
@@ -45,3 +45,9 @@ $(SERVER_DIR)/server: gud/gud.a $(SERVER_SRC)
 front: $(FRONT_DIR)/dist/index.html
 $(FRONT_DIR)/dist/index.html: $(FRONT_SRC)
 	npm run --prefix server/front/ build -- --mode development
+
+clean:
+	rm -rf \
+		$(CLI_DIR)/vendor/ $(LIB_DIR)/vendor/ $(SERVER_DIR)/vendor/ \
+		$(LIB_DIR)/gud.a $(SERVER_DIR)/server \
+		server/front/dist
