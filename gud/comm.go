@@ -485,8 +485,12 @@ func createTempProject(p Project) (temp *Project, err error) {
 		}
 	}()
 
-	dstGud := filepath.Join(tempDir, defaultGudPath)
-	dst := filepath.Join(dstGud, objectsPath)
+	temp, err = newProject(tempDir, defaultGudPath)
+	if err != nil {
+		return
+	}
+
+	dst := filepath.Join(temp.gudPath, objectsPath)
 	err = os.MkdirAll(dst, 0700)
 	if err != nil {
 		return
@@ -504,7 +508,7 @@ func createTempProject(p Project) (temp *Project, err error) {
 		}
 	}
 
-	return &Project{tempDir, dstGud}, nil
+	return
 }
 
 func copyFile(srcPath, dstPath string) (err error) {

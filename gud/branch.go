@@ -296,7 +296,7 @@ func (p Project) Reset() error {
 		return err
 	}
 
-	index, err := loadIndex(p.gudPath)
+	index, err := p.getIndex()
 	if err != nil {
 		return err
 	}

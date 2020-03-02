@@ -11,7 +11,7 @@ type ChangeCallback func(relPath string, state FileState) error
 type cmpCallback func(relPath string, state FileState, hash *ObjectHash, isDir bool) error
 
 func (p Project) Status(trackedFn, untrackedFn ChangeCallback) error {
-	index, err := loadIndex(p.gudPath)
+	index, err := p.getIndex()
 	if err != nil {
 		return err
 	}
