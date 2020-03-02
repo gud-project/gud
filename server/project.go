@@ -61,17 +61,7 @@ func importProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = project.PullBranch(gud.FirstBranchName, r.Body, r.Header.Get("Content-Type"))
-	if err != nil {
-		if inputErr, ok := err.(gud.InputError); ok {
-			reportError(w, http.StatusBadRequest, inputErr.Error())
-		} else {
-			handleError(w, err)
-		}
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	pullProjectFrom(w, r, *project, gud.FirstBranchName)
 }
 
 func projectBranch(w http.ResponseWriter, r *http.Request) {
@@ -108,17 +98,7 @@ func pushProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = project.PullBranch(branchArr[0], r.Body, r.Header.Get("Content-Type"))
-	if err != nil {
-		if inputErr, ok := err.(gud.InputError); ok {
-			reportError(w, http.StatusBadRequest, inputErr.Error())
-		} else {
-			handleError(w, err)
-		}
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
+	pullProjectFrom(w, r, *project, branchArr[0])
 }
 
 func pullProject(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +175,28 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 	err = os.Mkdir(dir, dirPerm)
 
 	return
+}
+
+func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string)  {
+	var username string
+	user := getUserStmt.QueryRow(r.Context().Value(KeyUserId))
+	err := user.Scan(&username)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	err = project.PullBranchFrom(branch, r.Body, r.Header.Get("Content-Type"), username)
+	if err != nil {
+		if inputErr, ok := err.(gud.InputError); ok {
+			reportError(w, http.StatusBadRequest, inputErr.Error())
+		} else {
+			handleError(w, err)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func verifyProject(next http.Handler) http.Handler {

@@ -59,6 +59,7 @@ func (t tree) Swap(i, j int) {
 // Version is a representation of a project version.
 type Version struct {
 	Message  string
+	Author   string
 	Time     time.Time
 	TreeHash ObjectHash
 	prev     *ObjectHash
@@ -67,6 +68,7 @@ type Version struct {
 
 type gobVersion struct {
 	Message  string
+	Author   string
 	Time     time.Time
 	TreeHash ObjectHash
 	Prev     *ObjectHash
@@ -83,6 +85,7 @@ func init() {
 func versionToGob(v Version) gobVersion {
 	return gobVersion{
 		Message:  v.Message,
+		Author:   v.Author,
 		Time:     v.Time,
 		TreeHash: v.TreeHash,
 		Prev:     v.prev,
@@ -93,6 +96,7 @@ func versionToGob(v Version) gobVersion {
 func gobToVersion(v gobVersion) Version {
 	return Version{
 		Message:  v.Message,
+		Author:   v.Author,
 		Time:     v.Time,
 		TreeHash: v.TreeHash,
 		prev:     v.Prev,
@@ -124,21 +128,28 @@ func objectPath(gudPath string, hash ObjectHash) string {
 	return filepath.Join(gudPath, objectsPath, hash.String())
 }
 
-func saveVersion(gudPath, message, branch string, tree ObjectHash, prev, merged *ObjectHash) (*Version, error) {
+func (p Project) saveVersion(message, branch string, tree ObjectHash, prev, merged *ObjectHash) (*Version, error) {
+	var conf Config
+	err := p.LoadConfig(&conf)
+	if err != nil {
+		return nil, err
+	}
+
 	v := Version{
 		Message:  message,
+		Author:   conf.Name, // TODO: separate owner and user
 		Time:     time.Now(),
 		TreeHash: tree,
 		prev:     prev,
 		merged:   merged,
 	}
 
-	obj, err := createVersion(gudPath, v)
+	obj, err := createVersion(p.gudPath, v)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dumpBranch(gudPath, branch, obj.Hash)
+	err = dumpBranch(p.gudPath, branch, obj.Hash)
 	if err != nil {
 		return nil, err
 	}

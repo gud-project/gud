@@ -66,6 +66,7 @@ func startProject(path, gudRelPath string) (*Project, error) {
 
 	obj, err := createVersion(project.gudPath, Version{
 		Message:  initialCommitName,
+		Author:   "Nitai", // TODO: get user from global config
 		Time:     time.Now(),
 		TreeHash: tree.Hash,
 	})
@@ -237,7 +238,7 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	newVersion, err := saveVersion(p.gudPath, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
+	newVersion, err := p.saveVersion(message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
 	if err != nil {
 		return nil, err
 	}

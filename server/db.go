@@ -10,6 +10,7 @@ import (
 var db *sql.DB
 var newUserStmt,
 	userExistsStmt,
+	getUserStmt,
 	userByNameStmt,
 	userIdMatchesNameStmt,
 	createProjectStmt,
@@ -30,6 +31,9 @@ func init() {
 
 		userExistsStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);")
+
+		getUserStmt = mustPrepare(
+			"SELECT username FROM users WHERE user_id = $1;")
 
 		userByNameStmt = mustPrepare(
 			"SELECT user_id, password FROM users WHERE username = $1;")
@@ -78,6 +82,7 @@ func closeDB() error {
 		newUserStmt,
 		userExistsStmt,
 		userByNameStmt,
+		getUserStmt,
 		userIdMatchesNameStmt,
 		createProjectStmt,
 		projectExistsStmt,

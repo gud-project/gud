@@ -270,8 +270,8 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		return nil, err
 	}
 
-	version, err := saveVersion(
-		p.gudPath, fmt.Sprintf("merged %s into %s", name, head.Branch),
+	version, err := p.saveVersion(
+		fmt.Sprintf("merged %s into %s", name, head.Branch),
 		head.Branch, treeObj.Hash, to, &from)
 	if err != nil {
 		return nil, err

@@ -21,7 +21,7 @@ type Config struct {
 }
 
 func (p *Project) ConfigInit() (err error) {
-	config := Config{"", filepath.Base(p.Path), "", "localhost", 3, false}
+	config := Config{"Nitai", filepath.Base(p.Path), "", "localhost", 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return

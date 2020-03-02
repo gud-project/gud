@@ -170,6 +170,10 @@ func createPart(writer *multipart.Writer, hash ObjectHash, contentType string) (
 }
 
 func (p Project) PullBranch(branch string, in io.Reader, contentType string) error {
+	return p.PullBranchFrom(branch, in, contentType, "")
+}
+
+func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user string) error {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
@@ -194,7 +198,7 @@ func (p Project) PullBranch(branch string, in io.Reader, contentType string) err
 	files := list.New()
 	objs := multipart.NewReader(in, params["boundary"])
 	for {
-		hash, err := pullVersion(temp.gudPath, objs, currentHash, files)
+		hash, err := pullVersion(temp.gudPath, user, objs, currentHash, files)
 		if err != nil {
 			return err
 		}
@@ -222,8 +226,8 @@ func (p Project) PullBranch(branch string, in io.Reader, contentType string) err
 	return nil
 }
 
-func pullVersion(
-	gudPath string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List) (hash *ObjectHash, err error) {
+func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List,
+	) (hash *ObjectHash, err error) {
 	part, err := reader.NextPart()
 	if err == io.EOF {
 		return nil, nil
@@ -255,7 +259,7 @@ func pullVersion(
 		return
 	}
 
-	prev, err := validateVersion(gudPath, *current, *hash, prevHash)
+	prev, err := validateVersion(gudPath, user, *current, *hash, prevHash)
 	if err != nil {
 		return
 	}
@@ -421,7 +425,11 @@ func validatePart(gudPath string, part *multipart.Part, expectedType string) (*O
 	return &hash, nil
 }
 
-func validateVersion(rootPath string, v Version, hash ObjectHash, prevHash *ObjectHash) (*Version, error) {
+func validateVersion(rootPath, user string, v Version, hash ObjectHash, prevHash *ObjectHash) (*Version, error) {
+	if user != "" && v.Author != user {
+		return nil, InputError{fmt.Sprintf("expected user %s, got %s", user, v.Author)}
+	}
+
 	if prevHash == nil {
 		if v.HasPrev() {
 			return nil, InputError{fmt.Sprintf("expected first version: %s", hash)}
