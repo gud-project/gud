@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -40,8 +42,6 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func importProject(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +81,6 @@ func projectBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(hash[:])
 }
 
@@ -129,24 +128,75 @@ func pullProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	boundary, err := project.PushBranch(w, branches[0], start)
+	var buf bytes.Buffer
+	boundary, err := project.PushBranch(&buf, branches[0], start)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", fmt.Sprintf("multipart/mixed; boundary=%s", boundary))
+	_, err = buf.WriteTo(w)
+	if err != nil {
+		handleError(w, err)
+	}
+}
+
+func inviteMember(w http.ResponseWriter, r *http.Request) {
+	var req gud.InviteMemberRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		reportError(w, http.StatusBadRequest, err.Error())
+	}
+
+	var memberId int
+	var _password string
+	err = userByNameStmt.QueryRow(req.Name).Scan(&memberId, &_password)
+	if err == sql.ErrNoRows {
+		reportError(w, http.StatusBadRequest, fmt.Sprintf("user %s not found", req.Name))
+		return
+	}
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	var ownerId int
+	projectId := r.Context().Value(KeyProjectId).(int)
+	err = getProjectStmt.QueryRow(projectId).Scan(&ownerId)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	isMember, err := checkExists(hasMemberStmt, memberId, projectId)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	if isMember {
+		reportError(w, http.StatusBadRequest, fmt.Sprintf("user %s is already a member", req.Name))
+	}
+
+	_, err = inviteMemberStmt.Exec(memberId, projectId)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 }
 
 func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
-	nameArr := r.URL.Query()["name"]
+	var req gud.CreateProjectRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		return
+	}
 
-	if len(nameArr) == 0 {
+	name := req.Name
+	if name == "" {
 		return "", "missing project name", nil
 	}
 
-	name := nameArr[0]
 	if !namePattern.MatchString(name) {
 		return "", "invalid project name", nil
 	}
@@ -161,17 +211,12 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 		return "", "project already exists", nil
 	}
 
-	res, err := createProjectStmt.Exec(name, userId)
+	projectId, err := execReturningId(createProjectStmt, name, userId)
 	if err != nil {
 		return
 	}
 
-	projectId, err := res.LastInsertId()
-	if err != nil {
-		return
-	}
-
-	dir = projectPath(userId, int(projectId))
+	dir = projectPath(userId, projectId)
 	err = os.Mkdir(dir, dirPerm)
 
 	return
@@ -179,8 +224,7 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 
 func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string)  {
 	var username string
-	user := getUserStmt.QueryRow(r.Context().Value(KeyUserId))
-	err := user.Scan(&username)
+	err := getUserStmt.QueryRow(r.Context().Value(KeyUserId)).Scan(&username)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -195,30 +239,17 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 		}
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func verifyProject(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		username := vars["user"]
+		ownerName := vars["user"]
 		projectName := vars["project"]
+		userId := r.Context().Value(KeyUserId).(int)
 
-		userId := r.Context().Value(KeyUserId).(uint)
-		matches, err := checkExists(userIdMatchesNameStmt, userId, username)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-		if !matches {
-			reportError(w, http.StatusUnauthorized, "incorrect user")
-			return
-		}
-
-		res := projectByNameStmt.QueryRow(projectName)
-		var projectId uint
-		err = res.Scan(&projectId)
+		var projectId, ownerId int
+		err := projectByNameStmt.QueryRow(ownerName, projectName).Scan(&projectId, &ownerId)
 		if err == sql.ErrNoRows {
 			reportError(w, http.StatusNotFound, "project not found")
 			return
@@ -228,12 +259,26 @@ func verifyProject(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyProjectId, projectId)))
+		if ownerId != userId {
+			isMember, err := checkExists(hasMemberStmt, userId, projectId)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			if !isMember {
+				reportError(w, http.StatusUnauthorized, "you do not have access to this project")
+				return
+			}
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(context.WithValue(r.Context(),
+			KeyProjectId, projectId),
+			KeyOwnerId, ownerId)))
 	})
 }
 
 func contextProjectPath(ctx context.Context) string {
-	return projectPath(ctx.Value(KeyUserId).(int), ctx.Value(KeyProjectId).(int))
+	return projectPath(ctx.Value(KeyOwnerId).(int), ctx.Value(KeyProjectId).(int))
 }
 
 func projectPath(userId, projectId int) string {

@@ -16,6 +16,10 @@ type CreateProjectRequest struct {
 	Name string `json:"name"`
 }
 
+type InviteMemberRequest struct {
+	Name string `json:"name"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

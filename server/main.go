@@ -27,6 +27,7 @@ func main() {
 	project.HandleFunc("/branch/{branch}", projectBranch).Methods(http.MethodGet)
 	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
 	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
+	project.HandleFunc("/invite", inviteMember).Methods(http.MethodPost)
 
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -34,8 +35,8 @@ func main() {
 
 // reportError reports an error to the client side (e.g. invalid input, unauthorized)
 func reportError(w http.ResponseWriter, code int, message string) {
-	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(gud.ErrorResponse{Error: message})
 }
 

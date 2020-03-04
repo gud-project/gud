@@ -2,7 +2,7 @@ LIB_DIR=./gud/
 CLI_DIR=.
 SERVER_DIR=./server/
 
-go_src=$(shell find $(1) -not -path '**/vendor/**' -not -name *_test.go \( -name '*.go' -o -name 'go.*' \))
+go_src=$(shell find $(1) -not -path '**/vendor/**' -not -name *_test.go \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \))
 
 LIB_SRC=$(call go_src,$(LIB_DIR))
 CLI_SRC=$(call go_src,$(CLI_DIR))

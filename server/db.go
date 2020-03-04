@@ -15,7 +15,10 @@ var newUserStmt,
 	userIdMatchesNameStmt,
 	createProjectStmt,
 	projectExistsStmt,
-	projectByNameStmt *sql.Stmt
+	getProjectStmt,
+	projectByNameStmt,
+	hasMemberStmt,
+	inviteMemberStmt *sql.Stmt
 
 func init() {
 	var err error
@@ -47,8 +50,18 @@ func init() {
 		projectExistsStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM projects WHERE name = $1 AND user_id = $2);")
 
-		projectByNameStmt = mustPrepare(
-			"SELECT project_id FROM projects WHERE name = $1 AND user_id = $2;")
+		getProjectStmt = mustPrepare(
+			"SELECT user_id FROM projects WHERE project_id = $1;")
+
+		projectByNameStmt = mustPrepare(`
+			SELECT project_id, user_id FROM projects JOIN users USING (user_id)
+			WHERE projects.name = $2 AND users.username = $1;`)
+
+		hasMemberStmt = mustPrepare(
+			"SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND project_id = $2);")
+
+		inviteMemberStmt = mustPrepare(
+			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
 	}
 }
 
@@ -60,9 +73,8 @@ func checkExists(stmt *sql.Stmt, args ...interface{}) (bool, error) {
 	return exists, err
 }
 
-func execReturningId(stmt *sql.Stmt, args ...interface{}) (int64, error) {
-	var id int64
-
+func execReturningId(stmt *sql.Stmt, args ...interface{}) (int, error) {
+	var id int
 	err := stmt.QueryRow(args...).Scan(&id)
 	return id, err
 }
@@ -86,7 +98,10 @@ func closeDB() error {
 		userIdMatchesNameStmt,
 		createProjectStmt,
 		projectExistsStmt,
+		getProjectStmt,
 		projectByNameStmt,
+		hasMemberStmt,
+		inviteMemberStmt,
 	} {
 		if stmt != nil {
 			err := stmt.Close()

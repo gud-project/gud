@@ -25,6 +25,7 @@ type ContextKey int
 const (
 	KeyUserId ContextKey = iota
 	KeyProjectId
+	KeyOwnerId
 )
 
 const passwordLenMin = 8
@@ -37,6 +38,7 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errs != nil {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(gud.MultiErrorResponse{Errors: errs})
 		return
@@ -49,13 +51,11 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(int(id))), dirPerm)
+	err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(id)), dirPerm)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -95,8 +95,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -117,8 +115,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func validateSignUp(r *http.Request) (*gud.SignUpRequest, []string, error) {
@@ -182,14 +178,12 @@ func createSession(w http.ResponseWriter, r *http.Request, id int, remember bool
 func verifySession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sess, _ := store.Get(r, "session")
-		if !sess.IsNew {
-			id, ok := sess.Values["id"].(uint)
-			if ok {
-				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserId, id)))
-				return
-			}
-		}
 
-		w.WriteHeader(http.StatusUnauthorized)
+		if sess.IsNew {
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			id := sess.Values["id"].(int)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserId, id)))
+		}
 	})
 }
