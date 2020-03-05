@@ -273,12 +273,12 @@ func verifyProject(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r.WithContext(context.WithValue(context.WithValue(r.Context(),
 			KeyProjectId, projectId),
-			KeyOwnerId, ownerId)))
+			KeySelectedUserId, ownerId)))
 	})
 }
 
 func contextProjectPath(ctx context.Context) string {
-	return projectPath(ctx.Value(KeyOwnerId).(int), ctx.Value(KeyProjectId).(int))
+	return projectPath(ctx.Value(KeySelectedUserId).(int), ctx.Value(KeyProjectId).(int))
 }
 
 func projectPath(userId, projectId int) string {

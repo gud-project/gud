@@ -17,6 +17,7 @@ var newUserStmt,
 	projectExistsStmt,
 	getProjectStmt,
 	projectByNameStmt,
+	userProjectsStmt,
 	hasMemberStmt,
 	inviteMemberStmt *sql.Stmt
 
@@ -56,6 +57,9 @@ func init() {
 		projectByNameStmt = mustPrepare(`
 			SELECT project_id, user_id FROM projects JOIN users USING (user_id)
 			WHERE projects.name = $2 AND users.username = $1;`)
+
+		userProjectsStmt = mustPrepare(
+			"SELECT name FROM projects WHERE user_id = $1;")
 
 		hasMemberStmt = mustPrepare(
 			"SELECT EXISTS(SELECT 1 FROM members WHERE user_id = $1 AND project_id = $2);")
@@ -100,6 +104,7 @@ func closeDB() error {
 		projectExistsStmt,
 		getProjectStmt,
 		projectByNameStmt,
+		userProjectsStmt,
 		hasMemberStmt,
 		inviteMemberStmt,
 	} {

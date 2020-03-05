@@ -24,8 +24,8 @@ var namePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 type ContextKey int
 const (
 	KeyUserId ContextKey = iota
+	KeySelectedUserId
 	KeyProjectId
-	KeyOwnerId
 )
 
 const passwordLenMin = 8

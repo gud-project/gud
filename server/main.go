@@ -17,6 +17,11 @@ func main() {
 	api.HandleFunc("/login", login).Methods(http.MethodPost)
 	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
+	me := createUserRouter(api.PathPrefix("/me"))
+	me.Use(verifySession, selectSelf)
+	user := createUserRouter(api.PathPrefix("/user/{user}"))
+	user.Use(selectUser)
+
 	projects := api.PathPrefix("/projects").Subrouter()
 	projects.Use(verifySession)
 	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
