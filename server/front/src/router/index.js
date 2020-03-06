@@ -14,10 +14,17 @@ const router = new VueRouter({
 		{
 			path: "/login",
 			name: "Login",
-			component: function () {
+			component() {
 				return import(/* webpackChunkName: "login" */ "../views/Login.vue")
 			},
 		},
+		{
+			path: "/projects",
+			name: "Projects",
+			component() {
+				return import(/* webpackChunkName: "projects" */ "../views/Projects.vue")
+			}
+		}
 	],
 })
 

@@ -35,13 +35,12 @@
 				
 				const res = await fetch("/api/v1/login", {
 					method: "POST",
-					credentials: "same-origin",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(this.info),
 				})
 				
 				if (res.ok) {
-					await this.$router.push("/")
+					await this.$router.push("/projects")
 				} else {
 					this.error = (await res.json()).error
 				}
