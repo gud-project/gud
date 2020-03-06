@@ -17,6 +17,7 @@ const defaultDomainServer = "localhost"
 
 type Config struct {
 	ProjectName string
+	OwnerName string
 	Checkpoints  int
 	AutoPush     bool
 }
@@ -34,7 +35,7 @@ func (config GlobalConfig) GetPath() string {
 }
 
 func (p *Project) ConfigInit() (err error) {
-	config := Config{filepath.Base(p.Path), 3, false}
+	config := Config{filepath.Base(p.Path), "", 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return

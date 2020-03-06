@@ -50,7 +50,7 @@ func pushBranch(branch string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", gConfig.ServerDomain, gConfig.Name, config.ProjectName, branch), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", gConfig.ServerDomain, config.OwnerName, config.ProjectName, branch), nil)
 	if err != nil {
 		return err
 	}

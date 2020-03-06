@@ -4,7 +4,9 @@
       <w>automaticpush</w>
       <w>cerr</w>
       <w>domainserver</w>
+      <w>ownername</w>
       <w>projectname</w>
+      <w>serverdomain</w>
       <w>signup</w>
       <w>subcommand</w>
       <w>subcommands</w>
