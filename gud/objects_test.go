@@ -10,7 +10,7 @@ import (
 func TestInitObjectsDir(t *testing.T) {
 	defer clearTest()
 
-	gudPath := filepath.Join(testDir, defaultGudPath)
+	gudPath := filepath.Join(testDir, DefaultPath)
 	_ = os.Mkdir(gudPath, dirPerm)
 	err := initObjectsDir(gudPath)
 	if err != nil {

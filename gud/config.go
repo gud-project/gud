@@ -12,15 +12,17 @@ import (
 )
 
 const localConfigPath = "config.toml"
+const defaultDomainServer = "localhost"
+
 
 type Config struct {
-	ProjectName, ServerDomain string
+	ProjectName string
 	Checkpoints  int
 	AutoPush     bool
 }
 
 type GlobalConfig struct {
-	Name, Token string
+	Name, Token, ServerDomain string
 }
 
 func (config GlobalConfig) GetPath() string {
@@ -32,7 +34,7 @@ func (config GlobalConfig) GetPath() string {
 }
 
 func (p *Project) ConfigInit() (err error) {
-	config := Config{filepath.Base(p.Path), "localhost", 3, false}
+	config := Config{filepath.Base(p.Path), 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return
@@ -106,9 +108,24 @@ func (p *Project) ReadConfig() ([]byte, error) {
 }
 
 func ReadConfig(path string) ([]byte, error) {
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, err
+	_, err := os.Stat(path)
+	var f *os.File
+	if os.IsNotExist(err) {
+		f, err = os.Create(path)
+		if err != nil {
+			return nil, err
+		}
+
+		err = WriteConfig(GlobalConfig{"", "", defaultDomainServer}, GlobalConfig{}.GetPath())
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		f, err = os.Open(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer f.Close()
 

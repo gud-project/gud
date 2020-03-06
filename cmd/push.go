@@ -50,7 +50,7 @@ func pushBranch(branch string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", config.ServerDomain, gConfig.Name, config.ProjectName, branch), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/project/%s/%s/branch/%s", gConfig.ServerDomain, gConfig.Name, config.ProjectName, branch), nil)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func pushBranch(branch string) error {
 
 	var buf bytes.Buffer
 	boundary, err := p.PushBranch(&buf, branch, startHash)
-	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, gConfig.Name, config.ProjectName, branch), &buf)
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", gConfig.ServerDomain, gConfig.Name, config.ProjectName, branch), &buf)
 	if err != nil {
 		return err
 	}

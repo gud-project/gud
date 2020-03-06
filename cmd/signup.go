@@ -57,11 +57,22 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		resp, err := http.Post("http://localhost/api/v1/signup", "application/json", &buf)
+		var gConfig gud.GlobalConfig
+		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
+		if err != nil {
+			return err
+		}
+
+		resp, err := http.Post(fmt.Sprintf("http://%s/api/v1/signup", gConfig.ServerDomain), "application/json", &buf)
 		if err != nil {
 			return err
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return errors.New("failed to create user")
+		}
+
 		var token string
 		for _, cookie := range resp.Cookies() {
 			if cookie.Name == "session" {
@@ -70,7 +81,7 @@ to quickly create a Cobra application.`,
 		}
 
 		var config gud.GlobalConfig
-		err = gud.LoadConfig(&config, config.Token)
+		err = gud.LoadConfig(&config, config.GetPath())
 		if err != nil {
 			return err
 		}

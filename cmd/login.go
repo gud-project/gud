@@ -18,6 +18,8 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -58,11 +60,21 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		resp, err := http.Post("http://localhost/api/v1/login", "application/json", &buf)
+		var gConfig gud.GlobalConfig
+		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
+		if err != nil {
+			return err
+		}
+
+		resp, err := http.Post(fmt.Sprintf("http://%s/api/v1/login", gConfig.ServerDomain), "application/json", &buf)
 		if err != nil {
 			return err
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return errors.New("incorrect username or password")
+		}
 
 		var token string
 		for _, cookie := range resp.Cookies() {

@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
 	"github.com/AlecAivazis/survey"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
 	"path/filepath"
 
@@ -37,7 +37,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		wd, err := os.Getwd()
+		p, err := LoadProject()
 		if err != nil {
 			return err
 		}
@@ -68,28 +68,16 @@ to quickly create a Cobra application.`,
 			return nil
 		}
 
-		root, err := getRoot(wd)
-		if err != nil {
-			return err
-		}
-		_ = os.RemoveAll(root)
+		_ = os.RemoveAll(filepath.Join(p.Path, gud.DefaultPath))
 		if restartF {
-			startCmd.Run(cmd, args)
+			_, err = gud.Start("")
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil
 	},
-}
-
-func getRoot(path string) (string, error) {
-	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
-		info, err := os.Stat(filepath.Join(path, ".gud"))
-		if !os.IsNotExist(err) && info.IsDir() {
-			return filepath.Join(path, ".gud"), nil
-		}
-		path = parent
-	}
-	return "", errors.New("No Gud project found\n")
 }
 
 func init() {

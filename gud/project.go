@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const defaultGudPath = ".gud"
+const DefaultPath = ".gud"
 const dirPerm = 0755
 const defaultCheckpointNum = 5
 
@@ -20,12 +20,12 @@ type Project struct {
 // Start creates a new Gud project in the path it receives.
 // It returns a struct representing it.
 func Start(path string) (*Project, error) {
-	project, err := startProject(path, defaultGudPath)
+	project, err := startProject(path, DefaultPath)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = startProject(project.Path, filepath.Join(defaultGudPath, defaultGudPath))
+	_, err = startProject(project.Path, filepath.Join(DefaultPath, DefaultPath))
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func Start(path string) (*Project, error) {
 }
 
 func StartHeadless(dir string) (*Project, error) {
-	return startGudDir(dir, defaultGudPath)
+	return startGudDir(dir, DefaultPath)
 }
 
 func startProject(path, gudRelPath string) (*Project, error) {
@@ -113,7 +113,7 @@ func startGudDir(path, gudRelPath string) (*Project, error) {
 // Load receives a path to a Gud project and returns a representation of it.
 func Load(path string) (*Project, error) {
 	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
-		gudPath := filepath.Join(path, defaultGudPath)
+		gudPath := filepath.Join(path, DefaultPath)
 		info, err := os.Stat(gudPath)
 		if !os.IsNotExist(err) && info.IsDir() {
 			return &Project{path, gudPath}, nil
@@ -350,5 +350,5 @@ func (p Project) Undo() error {
 }
 
 func (p Project) innerProject() Project {
-	return Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
+	return Project{p.Path, filepath.Join(p.gudPath, DefaultPath)}
 }
