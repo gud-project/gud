@@ -9,7 +9,7 @@ const router = new VueRouter({
 		{
 			path: "/",
 			name: "Home",
-			component: Home
+			component: Home,
 		},
 		{
 			path: "/login",
@@ -19,12 +19,19 @@ const router = new VueRouter({
 			},
 		},
 		{
-			path: "/projects",
+			path: "/:user",
 			name: "Projects",
 			component() {
-				return import(/* webpackChunkName: "projects" */ "../views/Projects.vue")
+				return import(/* webpackChunkName: "user" */ "../views/User.vue")
+			},
+		},
+		{
+			path: "/:user/:project",
+			name: "Project",
+			component() {
+				return import(/* webpackChunkName: "project" */ "../views/Project.vue")
 			}
-		}
+		},
 	],
 })
 

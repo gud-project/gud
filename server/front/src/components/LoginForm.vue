@@ -40,7 +40,7 @@
 				})
 				
 				if (res.ok) {
-					await this.$router.push("/projects")
+					await this.$router.push(`/${this.info.username}`)
 				} else {
 					this.error = (await res.json()).error
 				}

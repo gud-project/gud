@@ -1,7 +1,7 @@
 <template>
 	<ul>
-		<li v-for="name in projects">
-			{{ name }}
+		<li v-for="project in projects">
+			<router-link :to="`/${$route.params.user}/${project}`">{{ project }}</router-link>
 		</li>
 	</ul>
 </template>
@@ -15,7 +15,7 @@
 			}
 		},
 		async created() {
-			this.projects = await (await fetch('/api/v1/me/projects')).json()
+			this.projects = await (await fetch(`/api/v1/user/${this.$route.params.user}/projects`)).json()
 		},
 	}
 </script>
