@@ -3,9 +3,7 @@
 		<h1>#{{ $route.params.issue }} : {{ issue.title }}</h1>
 		<router-link :to="issue.author">@{{ issue.author }}</router-link><br /><br />
 		<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
-		<div>
-			<p v-for="paragraph in issue.content.split('\n')">{{ paragraph }}</p>
-		</div>
+		<p class="content">{{ issue.content }}</p>
 	</div>
 </template>
 
@@ -29,7 +27,7 @@
 		async created() {
 			const { user, project, issue } = this.$route.params
 			const res = await fetch(
-				`/api/v1/user/${user}/project/${project}/${this.props.pr ? 'pr' : 'issue'}/${issue}`)
+				`/api/v1/user/${user}/project/${project}/${this.pr ? 'pr' : 'issue'}/${issue}`)
 			if (res.ok) {
 				this.issue = await res.json()
 			} else {
@@ -40,5 +38,7 @@
 </script>
 
 <style scoped>
-
+.content {
+	white-space: pre-line;
+}
 </style>

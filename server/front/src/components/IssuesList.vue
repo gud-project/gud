@@ -1,5 +1,8 @@
 <template>
 	<div>
+		<router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
+			New {{ category }}
+		</router-link>
 		<div v-for="issue in issues">
 			#{{ issue.id }}
 			<router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/${issue.id}`">

@@ -38,22 +38,27 @@
 			async signUp(e) {
 				e.preventDefault()
 				
+				this.errors = []
 				if (this.info.password.length < PASS_MIN) {
-					console.log("bad password")
-				} else if (this.passwordAgain !== this.info.password) {
-					console.log("bad repeat password")
+					this.errors.push("password must be at least 8 characters long")
+				}
+				if (this.passwordAgain !== this.info.password) {
+					this.errors.push("second password is different than first password")
+				}
+				if (this.errors.length > 0) {
+					return false
+				}
+				
+				const res = await fetch("/api/v1/signup", {
+					method: "POST",
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(this.info)
+				})
+				
+				if (res.ok) {
+					await this.$router.push("/login")
 				} else {
-					const res = await fetch("/api/v1/signup", {
-						method: "POST",
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(this.info)
-					})
-					
-					if (res.ok) {
-						await this.$router.push("/login")
-					} else {
-						this.errors = (await res.json()).errors
-					}
+					this.errors = (await res.json()).errors
 				}
 			},
 		},
