@@ -1,7 +1,8 @@
 <template>
 	<div>
-		<h1>#{{ this.$route.params.issue }} : {{ this.issue.title }}</h1>
-		<router-link :to="this.issue.author">@{{ this.issue.author }}</router-link><br /><br />
+		<h1>#{{ $route.params.issue }} : {{ issue.title }}</h1>
+		<router-link :to="issue.author">@{{ issue.author }}</router-link><br /><br />
+		<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
 		<div>
 			<p v-for="paragraph in issue.content.split('\n')">{{ paragraph }}</p>
 		</div>
@@ -20,6 +21,8 @@
 					title: null,
 					author: null,
 					content: null,
+					from: null,
+					to: null,
 				},
 			}
 		},

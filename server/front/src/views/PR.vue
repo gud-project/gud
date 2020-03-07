@@ -5,7 +5,7 @@
 <script>
 	import IssuePage from "../components/IssuePage"
 	export default {
-		name: "Issue",
+		name: "PR",
 		components: { IssuePage },
 	}
 </script>
