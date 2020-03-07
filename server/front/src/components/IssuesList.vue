@@ -1,7 +1,10 @@
 <template>
 	<div>
 		<div v-for="issue in issues">
-			#{{ issue.id }} <b>{{ issue.name }}</b>
+			#{{ issue.id }}
+			<router-link :to="`/${$route.params.user}/${$route.params.project}/issue/${issue.id}`">
+				{{ issue.name }}
+			</router-link>
 			<br />
 			<router-link :to="issue.author">@{{ issue.author }}</router-link>
 			<br /><br />
