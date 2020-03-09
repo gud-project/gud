@@ -34,6 +34,11 @@ func main() {
 	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
 	project.HandleFunc("/invite", inviteMember).Methods(http.MethodPost)
 
+	issues := project.PathPrefix("/issues").Subrouter()
+	issues.HandleFunc("/create", createIssue).Methods(http.MethodPost)
+	issues.HandleFunc("", getIssues).Methods(http.MethodPost)
+	issues.HandleFunc("/{id}", getIssue).Methods(http.MethodGet)
+
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

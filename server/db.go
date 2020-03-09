@@ -19,7 +19,10 @@ var newUserStmt,
 	projectByNameStmt,
 	userProjectsStmt,
 	hasMemberStmt,
-	inviteMemberStmt *sql.Stmt
+	inviteMemberStmt,
+	createIssueStmt,
+	getIssuesStmt,
+	getIssueStmt *sql.Stmt
 
 func init() {
 	var err error
@@ -66,6 +69,15 @@ func init() {
 
 		inviteMemberStmt = mustPrepare(
 			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
+
+		createIssueStmt = mustPrepare(
+			"INSERT INTO issues (title, content, state, user_id, project_id) VALUES ($1, $2, $3, $4, $5);"
+
+		getIssuesStmt = mustPrepare(
+			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
+
+		getIssueStmt = mustPrepare(
+			"SELECT user_id, title, content, status FROM issues WHERE issue_id = $1")
 	}
 }
 

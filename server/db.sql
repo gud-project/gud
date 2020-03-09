@@ -14,7 +14,16 @@ CREATE TABLE projects (
 );
 
 CREATE TABLE members (
-    member_id serial PRIMARY KEY,
+    member_id  serial PRIMARY KEY,
     user_id    int NOT NULL REFERENCES users(user_id),
     project_id int NOT NULL REFERENCES projects(project_id)
+);
+
+CREATE TABLE issues (
+    issue_id   serial PRIMARY KEY,
+    title      varchar NOT NULL,
+    user_id    int NOT NULL REFERENCES users(user_id),
+    content    varchar NOT NULL,
+    project_id int NOT NULL REFERENCES projects(project_id),
+    state      int NOT NULL
 );
