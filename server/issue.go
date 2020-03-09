@@ -102,4 +102,17 @@ func getIssue(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		handleError(w, err)
 	}
+
+	var buf bytes.Buffer
+	err = json.NewEncoder(&buf).Encode(issue)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	_, err = w.Write(buf.Bytes())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 }
