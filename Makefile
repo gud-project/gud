@@ -1,53 +1,30 @@
-LIB_DIR=./gud/
-CLI_DIR=.
-SERVER_DIR=./server/
-FRONT_DIR=./server/front/
+LIB_DIR=./gud
+CMD_DIR=./cmd
+SERVER_DIR=./server
+FRONT_DIR=./server/front
 
-go_src=$(shell find $(1) -not -path '**/vendor/**' -not -name *_test.go \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \))
+go_src=$(shell find $(1) -not -name *_test.go \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' \))
 
 LIB_SRC=$(call go_src,$(LIB_DIR))
-CLI_SRC=$(call go_src,$(CLI_DIR))
+CMD_SRC=$(call go_src,$(CMD_DIR))
 SERVER_SRC=$(call go_src,$(SERVER_DIR))
 FRONT_SRC=$(shell find $(FRONT_DIR)/src/ \( -name *.js -o -name *.vue \))
 
-.PHONY: all cli server back front lib clean
-.ONESHELL: cli back lib
-
-define vendor
-	sed -i 's/"gitlab.com\/magsh-2019\/2\/gud\/gud"/\/\/ \0/g' $(call go_src,$(1))
-	cd $(1)
-	go mod vendor
-	cd - >/dev/null
-	sed -i 's/\/\/ \("gitlab.com\/magsh-2019\/2\/gud\/gud"\)/\1/g' $(call go_src,$(1))
-endef
+.PHONY: all cli server back front
+.ONESHELL: back
 
 all: cli server
 
-lib: $(LIB_DIR)/gud.a
-$(LIB_DIR)/gud.a: $(LIB_SRC)
-	cd gud
-	go mod vendor
-	go build -o gud.a
-
-cli: $(LIB_DIR)/gud.a $(CLI_SRC)
-	$(call vendor,$(CLI_DIR))
-	cd $(CLI_DIR)
-	GO111MODULE=off go install
+cli: main.go $(CMD_SRC) $(LIB_SRC)
+	go install
 
 server: back front
 
 back: $(SERVER_DIR)/server
-$(SERVER_DIR)/server: $(LIB_DIR)/gud.a $(SERVER_SRC)
-	$(call vendor,$(SERVER_DIR))
+$(SERVER_DIR)/server: $(SERVER_SRC) $(LIB_SRC)
 	cd $(SERVER_DIR)
-	GO111MODULE=off go build
+	go build
 
 front: $(FRONT_DIR)/dist/index.html
 $(FRONT_DIR)/dist/index.html: $(FRONT_SRC)
-	npm run --prefix server/front/ build -- --mode development
-
-clean:
-	rm -rf \
-		$(CLI_DIR)/vendor/ $(LIB_DIR)/vendor/ $(SERVER_DIR)/vendor/ \
-		$(LIB_DIR)/gud.a $(SERVER_DIR)/server \
-		server/front/dist
+	npm run --prefix $(FRONT_DIR) build -- --mode development

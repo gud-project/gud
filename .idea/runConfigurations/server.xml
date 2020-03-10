@@ -6,14 +6,21 @@
     <envs>
       <env name="PGPASSWORD" value="NITAI_PUT_PASSWORD_HERE" />
       <env name="PGUSER" value="NITAI_PUT_USERNAME_HERE" />
-      <env name="GO111MODULE" value="off" />
     </envs>
-    <kind value="PACKAGE" />
+    <kind value="DIRECTORY" />
     <filePath value="$PROJECT_DIR$/" />
-    <package value="gitlab.com/magsh-2019/2/gud/server" />
-    <directory value="$PROJECT_DIR$/" />
+    <directory value="$PROJECT_DIR$/server" />
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" />
+      <option name="NpmBeforeRunTask" enabled="true">
+        <package-json value="$PROJECT_DIR$/server/front/package.json" />
+        <command value="run" />
+        <scripts>
+          <script value="build" />
+        </scripts>
+        <arguments value="-- --mode development" />
+        <node-interpreter value="project" />
+        <envs />
+      </option>
     </method>
   </configuration>
 </component>
