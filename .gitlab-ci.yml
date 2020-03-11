@@ -1,4 +1,4 @@
-image: golang:alpine
+image: golang:latest
 
 before_script:
     - pkg_name=gitlab.com/magsh-2019/2/gud
