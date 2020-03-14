@@ -203,7 +203,7 @@ func (p Project) Save(message string) (*Version, error) {
 
 	dir := dirStructure{Name: "."}
 	for _, entry := range index {
-		addToStructure(&dir, entry.Path, entry.Hash)
+		addToStructure(&dir, entry)
 	}
 
 	prev, err := loadTree(p.gudPath, currentVersion.TreeHash)

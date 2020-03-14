@@ -37,9 +37,11 @@ const (
 )
 
 type object struct {
-	Name string
-	Hash ObjectHash
-	Type objectType
+	Name  string
+	Hash  ObjectHash
+	Type  objectType
+	Size  int64
+	Mtime time.Time
 }
 
 type tree []object
@@ -103,7 +105,6 @@ func gobToVersion(v gobVersion) Version {
 		merged:   v.Merged,
 	}
 }
-
 
 // HasPrev returns true if the version has a predecessor.
 func (v Version) HasPrev() bool {
@@ -221,7 +222,7 @@ func createGobObject(gudPath, relPath string, ret interface{}, objectType object
 }
 
 type objectWriter struct {
-	io.WriteCloser
+	*zlib.Writer
 	data bytes.Buffer
 	sha  hash.Hash
 }
@@ -230,12 +231,12 @@ func newObjectWriter(name string) (*objectWriter, error) {
 	w := &objectWriter{
 		sha: sha1.New(),
 	}
-	_, err := fmt.Fprintf(w.sha, name)
+	_, err := fmt.Fprint(w.sha, name)
 	if err != nil {
 		return nil, err
 	}
 
-	w.WriteCloser = zlib.NewWriter(io.MultiWriter(&w.data, w.sha))
+	w.Writer = zlib.NewWriter(io.MultiWriter(&w.data, w.sha))
 	return w, nil
 }
 
@@ -373,7 +374,7 @@ func (p Project) findObject(relPath string) (*object, error) {
 		return nil, err
 	}
 
-	obj := object{".", version.TreeHash, typeTree}
+	obj := object{Name: ".", Hash: version.TreeHash, Type: typeTree}
 	for _, name := range dirs {
 		tree, err := loadTree(p.gudPath, obj.Hash)
 		if err != nil {
@@ -437,8 +438,8 @@ func (p Project) compareToObject(relPath string, hash ObjectHash) (bool, error) 
 	}
 }
 
-func addToStructure(structure *dirStructure, relPath string, hash ObjectHash) {
-	dirs := strings.Split(relPath, string(os.PathSeparator))
+func addToStructure(structure *dirStructure, entry indexEntry) {
+	dirs := strings.Split(entry.Path, string(os.PathSeparator))
 	current := structure
 
 	for _, dir := range dirs[:len(dirs)-1] {
@@ -465,9 +466,11 @@ func addToStructure(structure *dirStructure, relPath string, hash ObjectHash) {
 	current.Objects = append(current.Objects, object{})
 	copy(current.Objects[ind+1:], current.Objects[ind:])
 	current.Objects[ind] = object{
-		Name: name,
-		Hash: hash,
-		Type: typeBlob,
+		Name:  name,
+		Hash:  entry.Hash,
+		Type:  typeBlob,
+		Size:  entry.Size,
+		Mtime: entry.Mtime,
 	}
 }
 
