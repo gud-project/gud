@@ -144,3 +144,51 @@ func TestProject_CurrentBranch(t *testing.T) {
 		t.Error("first branch name incorrect")
 	}
 }
+
+func TestProject_Checkpoint(t *testing.T) {
+	defer clearTest()
+
+	testPath := filepath.Join(testDir, testFile)
+	data := []byte("random test data")
+
+	p, _ := Start(testDir)
+	err := p.Checkpoint("gud start")
+	if err != nil {
+		t.Fatal("failed checkpoint after start:", err)
+	}
+
+	_ = ioutil.WriteFile(testPath, data, 0644)
+	_ = p.Add(testPath)
+	err = p.Checkpoint("gud add")
+	if err != nil {
+		t.Fatal("failed checkpoint after add:", err)
+	}
+
+	_, err = p.Save("add file")
+	err = p.Undo()
+	if err != nil {
+		t.Fatal("failed to undo save:", err)
+	}
+
+	version, err := p.CurrentVersion()
+	if err != nil {
+		t.Fatal("failed to load current version:", err)
+	}
+	if version.Message != initialCommitName {
+		t.Fatal("current version not undo'ed")
+	}
+
+	err = p.Undo()
+	if err != nil {
+		t.Fatal("failed to undo add:", err)
+	}
+
+	index, err := loadIndex(p.gudPath)
+	if err != nil {
+		t.Fatal("failed to load index:", err)
+	}
+
+	if len(index) > 0 {
+		t.Fatal("action not undo'ed properly")
+	}
+}

@@ -161,6 +161,10 @@ func (p Project) reportNewDir(relPath string, index []indexEntry, fn cmpCallback
 		if err != nil {
 			return err
 		}
+		if path == p.gudPath {
+			return filepath.SkipDir
+		}
+
 		newRelPath, err := filepath.Rel(p.Path, path)
 		if err != nil {
 			return err
