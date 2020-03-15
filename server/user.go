@@ -10,11 +10,27 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func createUserRouter(route *mux.Route) *mux.Router {
+func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	r := route.Subrouter()
+	r.Use(verifySession, selector)
 	r.HandleFunc("/projects", userProjects).Methods(http.MethodGet)
 
-	return r
+	project := r.PathPrefix("/project/{project}").Subrouter()
+	project.Use(verifyProject)
+	project.HandleFunc("/branch/{branch}", projectBranch).Methods(http.MethodGet)
+	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
+	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
+	project.HandleFunc("/invite", inviteMember).Methods(http.MethodPost)
+
+	issues := project.PathPrefix("/issues").Subrouter()
+	issues.HandleFunc("/create", createIssue).Methods(http.MethodPost)
+	issues.HandleFunc("/", getIssues).Methods(http.MethodGet)
+	issues.HandleFunc("/{id}", getIssue).Methods(http.MethodGet)
+
+	prs := project.PathPrefix("/prs").Subrouter()
+	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
+	prs.HandleFunc("/", getPrs).Methods(http.MethodGet)
+	prs.HandleFunc("/{id}", getPr).Methods(http.MethodGet)
 }
 
 func userProjects(w http.ResponseWriter, r *http.Request) {

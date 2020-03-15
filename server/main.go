@@ -17,32 +17,13 @@ func main() {
 	api.HandleFunc("/login", login).Methods(http.MethodPost)
 	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
-	me := createUserRouter(api.PathPrefix("/me"))
-	me.Use(verifySession, selectSelf)
-	user := createUserRouter(api.PathPrefix("/user/{user}"))
-	user.Use(selectUser)
+	createUserRouter(api.PathPrefix("/me"), selectSelf)
+	createUserRouter(api.PathPrefix("/user/{user}"), selectUser)
 
 	projects := api.PathPrefix("/projects").Subrouter()
 	projects.Use(verifySession)
 	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
 	projects.HandleFunc("/import", importProject).Methods(http.MethodPost)
-
-	project := api.PathPrefix("/project/{user}/{project}").Subrouter()
-	project.Use(verifySession, verifyProject)
-	project.HandleFunc("/branch/{branch}", projectBranch).Methods(http.MethodGet)
-	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
-	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
-	project.HandleFunc("/invite", inviteMember).Methods(http.MethodPost)
-
-	issues := project.PathPrefix("/issues").Subrouter()
-	issues.HandleFunc("/create", createIssue).Methods(http.MethodPost)
-	issues.HandleFunc("", getIssues).Methods(http.MethodPost)
-	issues.HandleFunc("/{id}", getIssue).Methods(http.MethodGet)
-
-	prs := project.PathPrefix("/prs").Subrouter()
-	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
-	prs.HandleFunc("", getPrs).Methods(http.MethodPost)
-	prs.HandleFunc("/{id}", getPr).Methods(http.MethodGet)
 
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))

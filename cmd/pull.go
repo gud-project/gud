@@ -48,8 +48,7 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		req, err := http.NewRequest("GET",
-			fmt.Sprintf("%s/api/v1/project/%s/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/user/%s/project/%s/pull?branch=%s&start=%s", config.ServerDomain, config.Name, config.ProjectName, branch, hash),
 			nil)
 		if err != nil {
 			println(err)
