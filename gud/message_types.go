@@ -25,6 +25,13 @@ type CreateIssueRequest struct {
 	Content string `json:"content"`
 }
 
+type CreatePrRequest struct {
+	Title string `json:"title"`
+	Content string `json:"content"`
+	From string `json:"from"`
+	To string `json:"to"`
+}
+
 type status uint
 
 const (
@@ -44,6 +51,19 @@ type Issue struct {
 
 type GetIssuesResponse struct {
 	Issues []Issue `json:"issues"`
+}
+
+type Pr struct {
+	Id int `json:"id"`
+	Title string `json:"title"`
+	Author string `json:"author"`
+	Content string `json:"content"`
+	From string `json:"from"`
+	To string `json:"to"`
+}
+
+type GetPrsResponse struct {
+	Prs []Pr `json:"pr"`
 }
 
 type ErrorResponse struct {

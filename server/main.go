@@ -39,6 +39,11 @@ func main() {
 	issues.HandleFunc("", getIssues).Methods(http.MethodPost)
 	issues.HandleFunc("/{id}", getIssue).Methods(http.MethodGet)
 
+	prs := project.PathPrefix("/prs").Subrouter()
+	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
+	prs.HandleFunc("", getPrs).Methods(http.MethodPost)
+	prs.HandleFunc("/{id}", getPr).Methods(http.MethodGet)
+
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

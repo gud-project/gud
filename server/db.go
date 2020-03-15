@@ -22,7 +22,10 @@ var newUserStmt,
 	inviteMemberStmt,
 	createIssueStmt,
 	getIssuesStmt,
-	getIssueStmt *sql.Stmt
+	getIssueStmt,
+	createPrStmt,
+	getPrsStmt,
+	getPrStmt* sql.Stmt
 
 func init() {
 	var err error
@@ -71,13 +74,22 @@ func init() {
 			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
 
 		createIssueStmt = mustPrepare(
-			"INSERT INTO issues (title, content, state, user_id, project_id) VALUES ($1, $2, $3, $4, $5);"
+			"INSERT INTO issues (title, content, state, user_id, project_id) VALUES ($1, $2, $3, $4, $5);")
 
 		getIssuesStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
 
 		getIssueStmt = mustPrepare(
 			"SELECT user_id, title, content, status FROM issues WHERE issue_id = $1")
+
+		createPrStmt = mustPrepare(
+			"INSERT INTO issues (title, content, user_id, project_id, \"from\", \"to\") VALUES ($1, $2, $3, $4, $5, $6);")
+
+		getPrsStmt = mustPrepare(
+			"SELECT issue_id, user_id, title, content, \"from\", \"to\" FROM prs WHERE project_id = $1")
+
+		getPrStmt = mustPrepare(
+			"SELECT user_id, title, content, \"from\", \"to\" FROM prs WHERE issue_id = $1")
 	}
 }
 
