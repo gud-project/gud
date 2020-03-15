@@ -12,30 +12,15 @@ import (
 )
 
 func createPr(w http.ResponseWriter, r *http.Request) {
-	user := mux.Vars(r)["user"]
-	project := mux.Vars(r)["project"]
-
-	var userId, projectId int
-	err := getUserStmt.QueryRow(user).Scan(&userId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	err = getProjectStmt.QueryRow(user, project).Scan(&projectId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
 	var req gud.CreatePrRequest
-	err = json.NewDecoder(r.Body).Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		reportError(w, http.StatusBadRequest, "failed to receive pr data")
 		return
 	}
 
-	_, err = createPrStmt.Exec(req.Title, req.Content, userId, projectId, req.From, req.To)
+	_, err = createPrStmt.Exec(
+		req.Title, req.Content, r.Context().Value(KeySelectedUserId), r.Context().Value(KeyProjectId), req.From, req.To)
 	if err != nil {
 		handleError(w, err)
 		return

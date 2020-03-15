@@ -19,26 +19,8 @@ func createIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	title := req.Title
-	content := req.Content
-
-	user := mux.Vars(r)["user"]
-	project := mux.Vars(r)["project"]
-
-	var userId, projectId int
-	err = getUserStmt.QueryRow(user).Scan(&userId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	err = getProjectStmt.QueryRow(user, project).Scan(&projectId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	_, err = createIssueStmt.Exec(title, content, userId, projectId)
+	_, err = createIssueStmt.Exec(
+		req.Title, req.Content, r.Context().Value(KeySelectedUserId), r.Context().Value(KeyProjectId))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -48,17 +30,7 @@ func createIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func getIssues(w http.ResponseWriter, r *http.Request) {
-	user := mux.Vars(r)["user"]
-	project := mux.Vars(r)["project"]
-
-	var projectId int
-	err := getProjectStmt.QueryRow(user, project).Scan(&projectId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	rows, err := getIssuesStmt.Query(projectId)
+	rows, err := getIssuesStmt.Query(r.Context().Value(KeyProjectId))
 	if err != nil {
 		handleError(w, err)
 		return
