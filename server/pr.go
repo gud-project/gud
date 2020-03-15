@@ -30,17 +30,7 @@ func createPr(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPrs(w http.ResponseWriter, r *http.Request) {
-	user := mux.Vars(r)["user"]
-	project := mux.Vars(r)["project"]
-
-	var projectId int
-	err := getProjectStmt.QueryRow(user, project).Scan(&projectId)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	rows, err := getPrsStmt.Query(projectId)
+	rows, err := getPrsStmt.Query(r.Context().Value(KeyProjectId))
 	if err != nil {
 		handleError(w, err)
 		return
@@ -49,12 +39,12 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 
 	prs := make([]gud.PullRequest, 0)
 	for rows.Next() {
-		var pr gud.PullRequest
-		if err := rows.Scan(&pr.Title, &pr.Author, &pr.Content, &pr.Id, &pr.From, &pr.To); err != nil {
+		pr, err := scanPr(rows)
+		if err != nil {
 			handleError(w, err)
 			return
 		}
-		prs = append(prs, pr)
+		prs = append(prs, *pr)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -62,7 +52,7 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(gud.GetPrsResponse{Prs: prs})
+	err = json.NewEncoder(w).Encode(prs)
 	if err != nil {
 		handleError(w, err)
 		return

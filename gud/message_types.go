@@ -40,10 +40,6 @@ type Issue struct {
 	Status  string `json:"status"`
 }
 
-type GetIssuesResponse struct {
-	Issues []Issue `json:"issues"`
-}
-
 type PullRequest struct {
 	Id      int    `json:"id"`
 	Title   string `json:"title"`
@@ -51,10 +47,6 @@ type PullRequest struct {
 	Content string `json:"content"`
 	From    string `json:"from"`
 	To      string `json:"to"`
-}
-
-type GetPrsResponse struct {
-	Prs []PullRequest `json:"pr"`
 }
 
 type ErrorResponse struct {

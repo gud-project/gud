@@ -51,7 +51,7 @@ func getIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(gud.GetIssuesResponse{Issues: issues})
+	err = json.NewEncoder(w).Encode(issues)
 	if err != nil {
 		handleError(w, err)
 		return
