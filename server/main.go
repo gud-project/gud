@@ -13,31 +13,28 @@ func main() {
 	defer closeDB()
 
 	api := mux.NewRouter()
-	api.HandleFunc("/signup", signUp).Methods(http.MethodPost)
+	api.HandleFunc("/signup", signUp)
 	api.HandleFunc("/login", login).Methods(http.MethodPost)
 	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
+	// TODO: I don't actually need that, come back to it later
+	// createUserRouter(api.PathPrefix("/me"), selectSelf)
+	createUserRouter(api.PathPrefix("/user/{user}"), selectUser)
+
 	projects := api.PathPrefix("/projects").Subrouter()
 	projects.Use(verifySession)
-
 	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
 	projects.HandleFunc("/import", importProject).Methods(http.MethodPost)
 
-	project := api.PathPrefix("/project/{user}/{project}").Subrouter()
-	project.Use(verifySession, verifyProject)
-	project.HandleFunc("/branch/{branch}", projectBranch).Methods(http.MethodGet)
-	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
-	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
-
-	http.Handle("/api/v1", api)
+	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 // reportError reports an error to the client side (e.g. invalid input, unauthorized)
 func reportError(w http.ResponseWriter, code int, message string) {
-	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(gud.ErrorResponse{message})
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(gud.ErrorResponse{Error: message})
 }
 
 // handleError handles a server-side error without reporting to the user (e.g. SQL errors)

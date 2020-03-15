@@ -20,7 +20,7 @@ func TestProject_Add(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(p.gudPath)
+	entries, err := p.getIndex()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestProject_Remove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := loadIndex(p.gudPath)
+	entries, err := p.getIndex()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestProject_Remove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err = loadIndex(p.gudPath)
+	entries, err = p.getIndex()
 	if err != nil {
 		t.Fatal(err)
 	}

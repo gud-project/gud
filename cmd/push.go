@@ -72,7 +72,7 @@ func pushBranch(branch string) error {
 
 	var buf bytes.Buffer
 	boundary, err := p.PushBranch(&buf, branch, &hash)
-	req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/project/%s/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
+	req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/user/%s/project/%s/push?branch=%s", config.ServerDomain, config.Name, config.ProjectName, branch), &buf)
 	if err != nil {
 		println("3")
 		return err

@@ -24,6 +24,7 @@ var namePattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
 type ContextKey int
 const (
 	KeyUserId ContextKey = iota
+	KeySelectedUserId
 	KeyProjectId
 )
 
@@ -37,30 +38,24 @@ func signUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if errs != nil {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(gud.MultiErrorResponse{Errors: errs})
 		return
 	}
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	res, err := newUserStmt.Exec(req.Username, req.Email, hash)
+	id, err := execReturningId(newUserStmt, req.Username, req.Email, hash)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		handleError(w, err)
-	}
-
-	err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(int(id))), dirPerm)
+	err = os.Mkdir(filepath.Join(projectsPath, strconv.Itoa(id)), dirPerm)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func login(w http.ResponseWriter, r *http.Request) {
@@ -100,8 +95,6 @@ func login(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func logout(w http.ResponseWriter, r *http.Request) {
@@ -110,9 +103,10 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, inProd := os.LookupEnv("PROD")
 	sess.Options = &sessions.Options{
 		MaxAge:   -1, // delete
-		Secure:   true,
+		Secure:   inProd,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
@@ -121,8 +115,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func validateSignUp(r *http.Request) (*gud.SignUpRequest, []string, error) {
@@ -168,9 +160,10 @@ func createSession(w http.ResponseWriter, r *http.Request, id int, remember bool
 	sess, _ := store.Get(r, "session")
 	sess.Values["id"] = id
 
+	_, inProd := os.LookupEnv("PROD")
 	options := sessions.Options{
 		MaxAge:   0, // deletes when session ends
-		Secure:   true,
+		Secure:   inProd,
 		HttpOnly: true,
 		SameSite: http.SameSiteStrictMode,
 	}
@@ -185,14 +178,12 @@ func createSession(w http.ResponseWriter, r *http.Request, id int, remember bool
 func verifySession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sess, _ := store.Get(r, "session")
-		if !sess.IsNew {
-			id, ok := sess.Values["id"].(uint)
-			if ok {
-				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserId, id)))
-				return
-			}
-		}
 
-		w.WriteHeader(http.StatusUnauthorized)
+		if sess.IsNew {
+			w.WriteHeader(http.StatusUnauthorized)
+		} else {
+			id := sess.Values["id"].(int)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyUserId, id)))
+		}
 	})
 }

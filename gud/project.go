@@ -14,7 +14,18 @@ const defaultCheckpointNum = 5
 // Project is a representation of a Gud project
 type Project struct {
 	Path string
+
 	gudPath string
+	index []indexEntry
+}
+
+func newProject(path, relGudPath string) (*Project, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Project{abs, filepath.Join(abs, relGudPath), nil}, nil
 }
 
 // Start creates a new Gud project in the path it receives.
@@ -55,6 +66,7 @@ func startProject(path, gudRelPath string) (*Project, error) {
 
 	obj, err := createVersion(project.gudPath, Version{
 		Message:  initialCommitName,
+		Author:   "Nitai", // TODO: get user from global config
 		Time:     time.Now(),
 		TreeHash: tree.Hash,
 	})
@@ -80,43 +92,47 @@ func startGudDir(path, gudRelPath string) (*Project, error) {
 	if path == "" {
 		path = "."
 	}
-	abs, err := filepath.Abs(path)
+
+	p, err := newProject(path, gudRelPath)
 	if err != nil {
 		return nil, err
 	}
 
-	gudPath := filepath.Join(abs, gudRelPath)
-	err = os.Mkdir(gudPath, dirPerm)
+	err = os.Mkdir(p.gudPath, dirPerm)
 	if err != nil {
 		return nil, err
 	}
 
-	err = initIndex(gudPath)
+	err = p.initIndex()
 	if err != nil {
 		return nil, err
 	}
 
-	err = initObjectsDir(gudPath)
+	err = initObjectsDir(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
 
-	err = initBranches(gudPath)
+	err = initBranches(p.gudPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the directory
-	return &Project{abs, gudPath}, nil
+	return p, nil
 }
 
 // Load receives a path to a Gud project and returns a representation of it.
 func Load(path string) (*Project, error) {
 	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
-		gudPath := filepath.Join(path, defaultGudPath)
-		info, err := os.Stat(gudPath)
+		p, err := newProject(path, defaultGudPath)
+		if err != nil {
+			return nil, err
+		}
+
+		info, err := os.Stat(p.gudPath)
 		if !os.IsNotExist(err) && info.IsDir() {
-			return &Project{path, gudPath}, nil
+			return p, nil
 		}
 		path = parent
 	}
@@ -168,7 +184,7 @@ func (p Project) LatestVersion() (*Version, error) {
 
 // Save saves the current version of the project.
 func (p Project) Save(message string) (*Version, error) {
-	index, err := loadIndex(p.gudPath)
+	index, err := p.getIndex()
 	if err != nil {
 		return nil, err
 	}
@@ -222,13 +238,13 @@ func (p Project) Save(message string) (*Version, error) {
 		}
 	}
 
-	newVersion, err := saveVersion(p.gudPath, message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
+	newVersion, err := p.saveVersion(message, head.Branch, treeObj.Hash, currentHash, head.MergedHash)
 	if err != nil {
 		return nil, err
 	}
 
 	// reset index
-	err = initIndex(p.gudPath)
+	err = p.initIndex()
 	if err != nil {
 		return nil, err
 	}
@@ -358,5 +374,5 @@ func (p Project) Undo() error {
 }
 
 func (p Project) innerProject() Project {
-	return Project{p.Path, filepath.Join(p.gudPath, defaultGudPath)}
+	return Project{p.Path, filepath.Join(p.gudPath, defaultGudPath), nil}
 }

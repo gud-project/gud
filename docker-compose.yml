@@ -1,0 +1,28 @@
+version: "3"
+services:
+    server:
+        build:
+            context: .
+            dockerfile: server/Dockerfile
+        restart: on-failure
+        ports:
+            - 8080:8080
+        environment:
+            PGHOST: postgres
+            PGUSER: gud
+            PGPASSWORD: ${POSTGRES_PASSWORD}
+            PGSSLMODE: disable
+        depends_on:
+            - postgres
+
+    postgres:
+        image: postgres
+        volumes:
+            - ./server/db.sql:/docker-entrypoint-initdb.d/db.sql
+            - db-data:/var/lib/postgresql/data/
+        environment:
+            POSTGRES_USER: gud
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+volumes:
+    db-data:

@@ -16,6 +16,39 @@ type CreateProjectRequest struct {
 	Name string `json:"name"`
 }
 
+type InviteMemberRequest struct {
+	Name string `json:"name"`
+}
+
+type CreateIssueRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
+type CreatePrRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+}
+
+type Issue struct {
+	Id      int    `json:"id"`
+	Title   string `json:"title"`
+	Author  string `json:"author"`
+	Content string `json:"content"`
+	Status  string `json:"status"`
+}
+
+type PullRequest struct {
+	Id      int    `json:"id"`
+	Title   string `json:"title"`
+	Author  string `json:"author"`
+	Content string `json:"content"`
+	From    string `json:"from"`
+	To      string `json:"to"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
@@ -25,4 +58,3 @@ type MultiErrorResponse struct {
 }
 
 const PasswordLenMin = 8
-
