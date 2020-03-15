@@ -2,6 +2,8 @@
 package gud
 
 import (
+	"archive/tar"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -257,6 +259,72 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 	}
 
 	return version.prev, prev, nil
+}
+
+type walkFn func(relPath string, obj object) error
+
+func (p Project) Tar(writer io.Writer, version Version) (err error) {
+	w := tar.NewWriter(writer)
+	defer func() {
+		cerr := w.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+
+	return walk(p.gudPath, version, func(relPath string, obj object) error {
+		if obj.Type == typeTree {
+			return nil
+		}
+
+		err := w.WriteHeader(&tar.Header{
+			Name:    relPath,
+			Size:    obj.Size,
+			ModTime: obj.Mtime,
+		})
+
+		src, err := os.Open(objectPath(p.gudPath, obj.Hash))
+		if err != nil {
+			return err
+		}
+		defer src.Close()
+
+		_, err = io.Copy(w, src)
+		return err
+	})
+}
+
+func walk(gudPath string, version Version, fn walkFn) error {
+	return walkTree(gudPath, ".", object{
+		Name: ".",
+		Hash: version.TreeHash,
+		Type: typeTree,
+	}, fn)
+}
+
+func walkTree(gudPath, relPath string, tree object, fn walkFn) error {
+	err := fn(relPath, tree)
+	if err != nil {
+		return err
+	}
+
+	objs, err := loadTree(gudPath, tree.Hash)
+	if err != nil {
+		return err
+	}
+	for _, obj := range objs {
+		innerPath := filepath.Join(relPath, obj.Name)
+		if obj.Type == typeTree {
+			err = walkTree(gudPath, innerPath, obj, fn)
+		} else {
+			err = fn(innerPath, obj)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (p Project) Checkpoint(message string) error {

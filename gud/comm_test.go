@@ -2,7 +2,6 @@ package gud
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -32,7 +31,7 @@ func TestProject_PushBranch(t *testing.T) {
 		t.Fatal("failed to push branch: ", err)
 	}
 
-	err = server.PullBranch(FirstBranchName, &buf, fmt.Sprintf("multipart/mixed; boundary=%s", boundary))
+	err = server.PullBranch(FirstBranchName, &buf, "multipart/mixed; boundary="+boundary)
 	if err != nil {
 		t.Fatal("failed to pull branch:", err)
 	}

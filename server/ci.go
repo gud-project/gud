@@ -14,13 +14,12 @@ import (
 )
 
 type imageBuildData struct {
-	Stream string            `json:"stream"`
-	Aux    struct{ID string} `json:"aux"`
+	Stream string              `json:"stream"`
+	Aux    struct{ ID string } `json:"aux"`
 }
 
 func _(tar io.Reader) (int, []byte, error) {
-	// set DOCKER_HOST
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.NewClientWithOpts()
 	if err != nil {
 		return -1, nil, err
 	}
@@ -73,12 +72,12 @@ func runContainer(cli *client.Client, ctx context.Context, image string, stdout 
 
 	_, err = stdcopy.StdCopy(stdout, stdout, logs)
 	if err != nil {
-		return-1, err
+		return -1, err
 	}
 
 	stat, err := cli.ContainerInspect(ctx, id)
 	if err != nil {
-		return-1, err
+		return -1, err
 	}
 
 	return stat.State.ExitCode, nil
@@ -86,6 +85,7 @@ func runContainer(cli *client.Client, ctx context.Context, image string, stdout 
 
 func buildImage(cli *client.Client, ctx context.Context, tar io.Reader, out io.StringWriter) (string, error) {
 	res, err := cli.ImageBuild(ctx, tar, types.ImageBuildOptions{
+		ForceRemove: true,
 		// NoCache?
 	})
 	if err != nil {
