@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -93,6 +95,10 @@ func getPr(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = getPrStmt.QueryRow(pr.Id).Scan(&pr.Author, &pr.Title, &pr.Content, &pr.From, &pr.To)
+	if err == sql.ErrNoRows {
+		reportError(w, http.StatusNotFound, fmt.Sprintf("pull request !%s not found", id))
+		return
+	}
 	if err != nil {
 		handleError(w, err)
 		return

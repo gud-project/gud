@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -96,6 +98,10 @@ func getIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = getIssueStmt.QueryRow(issue.Id).Scan(&issue.Author, &issue.Title, &issue.Content, &issue.Status)
+	if err == sql.ErrNoRows {
+		reportError(w, http.StatusNotFound, fmt.Sprintf("issue #%s not found", id))
+		return
+	}
 	if err != nil {
 		handleError(w, err)
 		return
