@@ -74,7 +74,7 @@ func init() {
 			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
 
 		createIssueStmt = mustPrepare(
-			"INSERT INTO issues (title, content, state, user_id, project_id) VALUES ($1, $2, $3, $4, $5);")
+			"INSERT INTO issues (title, content, user_id, project_id, status) VALUES ($1, $2, $3, $4, 'open');")
 
 		getIssuesStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
@@ -83,13 +83,13 @@ func init() {
 			"SELECT user_id, title, content, status FROM issues WHERE issue_id = $1")
 
 		createPrStmt = mustPrepare(
-			"INSERT INTO issues (title, content, user_id, project_id, \"from\", \"to\") VALUES ($1, $2, $3, $4, $5, $6);")
+			`INSERT INTO prs (title, content, user_id, project_id, "from", "to") VALUES ($1, $2, $3, $4, $5, $6);`)
 
 		getPrsStmt = mustPrepare(
-			"SELECT issue_id, user_id, title, content, \"from\", \"to\" FROM prs WHERE project_id = $1")
+			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE project_id = $1`)
 
 		getPrStmt = mustPrepare(
-			"SELECT user_id, title, content, \"from\", \"to\" FROM prs WHERE issue_id = $1")
+			`SELECT user_id, title, content, "from", "to" FROM prs WHERE pr_id = $1`)
 	}
 }
 
@@ -131,6 +131,12 @@ func closeDB() error {
 		userProjectsStmt,
 		hasMemberStmt,
 		inviteMemberStmt,
+		createIssueStmt,
+		getIssuesStmt,
+		getIssueStmt,
+		createPrStmt,
+		getPrsStmt,
+		getPrStmt,
 	} {
 		if stmt != nil {
 			err := stmt.Close()

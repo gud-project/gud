@@ -21,49 +21,40 @@ type InviteMemberRequest struct {
 }
 
 type CreateIssueRequest struct {
-	Title string `json:"title"`
+	Title   string `json:"title"`
 	Content string `json:"content"`
 }
 
 type CreatePrRequest struct {
-	Title string `json:"title"`
+	Title   string `json:"title"`
 	Content string `json:"content"`
-	From string `json:"from"`
-	To string `json:"to"`
+	From    string `json:"from"`
+	To      string `json:"to"`
 }
 
-type status uint
-
-const (
-	IOpen status = 0
-	IInprogress status = 1
-	IDone status = 2
-	IClose status = 3
-)
-
 type Issue struct {
-	Id int `json:"id"`
-	Title string `json:"title"`
-	Author string `json:"author"`
+	Id      int    `json:"id"`
+	Title   string `json:"title"`
+	Author  string `json:"author"`
 	Content string `json:"content"`
-	Status status `json:"status"`
+	Status  string `json:"status"`
 }
 
 type GetIssuesResponse struct {
 	Issues []Issue `json:"issues"`
 }
 
-type Pr struct {
-	Id int `json:"id"`
-	Title string `json:"title"`
-	Author string `json:"author"`
+type PullRequest struct {
+	Id      int    `json:"id"`
+	Title   string `json:"title"`
+	Author  string `json:"author"`
 	Content string `json:"content"`
-	From string `json:"from"`
-	To string `json:"to"`
+	From    string `json:"from"`
+	To      string `json:"to"`
 }
 
 type GetPrsResponse struct {
-	Prs []Pr `json:"pr"`
+	Prs []PullRequest `json:"pr"`
 }
 
 type ErrorResponse struct {
@@ -75,4 +66,3 @@ type MultiErrorResponse struct {
 }
 
 const PasswordLenMin = 8
-

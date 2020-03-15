@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 func createIssue(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +36,13 @@ func createIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createIssueStmt.QueryRow(title, content, gud.IOpen, userId, projectId)
+	_, err = createIssueStmt.Exec(title, content, userId, projectId)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func getIssues(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +66,7 @@ func getIssues(w http.ResponseWriter, r *http.Request) {
 	issues := make([]gud.Issue, 0)
 	for rows.Next() {
 		var issue gud.Issue
-		if err := rows.Scan(issue.Title, issue.Author, issue.Content, issue.Id, issue.Status); err != nil {
+		if err := rows.Scan(&issue.Title, &issue.Author, &issue.Content, &issue.Id, &issue.Status); err != nil {
 			handleError(w, err)
 			return
 		}
@@ -72,17 +78,7 @@ func getIssues(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var res gud.GetIssuesResponse
-	res.Issues = issues
-
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	_, err = w.Write(buf.Bytes())
+	err = json.NewEncoder(w).Encode(gud.GetIssuesResponse{Issues: issues})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -96,21 +92,16 @@ func getIssue(w http.ResponseWriter, r *http.Request) {
 	issue.Id, err = strconv.Atoi(id)
 	if err != nil {
 		reportError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
-	err = getIssueStmt.QueryRow(issue.Id).Scan(issue.Author, issue.Title, issue.Content, issue.Status)
-	if err != nil {
-		handleError(w, err)
-	}
-
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(issue)
+	err = getIssueStmt.QueryRow(issue.Id).Scan(&issue.Author, &issue.Title, &issue.Content, &issue.Status)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	_, err = w.Write(buf.Bytes())
+	err = json.NewEncoder(w).Encode(issue)
 	if err != nil {
 		handleError(w, err)
 		return

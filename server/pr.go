@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
+	"gitlab.com/magsh-2019/2/gud/gud"
 )
 
 func createPr(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,13 @@ func createPr(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	createPrStmt.QueryRow(req.Title, req.Content, userId, projectId, req.From, req.To)
+	_, err = createPrStmt.Exec(req.Title, req.Content, userId, projectId, req.From, req.To)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func getPrs(w http.ResponseWriter, r *http.Request) {
@@ -54,10 +60,10 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	prs := make([]gud.Pr, 0)
+	prs := make([]gud.PullRequest, 0)
 	for rows.Next() {
-		var pr gud.Pr
-		if err := rows.Scan(pr.Title, pr.Author, pr.Content, pr.Id, pr.From, pr.To); err != nil {
+		var pr gud.PullRequest
+		if err := rows.Scan(&pr.Title, &pr.Author, &pr.Content, &pr.Id, &pr.From, &pr.To); err != nil {
 			handleError(w, err)
 			return
 		}
@@ -69,17 +75,7 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var res gud.GetPrsResponse
-	res.Prs = prs
-
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(res)
-	if err != nil {
-		handleError(w, err)
-		return
-	}
-
-	_, err = w.Write(buf.Bytes())
+	err = json.NewEncoder(w).Encode(gud.GetPrsResponse{Prs: prs})
 	if err != nil {
 		handleError(w, err)
 		return
@@ -87,27 +83,22 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPr(w http.ResponseWriter, r *http.Request) {
-	var pr gud.Pr
+	var pr gud.PullRequest
 	id := mux.Vars(r)["pr"]
 	var err error
 	pr.Id, err = strconv.Atoi(id)
 	if err != nil {
 		reportError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
-	err = getPrStmt.QueryRow(pr.Id).Scan(pr.Author, pr.Title, pr.Content, pr.From, pr.To)
-	if err != nil {
-		handleError(w, err)
-	}
-
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(pr)
+	err = getPrStmt.QueryRow(pr.Id).Scan(&pr.Author, &pr.Title, &pr.Content, &pr.From, &pr.To)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	_, err = w.Write(buf.Bytes())
+	err = json.NewEncoder(w).Encode(pr)
 	if err != nil {
 		handleError(w, err)
 		return
