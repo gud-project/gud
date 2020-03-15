@@ -24,13 +24,13 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 
 	issues := project.PathPrefix("/issues").Subrouter()
 	issues.HandleFunc("/create", createIssue).Methods(http.MethodPost)
-	issues.HandleFunc("/", getIssues).Methods(http.MethodGet)
-	issues.HandleFunc("/{id}", getIssue).Methods(http.MethodGet)
+	issues.HandleFunc("", getIssues).Methods(http.MethodGet)
+	issues.HandleFunc("/{issue}", getIssue).Methods(http.MethodGet)
 
 	prs := project.PathPrefix("/prs").Subrouter()
 	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
-	prs.HandleFunc("/", getPrs).Methods(http.MethodGet)
-	prs.HandleFunc("/{id}", getPr).Methods(http.MethodGet)
+	prs.HandleFunc("", getPrs).Methods(http.MethodGet)
+	prs.HandleFunc("/{pr}", getPr).Methods(http.MethodGet)
 }
 
 func userProjects(w http.ResponseWriter, r *http.Request) {
@@ -61,12 +61,12 @@ func userProjects(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(names)
 }
 
-func selectSelf(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r.WithContext(
-			context.WithValue(r.Context(), KeySelectedUserId, r.Context().Value(KeyUserId))))
-	})
-}
+//func selectSelf(next http.Handler) http.Handler {
+//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		next.ServeHTTP(w, r.WithContext(
+//			context.WithValue(r.Context(), KeySelectedUserId, r.Context().Value(KeyUserId))))
+//	})
+//}
 
 func selectUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

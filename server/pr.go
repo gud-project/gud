@@ -70,18 +70,15 @@ func getPrs(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPr(w http.ResponseWriter, r *http.Request) {
-	var pr gud.PullRequest
-	id := mux.Vars(r)["pr"]
-	var err error
-	pr.Id, err = strconv.Atoi(id)
+	prId, err := strconv.Atoi(mux.Vars(r)["pr"])
 	if err != nil {
 		reportError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = getPrStmt.QueryRow(pr.Id).Scan(&pr.Author, &pr.Title, &pr.Content, &pr.From, &pr.To)
+	pr, err := scanPr(getPrStmt.QueryRow(prId))
 	if err == sql.ErrNoRows {
-		reportError(w, http.StatusNotFound, fmt.Sprintf("pull request !%s not found", id))
+		reportError(w, http.StatusNotFound, fmt.Sprintf("pull request !%d not found", prId))
 		return
 	}
 	if err != nil {
@@ -94,4 +91,19 @@ func getPr(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+}
+
+func scanPr(row scanner) (*gud.PullRequest, error) {
+	var pr gud.PullRequest
+	var authorId int
+	err := row.Scan(&pr.Id, &authorId, &pr.Title, &pr.Content, &pr.From, &pr.To)
+	if err != nil {
+		return nil, err
+	}
+	err = getUserStmt.QueryRow(authorId).Scan(&pr.Author)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pr, nil
 }

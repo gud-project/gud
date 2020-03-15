@@ -39,12 +39,11 @@ func getIssues(w http.ResponseWriter, r *http.Request) {
 
 	issues := make([]gud.Issue, 0)
 	for rows.Next() {
-		var issue gud.Issue
-		if err := rows.Scan(&issue.Title, &issue.Author, &issue.Content, &issue.Id, &issue.Status); err != nil {
+		issue, err := scanIssue(rows)
+		if err != nil {
 			handleError(w, err)
-			return
 		}
-		issues = append(issues, issue)
+		issues = append(issues, *issue)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -60,18 +59,15 @@ func getIssues(w http.ResponseWriter, r *http.Request) {
 }
 
 func getIssue(w http.ResponseWriter, r *http.Request) {
-	var issue gud.Issue
-	id := mux.Vars(r)["issue"]
-	var err error
-	issue.Id, err = strconv.Atoi(id)
+	issueId, err := strconv.Atoi(mux.Vars(r)["issue"])
 	if err != nil {
 		reportError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = getIssueStmt.QueryRow(issue.Id).Scan(&issue.Author, &issue.Title, &issue.Content, &issue.Status)
+	issue, err := scanIssue(getIssueStmt.QueryRow(issueId))
 	if err == sql.ErrNoRows {
-		reportError(w, http.StatusNotFound, fmt.Sprintf("issue #%s not found", id))
+		reportError(w, http.StatusNotFound, fmt.Sprintf("issue #%d not found", issueId))
 		return
 	}
 	if err != nil {
@@ -84,4 +80,23 @@ func getIssue(w http.ResponseWriter, r *http.Request) {
 		handleError(w, err)
 		return
 	}
+}
+
+type scanner interface {
+	Scan(ret ...interface{}) error
+}
+
+func scanIssue(row scanner) (*gud.Issue, error) {
+	var issue gud.Issue
+	var authorId int
+	err := row.Scan(&issue.Id, &authorId, &issue.Title, &issue.Content, &issue.Status)
+	if err != nil {
+		return nil, err
+	}
+	err = getUserStmt.QueryRow(authorId).Scan(&issue.Author)
+	if err != nil {
+		return nil, err
+	}
+
+	return &issue, nil
 }

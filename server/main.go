@@ -17,7 +17,8 @@ func main() {
 	api.HandleFunc("/login", login).Methods(http.MethodPost)
 	api.Handle("/logout", verifySession(http.HandlerFunc(logout))).Methods(http.MethodPost)
 
-	createUserRouter(api.PathPrefix("/me"), selectSelf)
+	// TODO: I don't actually need that, come back to it later
+	// createUserRouter(api.PathPrefix("/me"), selectSelf)
 	createUserRouter(api.PathPrefix("/user/{user}"), selectUser)
 
 	projects := api.PathPrefix("/projects").Subrouter()

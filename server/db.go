@@ -80,7 +80,7 @@ func init() {
 			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
 
 		getIssueStmt = mustPrepare(
-			"SELECT user_id, title, content, status FROM issues WHERE issue_id = $1")
+			"SELECT issue_id, user_id, title, content, status FROM issues WHERE issue_id = $1")
 
 		createPrStmt = mustPrepare(
 			`INSERT INTO prs (title, content, user_id, project_id, "from", "to") VALUES ($1, $2, $3, $4, $5, $6);`)
@@ -89,7 +89,7 @@ func init() {
 			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE project_id = $1`)
 
 		getPrStmt = mustPrepare(
-			`SELECT user_id, title, content, "from", "to" FROM prs WHERE pr_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE pr_id = $1`)
 	}
 }
 
