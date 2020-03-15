@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/AlecAivazis/survey"
+	"github.com/AlecAivazis/survey/v2"
 	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
 	"path/filepath"
