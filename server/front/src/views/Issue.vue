@@ -1,5 +1,5 @@
 <template>
-	<IssuePage pr />
+	<IssuePage />
 </template>
 
 <script>

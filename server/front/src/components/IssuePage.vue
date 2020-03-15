@@ -27,7 +27,7 @@
 		async created() {
 			const { user, project, issue } = this.$route.params
 			const res = await fetch(
-				`/api/v1/user/${user}/project/${project}/${this.pr ? 'pr' : 'issue'}/${issue}`)
+				`/api/v1/user/${user}/project/${project}/${this.pr ? 'prs' : 'issues'}/${issue}`)
 			if (res.ok) {
 				this.issue = await res.json()
 			} else {
