@@ -34,7 +34,7 @@ type indexFile struct {
 // Add adds files to the current version of the Gud project
 func (p Project) Add(paths ...string) error {
 	// TODO: handle renames
-	entries, err := p.getIndex()
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (p Project) Add(paths ...string) error {
 		}
 	}
 
-	return p.setIndex(entries)
+	return dumpIndex(p.gudPath, entries)
 }
 
 func (p Project) AddAll() error {
@@ -121,7 +121,7 @@ func (p Project) AddAll() error {
 
 // Remove removes files from the current version of the Gud project
 func (p Project) Remove(paths ...string) error {
-	entries, err := p.getIndex()
+	entries, err := loadIndex(p.gudPath)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (p Project) Remove(paths ...string) error {
 		}
 	}
 
-	return p.setIndex(entries)
+	return dumpIndex(p.gudPath, entries)
 }
 
 func (p Project) removeDirFromIndex(relPath string, prevHash ObjectHash, index []indexEntry) ([]indexEntry, error) {
@@ -249,16 +249,13 @@ func (p Project) addIndexEntry(relPath string, state FileState, index []indexEnt
 	return index, nil
 }
 
-func (p Project) initIndex() error {
-	return p.setIndex([]indexEntry{})
+func initIndex(gudPath string) error {
+	return dumpIndex(gudPath, []indexEntry{})
 }
 
-func (p Project) getIndex() ([]indexEntry, error) {
-	if p.index != nil {
-		return p.index, nil
-	}
+func loadIndex(gudPath string) ([]indexEntry, error) {
+	file, err := os.Open(filepath.Join(gudPath, indexFilePath))
 
-	file, err := os.Open(filepath.Join(p.gudPath, indexFilePath))
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +268,7 @@ func (p Project) getIndex() ([]indexEntry, error) {
 	}
 
 	if GetVersion() != index.Version { // version does not match
-		err := p.initIndex()
+		err := initIndex(gudPath)
 		if err != nil {
 			return nil, err
 		}
@@ -281,8 +278,8 @@ func (p Project) getIndex() ([]indexEntry, error) {
 	return index.Entries, nil
 }
 
-func (p Project) setIndex(entries []indexEntry) error {
-	file, err := os.Create(filepath.Join(p.gudPath, indexFilePath))
+func dumpIndex(gudPath string, entries []indexEntry) error {
+	file, err := os.Create(filepath.Join(gudPath, indexFilePath))
 	if err != nil {
 		return err
 	}
@@ -292,11 +289,9 @@ func (p Project) setIndex(entries []indexEntry) error {
 		Entries: entries,
 	})
 	if err != nil {
-		file.Close()
 		return err
 	}
 
-	p.index = entries
 	return file.Close()
 }
 
