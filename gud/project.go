@@ -30,11 +30,6 @@ func Start(path string) (*Project, error) {
 		return nil, err
 	}
 
-	err = project.ConfigInit()
-	if err != nil {
-		return nil, err
-	}
-
 	return project, nil
 }
 
@@ -44,6 +39,11 @@ func StartHeadless(dir string) (*Project, error) {
 
 func startProject(path, gudRelPath string) (*Project, error) {
 	project, err := startGudDir(path, gudRelPath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = project.ConfigInit()
 	if err != nil {
 		return nil, err
 	}
