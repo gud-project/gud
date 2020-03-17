@@ -129,15 +129,15 @@ func objectPath(gudPath string, hash ObjectHash) string {
 }
 
 func (p Project) saveVersion(message, branch string, tree ObjectHash, prev, merged *ObjectHash) (*Version, error) {
-	var conf Config
-	err := p.LoadConfig(&conf)
+	var gConf GlobalConfig
+	err := LoadConfig(gConf, gConf.GetPath())
 	if err != nil {
 		return nil, err
 	}
 
 	v := Version{
 		Message:  message,
-		Author:   conf.Name, // TODO: separate owner and user
+		Author:   gConf.Name,
 		Time:     time.Now(),
 		TreeHash: tree,
 		prev:     prev,
