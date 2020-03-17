@@ -16,8 +16,8 @@ limitations under the License.
 package cmd
 
 import (
-	"errors"
-	"fmt"
+	"github.com/AlecAivazis/survey/v2"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"os"
 	"path/filepath"
 
@@ -36,32 +36,48 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		wd, err := os.Getwd()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		p, err := LoadProject()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-			return
+			return err
 		}
-		root, err := getRoot(wd)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-		}
-		_ = os.RemoveAll(root)
-		if restartF {
-			startCmd.Run(cmd, args)
-		}
-	},
-}
 
-func getRoot(path string) (string, error) {
-	for parent := filepath.Dir(path); path != parent; parent = filepath.Dir(parent) {
-		info, err := os.Stat(filepath.Join(path, ".gud"))
-		if !os.IsNotExist(err) && info.IsDir() {
-			return filepath.Join(path, ".gud"), nil
+		isSure := false
+		prompt := &survey.Confirm{
+			Message: "Are you sure you want to destruct? It will delete your .gud folder",
 		}
-		path = parent
-	}
-	return "", errors.New("No Gud project found\n")
+		err = survey.AskOne(prompt, &isSure, icons)
+		if err != nil {
+			return err
+		}
+
+		if !isSure {
+			return nil
+		}
+
+		isSure2 := false
+		prompt = &survey.Confirm{
+			Message: "Can you please not to? It really wants to live...",
+		}
+		err = survey.AskOne(prompt, &isSure2, icons)
+		if err != nil {
+			return err
+		}
+
+		if !isSure2{
+			return nil
+		}
+
+		_ = os.RemoveAll(filepath.Join(p.Path, gud.DefaultPath))
+		if restartF {
+			_, err = gud.Start("")
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	},
 }
 
 func init() {

@@ -21,11 +21,10 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(1, len(args), modeMin)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		if !recursF {
@@ -33,43 +32,56 @@ to quickly create a Cobra application.`,
 			for _, path := range args {
 				file, err := os.Stat(path)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, err.Error())
-					return
+					return err
 				}
 				if mode := file.Mode(); mode.IsDir() {
 					dirs = append(dirs, path)
 				}
 			}
 			if len(dirs) > 0 {
-				fmt.Fprintf(os.Stderr, "can not remove directories %s recursivle without -r", dirs)
+				return fmt.Errorf("can not remove directories %s recursivle without -r", dirs)
 			}
 		}
-		removeFiles(args)
+		err = removeFiles(args)
 		if !keepF {
 			deleteFiles(args)
 		}
+
+		return err
 	},
 }
 
-func removeFiles(paths []string) {
+func removeFiles(paths []string) error {
 	p, err := LoadProject()
 	if err != nil {
-		return
+		return err
 	}
+
+	err = p.Checkpoint("remove")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			_ = p.Undo()
+		}
+	}()
 
 	for i, path := range paths {
 		temp, err := filepath.Abs(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't use path %s: %s", path, err.Error())
-			return
+			return fmt.Errorf("can't use path %s: %s", path, err.Error())
 		}
 		paths[i] = temp
 	}
 
 	err = p.Remove(paths...)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 func deleteFiles(paths []string) {

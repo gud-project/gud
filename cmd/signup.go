@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 
@@ -41,41 +42,11 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		name := ""
-		prompt := &survey.Input{
-			Message: "Username:",
-		}
-		err := survey.AskOne(prompt, &name, icons)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var name, email, password string
+		err := getUserData(&name, &email, &password)
 		if err != nil {
-			print(err.Error())
-			return
-		}
-
-		email := ""
-		prompt = &survey.Input{
-			Message: "Email:",
-		}
-		err = survey.AskOne(prompt, &email, icons)
-		if err != nil {
-			print(err.Error())
-			return
-		}
-
-		for !emailPattern.MatchString(email) {
-			print("Use email format\nEmail: ")
-			fmt.Scanln(&email)
-		}
-
-		password, err := getPassword()
-		for err != nil && password == "1"{
-			print(err.Error())
-			password, err = getPassword()
-		}
-
-		if err != nil && password == "2" {
-			print(err.Error())
-			return
+			return err
 		}
 
 		request := gud.SignUpRequest{Username: name, Email: email, Password: password}
@@ -83,16 +54,25 @@ to quickly create a Cobra application.`,
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
-		resp, err := http.Post("http://localhost/api/v1/signup", "application/json", &buf)
+		var gConfig gud.GlobalConfig
+		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 		if err != nil {
-			println(err.Error())
-			return
+			return err
+		}
+
+		resp, err := http.Post(fmt.Sprintf("http://%s/api/v1/signup", gConfig.ServerDomain), "application/json", &buf)
+		if err != nil {
+			return err
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return errors.New("failed to create user")
+		}
+
 		var token string
 		for _, cookie := range resp.Cookies() {
 			if cookie.Name == "session" {
@@ -100,27 +80,54 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		p , err:= LoadProject()
+		var config gud.GlobalConfig
+		err = gud.LoadConfig(&config, config.GetPath())
 		if err != nil {
-			print(err)
-			return
-		}
-
-		var config gud.Config
-		err = p.LoadConfig(&config)
-		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		config.Name = name
 		config.Token = token
 
-		err = p.WriteConfig(config)
-		if err != nil {
-			print(err)
-		}
+		return gud.WriteConfig(&config, config.GetPath())
 	},
+}
+
+func getUserData(name, email, password *string) error {
+	prompt := &survey.Input{
+		Message: "Username:",
+	}
+	err := survey.AskOne(prompt, name, icons)
+	if err != nil {
+		return err
+	}
+
+	prompt = &survey.Input{
+		Message: "Email:",
+	}
+	err = survey.AskOne(prompt, email, icons)
+	if err != nil {
+		return err
+	}
+
+	for !emailPattern.MatchString(*email) {
+		fmt.Fprintf(os.Stderr, "Use email format\n")
+		err = survey.AskOne(prompt, email, icons)
+		if err != nil {
+			return err
+		}
+	}
+
+	*password, err = getPassword()
+	for err != nil && *password == "1"{
+		fmt.Fprintf(os.Stderr, err.Error())
+		*password, err = getPassword()
+	}
+
+	if err != nil && *password == "2" {
+		return err
+	}
+	return nil
 }
 
 func getPassword() (string, error) {

@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -27,6 +26,7 @@ import (
 )
 
 var printF = false
+var globalF = false
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
@@ -38,62 +38,106 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		p, err := LoadProject()
-		if err != nil {
-			print(err.Error())
-			return
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var config gud.Config
+		var gConfig gud.GlobalConfig
+
+		var p *gud.Project
+		var err error
+
+		if globalF {
+			err = gud.LoadConfig(gConfig, gConfig.GetPath())
+		} else {
+			p, err = LoadProject()
+			if err != nil {
+				return err
+			}
+
+			err = p.LoadConfig(&config)
+			if err != nil {
+				return err
+			}
 		}
 
-		var config gud.Config
-		err = p.LoadConfig(&config)
-		if err != nil {
-			print(err.Error())
-			return
-		}
 
 		err = checkArgsNum(0, len(args), "")
 		if err == nil {
 			if printF {
-				err = printConfig(p)
-				if err != nil {
-					print(err)
+				if globalF {
+					err = printGlobalConfig(gConfig.GetPath())
+				} else {
+					err = printConfig(p)
 				}
-				return
+				if err != nil {
+					return err
+				}
+				return nil
 			}
 		}
 
 		if len(args) != 2 && len(args) != 0 {
-			print(err)
-			return
+			return err
 		}
 
-		err = getConfigChanges(args, &config)
-		if err != nil {
-			print(err.Error())
-			return
+		if globalF {
+			err = getGlobalConfigChanges(args, &gConfig)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = getConfigChanges(args, &config)
+			if err != nil {
+				return err
+			}
 		}
 
-		err = p.WriteConfig(config)
+		err = p.Checkpoint("config-change")
 		if err != nil {
-			print(err.Error())
+			return err
 		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
+
+		if globalF {
+			err = gud.WriteConfig(gConfig, gConfig.GetPath())
+			if err != nil {
+				println(1)
+				return err
+			}
+		} else {
+			err = p.WriteConfig(config)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	},
 }
 
-func printConfig(p *gud.Project) error{
+func printConfig(p *gud.Project) error {
 	b, err := p.ReadConfig()
 	print(string(b))
 	return err
 }
 
-func getConfigChanges(args []string, config *gud.Config) error{
+func printGlobalConfig(path string) error {
+	b, err := gud.ReadConfig(path)
+	print(string(b))
+	return err
+}
+
+func getConfigChanges(args []string, config *gud.Config) error {
 	var field, value string
 	var err error
 	if len(args) == 0 {
 		prompt := &survey.Select{
 			Message: "Choose field:",
-			Options: []string{"Name", "Project name", "Token", "Server domain", "Checkpoints", "Automatic push"},
+			Options: []string{"Project name", "Owner name", "Checkpoints", "Automatic push"},
 		}
 		err = survey.AskOne(prompt, &field, icons)
 		if err != nil {
@@ -126,24 +170,60 @@ func getConfigChanges(args []string, config *gud.Config) error{
 	}
 
 	switch strings.ToLower(field) {
-	case "name":
-		config.Name = value
-	case "projectname":
+	case "project name", "projectname":
 		config.ProjectName = value
-	case "token":
-		config.Token = value
-	case "serverdomain":
-		config.ServerDomain = value
+	case "owner name", "ownername":
+		config.OwnerName = value
 	case "checkpoints":
 		var err error
 		config.Checkpoints, err = strconv.Atoi(value)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s is not an integer\n", value)
+			return fmt.Errorf("%s is not an integer\n", value)
 		}
-	case "autopush":
+	case "automatic push", "automaticpush":
 		config.AutoPush = value == "true"
 	default:
-		fmt.Fprintf(os.Stderr, "%s is not a configuration field\n", field)
+		return fmt.Errorf("%s is not a configuration field\n", field)
+	}
+
+	return nil
+}
+
+func getGlobalConfigChanges(args []string, config *gud.GlobalConfig) error {
+	var field, value string
+	var err error
+	if len(args) == 0 {
+		prompt := &survey.Select{
+			Message: "Choose field:",
+			Options: []string{"Name", "Token", "Domain server"},
+		}
+		err = survey.AskOne(prompt, &field, icons)
+		if err != nil {
+			return err
+		}
+
+		newValue := &survey.Input{
+			Message: "New value:",
+		}
+		err = survey.AskOne(newValue, &value, icons)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		field = args[0]
+		value = args[1]
+	}
+
+	switch strings.ToLower(field) {
+	case "name":
+		config.Name = value
+	case "token":
+		config.Token = value
+	case "server domain", "serverdomain":
+		config.ServerDomain = value
+	default:
+		return fmt.Errorf("%s is not a configuration field\n", field)
 	}
 
 	return nil
@@ -151,5 +231,6 @@ func getConfigChanges(args []string, config *gud.Config) error{
 
 func init() {
 	configCmd.Flags().BoolVarP(&printF, "print", "p", false, "print configuration file")
+	configCmd.Flags().BoolVarP(&globalF, "global", "g", false, "use global configuration")
 	rootCmd.AddCommand(configCmd)
 }

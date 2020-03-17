@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -19,7 +16,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		if len(args) == 0 {
 			_, err = gud.Start("")
@@ -27,9 +24,7 @@ to quickly create a Cobra application.`,
 			_, err = gud.Start(args[0])
 		}
 
-		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-		}
+		return err
 	},
 }
 

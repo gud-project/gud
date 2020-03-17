@@ -17,8 +17,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -34,32 +32,42 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(1, len(args), "")
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		branchName := args[0]
 		p, err := LoadProject()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
-			return
+			return fmt.Errorf("failed to load project: %s", err.Error())
 		}
+
+		err = p.Checkpoint("branch-create")
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
 
 		err = p.CreateBranch(branchName)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
-			return
+			return err
 		}
 
 		if !stayF {
 			err = checkout(p, branchName)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
+				return err
 			}
 		}
+
+		return nil
 	},
 }
 

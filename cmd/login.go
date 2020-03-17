@@ -18,6 +18,8 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -35,21 +37,19 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		name := ""
 		prompt := &survey.Input{
-			Message: "Username",
+			Message: "Username:",
 		}
 		err := survey.AskOne(prompt, &name, icons)
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
-		password, err := getValidPassword("Password")
+		password, err := getValidPassword("Password:")
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
 		request := gud.LoginRequest{Username: name, Password: password, Remember: true}
@@ -57,16 +57,24 @@ to quickly create a Cobra application.`,
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(request)
 		if err != nil {
-			println(err.Error())
-			return
+			return err
 		}
 
-		resp, err := http.Post("http://localhost/api/v1/login", "application/json", &buf)
+		var gConfig gud.GlobalConfig
+		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 		if err != nil {
-			println(err.Error())
-			return
+			return err
+		}
+
+		resp, err := http.Post(fmt.Sprintf("http://%s/api/v1/login", gConfig.ServerDomain), "application/json", &buf)
+		if err != nil {
+			return err
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return errors.New("incorrect username or password")
+		}
 
 		var token string
 		for _, cookie := range resp.Cookies() {
@@ -75,26 +83,21 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		p , err:= LoadProject()
+		var config gud.GlobalConfig
+		err = gud.LoadConfig(&config, config.GetPath())
 		if err != nil {
-			print(err)
-			return
-		}
-
-		var config gud.Config
-		err = p.LoadConfig(&config)
-		if err != nil {
-			print(err)
-			return
+			return err
 		}
 
 		config.Name = name
 		config.Token = token
 
-		err = p.WriteConfig(config)
+		err = gud.WriteConfig(&config, config.GetPath())
 		if err != nil {
-			print(err)
+			return err
 		}
+
+		return nil
 	},
 }
 

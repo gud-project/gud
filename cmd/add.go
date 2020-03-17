@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -20,45 +18,55 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(1, len(args), modeMin)
 		if err != nil {
 			if allF {
 				files, err := getAllFiles()
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Failed to get files: %s", err.Error())
+					return err
 				} else {
-					addFiles(files)
+					return addFiles(files)
 				}
 			} else {
-				print(err)
+				return err
 			}
 		} else {
-			addFiles(args)
+			return addFiles(args)
 		}
 	},
 }
 
-func addFiles(paths []string) {
+func addFiles(paths []string) error {
 	p, err := LoadProject()
 	if err != nil {
-		print(err)
-		return
+		return err
 	}
+	err = p.Checkpoint("add")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			_ = p.Undo()
+		}
+	}()
 
 	for i, path := range paths {
 		temp, err := filepath.Abs(path)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Can't use path %s: %s", path, err.Error())
-			return
+			return err
 		}
 		paths[i] = temp
 	}
 
 	err = p.Add(paths...)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		return err
 	}
+
+	return nil
 }
 
 func init() {

@@ -16,9 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
 )
@@ -33,39 +30,53 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		err := checkArgsNum(1, len(args), "")
 		if err != nil {
-			print(err.Error())
-			return
+			return err
 		}
 
 		p, err := LoadProject()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to load project: %s", err.Error())
-			return
+			return err
 		}
+
+		err = p.Checkpoint("merge")
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			if err != nil {
+				_ = p.Undo()
+			}
+		}()
 
 		var dst gud.ObjectHash
 		err = stringToHash(&dst, args[0])
 		if err == nil {
 			_, err = p.MergeHash(dst)
 			if err != nil {
-				_ = mergeByName(p, args[0])
+				_, err = mergeByName(p, args[0])
+				if err != nil {
+					return err
+				}
 			}
 
 		}	else {
-			_ = mergeByName(p, args[0])
+			_, err = mergeByName(p, args[0])
+			if err != nil {
+				return err
+			}
 		}
+
+		return nil
 	},
 }
 
-func mergeByName(p *gud.Project, name string) *gud.Version {
-	v, err := p.MergeBranch(name)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create branch: %s", err.Error())
-	}
-	return v
+func mergeByName(p *gud.Project, name string) (v *gud.Version, err error) {
+	v, err = p.MergeBranch(name)
+	return
 }
 
 func init() {

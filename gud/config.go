@@ -3,31 +3,45 @@ package gud
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/pelletier/go-toml"
 )
 
-const configFile = "config.toml"
+const localConfigPath = "config.toml"
+const defaultDomainServer = "localhost"
+
 
 type Config struct {
-	Name         string
-	ProjectName  string
-	Token        string
-	ServerDomain string
+	ProjectName string
+	OwnerName string
 	Checkpoints  int
 	AutoPush     bool
 }
 
+type GlobalConfig struct {
+	Name, Token, ServerDomain string
+}
+
+func (config GlobalConfig) GetPath() string {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal( err )
+	}
+	return filepath.Join(usr.HomeDir, ".gudConfig.toml")
+}
+
 func (p *Project) ConfigInit() (err error) {
-	config := Config{"Nitai", filepath.Base(p.Path), "", "localhost", 3, false}
+	config := Config{filepath.Base(p.Path), "", 3, false}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return
 	}
 
-	f, err := os.Create(filepath.Join(p.gudPath, configFile))
+	f, err := os.Create(filepath.Join(p.gudPath, localConfigPath))
 	if err != nil {
 		return fmt.Errorf("Failed to create configuration file: %s\n", err.Error())
 	}
@@ -46,12 +60,16 @@ func (p *Project) ConfigInit() (err error) {
 }
 
 func (p *Project) WriteConfig(config Config) (err error) {
+	return WriteConfig(config, filepath.Join(p.gudPath, localConfigPath))
+}
+
+func WriteConfig(config interface{}, path string) (err error) {
 	b, err := toml.Marshal(config)
 	if err != nil {
 		return err
 	}
 
-	f, err :=  os.Create(filepath.Join(p.gudPath, configFile))
+	f, err :=  os.Create(path)
 	if err != nil {
 		return err
 	}
@@ -77,10 +95,38 @@ func (p *Project) LoadConfig(config *Config) error {
 	return toml.Unmarshal(b, config)
 }
 
-func (p *Project) ReadConfig() ([]byte, error) {
-	f, err := os.Open(filepath.Join(p.gudPath, configFile))
+func LoadConfig(config interface{}, path string) error {
+	b ,err := ReadConfig(path)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	return toml.Unmarshal(b, config)
+}
+
+
+func (p *Project) ReadConfig() ([]byte, error) {
+	return ReadConfig(filepath.Join(p.gudPath, localConfigPath))
+}
+
+func ReadConfig(path string) ([]byte, error) {
+	_, err := os.Stat(path)
+	var f *os.File
+	if os.IsNotExist(err) {
+		f, err = os.Create(path)
+		if err != nil {
+			return nil, err
+		}
+
+		err = WriteConfig(GlobalConfig{"", "", defaultDomainServer}, GlobalConfig{}.GetPath())
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		f, err = os.Open(path)
+		if err != nil {
+			return nil, err
+		}
 	}
 	defer f.Close()
 
