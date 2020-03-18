@@ -185,6 +185,31 @@ func inviteMember(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func projectBranches(w http.ResponseWriter, r *http.Request) {
+	p, err := gud.Load(contextProjectPath(r.Context()))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	branches := make(map[string]string)
+	err = p.ListBranches(func(branch string) error {
+		hash, err := p.GetBranch(branch)
+		if err != nil {
+			return err
+		}
+
+		branches[branch] = hash.String()
+		return nil
+	})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(branches)
+}
+
 func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 	var req gud.CreateProjectRequest
 	err = json.NewDecoder(r.Body).Decode(&req)

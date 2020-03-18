@@ -32,6 +32,10 @@ type CreatePrRequest struct {
 	To      string `json:"to"`
 }
 
+type CreateIssueResponse struct {
+	Id int `json:"id"`
+}
+
 type Issue struct {
 	Id      int    `json:"id"`
 	Title   string `json:"title"`

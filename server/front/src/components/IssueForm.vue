@@ -7,7 +7,7 @@
 				<option v-for="branch in branches">{{ branch }}</option>
 			</select></label>
 			⇒
-			<label><select v-model="info.from" required>
+			<label><select v-model="info.to" required>
 				<option disabled selected value="">To</option>
 				<option v-for="branch in branches">{{ branch }}</option>
 			</select></label>
@@ -46,7 +46,7 @@
 			const res = await fetch(`/api/v1/user/${user}/project/${project}/branches`)
 			
 			if (res.ok) {
-				this.branches = await res.json()
+				this.branches = Object.keys(await res.json())
 			} else {
 				console.error(res.statusText)
 			}
