@@ -86,7 +86,6 @@ func pushBranch(branch string) error {
 	boundary, err := p.PushBranch(&buf, branch, startHash)
 	req, err = http.NewRequest("POST", fmt.Sprintf("http://%s/api/v1/project/%s/%s/push?branch=%s", gConfig.ServerDomain, gConfig.Name, config.ProjectName, branch), &buf)
 	if err != nil {
-		println("3")
 		return err
 	}
 

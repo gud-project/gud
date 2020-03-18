@@ -130,7 +130,7 @@ func objectPath(gudPath string, hash ObjectHash) string {
 
 func (p Project) saveVersion(message, branch string, tree ObjectHash, prev, merged *ObjectHash) (*Version, error) {
 	var gConf GlobalConfig
-	err := LoadConfig(gConf, gConf.GetPath())
+	err := LoadConfig(&gConf, gConf.GetPath())
 	if err != nil {
 		return nil, err
 	}

@@ -30,7 +30,7 @@ to quickly create a Cobra application.`,
 		}
 
 		var gConfig gud.GlobalConfig
-		err = gud.LoadConfig(gConfig, gConfig.GetPath())
+		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 		if err != nil {
 			return err
 		}

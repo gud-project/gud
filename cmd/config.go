@@ -46,7 +46,7 @@ to quickly create a Cobra application.`,
 		var err error
 
 		if globalF {
-			err = gud.LoadConfig(gConfig, gConfig.GetPath())
+			err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 		} else {
 			p, err = LoadProject()
 			if err != nil {
@@ -105,7 +105,6 @@ to quickly create a Cobra application.`,
 		if globalF {
 			err = gud.WriteConfig(gConfig, gConfig.GetPath())
 			if err != nil {
-				println(1)
 				return err
 			}
 		} else {
