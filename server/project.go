@@ -247,7 +247,7 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 	return
 }
 
-func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string)  {
+func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string) {
 	var username string
 	err := getUserStmt.QueryRow(r.Context().Value(KeyUserId)).Scan(&username)
 	if err != nil {
@@ -255,7 +255,7 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 		return
 	}
 
-	_, err = project.PullBranchFrom(branch, r.Body, r.Header.Get("Content-Type"), username)
+	hash, err := project.PullBranchFrom(branch, r.Body, r.Header.Get("Content-Type"), username)
 	if err != nil {
 		if inputErr, ok := err.(gud.InputError); ok {
 			reportError(w, http.StatusBadRequest, inputErr.Error())
@@ -264,6 +264,13 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 		}
 		return
 	}
+
+	err = createJob(r.Context().Value(KeyProjectId).(int), project, *hash)
+	if err != nil {
+		handleError(w, err)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func verifyProject(next http.Handler) http.Handler {

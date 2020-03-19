@@ -18,7 +18,7 @@ type imageBuildData struct {
 	Aux    struct{ ID string } `json:"aux"`
 }
 
-func _(tar io.Reader) (int, []byte, error) {
+func execJob(tar io.Reader) (int, []byte, error) {
 	cli, err := client.NewClientWithOpts()
 	if err != nil {
 		return -1, nil, err
