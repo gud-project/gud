@@ -25,7 +25,11 @@ var newUserStmt,
 	getIssueStmt,
 	createPrStmt,
 	getPrsStmt,
-	getPrStmt* sql.Stmt
+	getPrStmt,
+	createJobStmt,
+	finishJobStmt,
+	getJobsStmt,
+	getJobStmt *sql.Stmt
 
 func init() {
 	var err error
@@ -92,6 +96,18 @@ func init() {
 
 		getPrStmt = mustPrepare(
 			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE pr_id = $1`)
+
+		createJobStmt = mustPrepare(
+			`INSERT INTO jobs (project_id, "version", status, logs) VALUES ($1, $2, 'pending', '') RETURNING job_id;`)
+
+		finishJobStmt = mustPrepare(
+			"UPDATE jobs SET status = $2, logs = $3 WHERE job_id = $1;")
+
+		getJobsStmt = mustPrepare(
+			`SELECT job_id, "version", status FROM jobs WHERE project_id = $1;`)
+
+		getJobStmt = mustPrepare(
+			`SELECT "version", status, logs FROM jobs WHERE job_id = $1;`)
 	}
 }
 
@@ -139,6 +155,10 @@ func closeDB() error {
 		createPrStmt,
 		getPrsStmt,
 		getPrStmt,
+		createJobStmt,
+		finishJobStmt,
+		getJobsStmt,
+		getJobStmt,
 	} {
 		if stmt != nil {
 			err := stmt.Close()
