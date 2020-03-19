@@ -5,6 +5,7 @@
 		<div class="container">
 			<IssuesList category="issue" />
 			<IssuesList category="pr" />
+			<JobsList />
 		</div>
 	</div>
 </template>
@@ -12,9 +13,10 @@
 <script>
 	import IssuesList from "../components/IssuesList"
 	import InviteForm from "../components/InviteForm"
+	import JobsList from "../components/JobsList"
 	export default {
 		name: "Project",
-		components: { InviteForm, IssuesList },
+		components: { JobsList, InviteForm, IssuesList },
 	}
 </script>
 
