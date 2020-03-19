@@ -362,14 +362,10 @@ func loadVersion(gudPath string, hash ObjectHash) (*Version, error) {
 	return &ret, nil
 }
 
-func (p Project) findObject(relPath string) (*object, error) {
+func (p Project) findObject(relPath string, versionHash ObjectHash) (*object, error) {
 	dirs := strings.Split(relPath, string(os.PathSeparator))
-	versionHash, err := p.CurrentHash()
-	if err != nil {
-		return nil, err
-	}
 
-	version, err := loadVersion(p.gudPath, *versionHash)
+	version, err := loadVersion(p.gudPath, versionHash)
 	if err != nil {
 		return nil, err
 	}

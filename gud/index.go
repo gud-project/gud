@@ -40,6 +40,11 @@ func (p Project) Add(paths ...string) error {
 		return err
 	}
 
+	versionHash, err := p.CurrentHash()
+	if err != nil {
+		return err
+	}
+
 	for _, path := range paths {
 		abs, err := filepath.Abs(path)
 		if err != nil {
@@ -54,7 +59,7 @@ func (p Project) Add(paths ...string) error {
 			return err
 		}
 
-		prev, err := p.findObject(rel)
+		prev, err := p.findObject(rel, *versionHash)
 		if err != nil {
 			return err
 		}
@@ -128,6 +133,11 @@ func (p Project) Remove(paths ...string) error {
 		return err
 	}
 
+	versionHash, err := p.CurrentHash()
+	if err != nil {
+		return err
+	}
+
 	for _, path := range paths {
 		abs, err := filepath.Abs(path)
 		if err != nil {
@@ -138,7 +148,7 @@ func (p Project) Remove(paths ...string) error {
 			return err
 		}
 
-		prev, err := p.findObject(rel)
+		prev, err := p.findObject(rel, *versionHash)
 		if err != nil {
 			return err
 		}

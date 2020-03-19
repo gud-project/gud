@@ -64,7 +64,7 @@ to quickly create a Cobra application.`,
 		}
 		defer resp.Body.Close()
 
-		err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
+		_, err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
 		if err != nil {
 			println(err)
 			return

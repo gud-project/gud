@@ -263,7 +263,12 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 
 type walkFn func(relPath string, obj object) error
 
-func (p Project) Tar(writer io.Writer, version Version) (err error) {
+func (p Project) Tar(writer io.Writer, hash ObjectHash) (err error) {
+	version, err := loadVersion(p.gudPath, hash)
+	if err != nil {
+		return
+	}
+
 	w := tar.NewWriter(writer)
 	defer func() {
 		cerr := w.Close()
@@ -272,7 +277,7 @@ func (p Project) Tar(writer io.Writer, version Version) (err error) {
 		}
 	}()
 
-	return walk(p.gudPath, version, func(relPath string, obj object) error {
+	return walk(p.gudPath, *version, func(relPath string, obj object) error {
 		if obj.Type == typeTree {
 			return nil
 		}
@@ -325,6 +330,15 @@ func walkTree(gudPath, relPath string, tree object, fn walkFn) error {
 	}
 
 	return nil
+}
+
+func (p Project) HasFile(name string, hash ObjectHash) (bool, error) {
+	obj, err := p.findObject(name, hash)
+	if err != nil {
+		return false, err
+	}
+
+	return obj != nil, err
 }
 
 func (p Project) Checkpoint(message string) error {

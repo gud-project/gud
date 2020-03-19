@@ -142,27 +142,27 @@ func createPart(writer *multipart.Writer, hash ObjectHash, contentType string) (
 	return writer.CreatePart(header)
 }
 
-func (p Project) PullBranch(branch string, in io.Reader, contentType string) error {
+func (p Project) PullBranch(branch string, in io.Reader, contentType string) (*ObjectHash, error) {
 	return p.PullBranchFrom(branch, in, contentType, "")
 }
 
-func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user string) error {
+func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user string) (*ObjectHash, error) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
+		return nil, InputError{fmt.Sprintf("invalid content type: %s", contentType)}
 	}
 	if !strings.HasPrefix(mediaType, "multipart/") {
-		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
+		return nil, InputError{fmt.Sprintf("invalid content type: %s", contentType)}
 	}
 
 	currentHash, err := p.GetBranch(branch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	temp, err := createTempProject(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = os.RemoveAll(temp.Path)
@@ -173,7 +173,7 @@ func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user s
 	for {
 		hash, err := pullVersion(temp.gudPath, user, objs, currentHash, files)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if hash == nil {
 			break
@@ -185,18 +185,18 @@ func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user s
 		name := e.Value.(string)
 		err = copyFile(filepath.Join(temp.gudPath, objectsPath, name), filepath.Join(p.gudPath, objectsPath, name))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if currentHash != nil {
 		err = dumpBranch(p.gudPath, branch, *currentHash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return currentHash, nil
 }
 
 func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List,
