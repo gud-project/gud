@@ -22,7 +22,7 @@
 			const res = await fetch(`/api/v1/user/${user}/project/${project}/jobs`)
 			
 			if (res.ok) {
-				this.issues = await res.json()
+				this.jobs = await res.json()
 			} else {
 				console.error(res.statusText)
 			}

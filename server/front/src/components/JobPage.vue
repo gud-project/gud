@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<h1>#{{ $route.params.job }} : {{ job.status }}</h1>
-		<p class="logs">{{ job.content }}</p>
+		<p class="logs">{{ job.logs }}</p>
 	</div>
 </template>
 
@@ -34,5 +34,6 @@
 	white-space: pre-line;
 	background-color: black;
 	color: white;
+	text-align: left;
 }
 </style>

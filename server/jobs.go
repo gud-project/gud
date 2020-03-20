@@ -101,6 +101,7 @@ func getJob(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var job gud.Job
+	job.Id = jobId
 	err = getJobStmt.QueryRow(jobId).Scan(&job.Version, &job.Status, &job.Logs)
 	if err == sql.ErrNoRows {
 		reportError(w, http.StatusNotFound, fmt.Sprintf("job #%d not found", jobId))

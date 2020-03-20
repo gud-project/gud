@@ -62,7 +62,7 @@ const router = new VueRouter({
 		},
 		{
 			path: "/:user/:project/job/:job",
-			name: "PR",
+			name: "Job",
 			component() {
 				return import(/* webpackChunkName: "job" */ "../views/Job")
 			},
