@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -27,22 +28,30 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
+		//Check if there are directories to be removed without recursF
 		if !recursF {
 			var dirs []string
 			for _, path := range args {
 				file, err := os.Stat(path)
+				if err != nil && strings.Contains(err.Error(), "The system cannot find the file specified.") {
+					continue
+				}
+
 				if err != nil {
 					return err
 				}
+
 				if mode := file.Mode(); mode.IsDir() {
 					dirs = append(dirs, path)
 				}
 			}
 			if len(dirs) > 0 {
-				return fmt.Errorf("can not remove directories %s recursivle without -r", dirs)
+				return fmt.Errorf("can not remove directories %s recursivly without -r", dirs)
 			}
 		}
+
 		err = removeFiles(args)
+
 		if !keepF {
 			deleteFiles(args)
 		}
@@ -92,6 +101,6 @@ func deleteFiles(paths []string) {
 
 func init() {
 	rmCmd.Flags().BoolVarP(&recursF, "recursive", "r", false, "remove directories recursively")
-	rmCmd.Flags().BoolVarP(&keepF, "keep", "k", false, "keep the files after removing it from index, instead of deleting it")
+	rmCmd.Flags().BoolVarP(&keepF, "keep", "k", false, "keep the files after removing them from index, instead of deleting them")
 	rootCmd.AddCommand(rmCmd)
 }
