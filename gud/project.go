@@ -9,7 +9,6 @@ import (
 
 const DefaultPath = ".gud"
 const dirPerm = 0755
-const defaultCheckpointNum = 5
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -260,9 +259,19 @@ func (p Project) Prev(version Version) (*ObjectHash, *Version, error) {
 }
 
 func (p Project) Checkpoint(message string) error {
-	inner := p.innerProject()
+	var config Config
+	err := p.LoadConfig(&config)
+	if err != nil {
+		return err
+	}
 
-	err := inner.AddAll()
+	checkpoints := config.Checkpoints
+	if checkpoints == 0 {
+		return nil
+	}
+
+	inner := p.innerProject()
+	err = inner.AddAll()
 	if err != nil {
 		return err
 	}
@@ -277,7 +286,7 @@ func (p Project) Checkpoint(message string) error {
 	last := *version
 	i := 0
 
-	for ; i < defaultCheckpointNum; i++ {
+	for ; i < checkpoints; i++ {
 		if !last.HasPrev() {
 			break
 		}
@@ -290,7 +299,7 @@ func (p Project) Checkpoint(message string) error {
 		last, lastHash = *tmp, *tmpHash
 	}
 
-	if i == defaultCheckpointNum {
+	if i == checkpoints {
 		err = removeVersion(inner.gudPath, last, afterLast, lastHash, afterLastHash)
 		if err != nil {
 			return err
