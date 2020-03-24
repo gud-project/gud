@@ -1,15 +1,19 @@
-FROM golang:1.13
+FROM golang:alpine AS back
+COPY server/go.mod server/go.sum server/
+COPY gud/go.mod gud/go.sum gud/
+RUN cd server/ && go mod download
 
-WORKDIR /go/src/gitlab.com/magsh-2019/2/gud
-COPY gud gud
-COPY server server
-COPY Makefile .
+COPY gud/*.go gud/
+COPY server/*.go server/
+RUN cd server/ && CGO_ENABLED=0 go build
 
-RUN CGO_ENABLED=0 make server
-RUN mv server/server /
+FROM node:alpine AS front
+COPY server/front/ .
+RUN npm run build -- --mode development
 
 FROM scratch
-COPY --from=0 /server /var/www/server
+COPY --from=back /go/server /var/www/server
+COPY --from=front /dist /var/www/front/dist
 
 VOLUME /var/www/projects
 EXPOSE 8080

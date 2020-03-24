@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-make -s cli
+command -v gud >/dev/null || make cli
 
 readonly dir="$BATS_TMPDIR/test"
 

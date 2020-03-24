@@ -19,14 +19,40 @@ func createPr(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = createPrStmt.Exec(
+	if req.From == req.To {
+		reportError(w, http.StatusBadRequest, "cannot merge branch with itself")
+		return
+	}
+
+	p, err := gud.Load(contextProjectPath(r.Context()))
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	for _, branch := range []string{req.From, req.To} {
+		hash, err := p.GetBranch(branch)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+		if hash == nil {
+			reportError(w, http.StatusBadRequest, fmt.Sprintf("branch %s does not exist", branch))
+			return
+		}
+	}
+
+	id, err := execReturningId(createPrStmt,
 		req.Title, req.Content, r.Context().Value(KeySelectedUserId), r.Context().Value(KeyProjectId), req.From, req.To)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = json.NewEncoder(w).Encode(gud.CreateIssueResponse{Id: id})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 }
 
 func getPrs(w http.ResponseWriter, r *http.Request) {

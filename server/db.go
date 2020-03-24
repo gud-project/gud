@@ -73,8 +73,9 @@ func init() {
 		inviteMemberStmt = mustPrepare(
 			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
 
-		createIssueStmt = mustPrepare(
-			"INSERT INTO issues (title, content, user_id, project_id, status) VALUES ($1, $2, $3, $4, 'open');")
+		createIssueStmt = mustPrepare(`
+			INSERT INTO issues (title, content, user_id, project_id, status) VALUES ($1, $2, $3, $4, 'open')
+			RETURNING issue_id;`)
 
 		getIssuesStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
@@ -82,8 +83,9 @@ func init() {
 		getIssueStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status FROM issues WHERE issue_id = $1")
 
-		createPrStmt = mustPrepare(
-			`INSERT INTO prs (title, content, user_id, project_id, "from", "to") VALUES ($1, $2, $3, $4, $5, $6);`)
+		createPrStmt = mustPrepare(`
+			INSERT INTO prs (title, content, user_id, project_id, "from", "to") VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING pr_id;`)
 
 		getPrsStmt = mustPrepare(
 			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE project_id = $1`)

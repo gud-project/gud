@@ -1,13 +1,18 @@
-FROM golang
+FROM golang:alpine
 
-# testing framework
-WORKDIR /bats
-RUN git clone --depth=1 https://github.com/bats-core/bats-core.git && \
-	cd bats-core && \
-	./install.sh /usr/local
+WORKDIR /go/src/gud/
+COPY go.mod go.sum ./
+COPY gud/go.mod gud/go.sum gud/
+RUN go mod download
 
-WORKDIR /go/src/gitlab.com/magsh-2019/2/gud
-COPY . .
-RUN make cli
+COPY gud/*.go gud/
+COPY cmd/*.go cmd/
+COPY main.go ./
+RUN go install
 
-CMD ["/usr/local/bin/bats", "test.bats"]
+FROM bats/bats
+RUN apk add -u --no-cache grep
+COPY --from=0 /go/bin/gud /usr/local/bin/gud
+COPY test.bats ./
+
+CMD ["test.bats"]

@@ -26,6 +26,7 @@ func main() {
 	projects.HandleFunc("/create", createProject).Methods(http.MethodPost)
 	projects.HandleFunc("/import", importProject).Methods(http.MethodPost)
 
+	http.Handle("/", http.FileServer(http.Dir("./front/dist/")))
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

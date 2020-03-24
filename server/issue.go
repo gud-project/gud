@@ -19,14 +19,18 @@ func createIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = createIssueStmt.Exec(
+	id, err := execReturningId(createIssueStmt,
 		req.Title, req.Content, r.Context().Value(KeySelectedUserId), r.Context().Value(KeyProjectId))
 	if err != nil {
 		handleError(w, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	err = json.NewEncoder(w).Encode(gud.CreateIssueResponse{Id: id})
+	if err != nil {
+		handleError(w, err)
+		return
+	}
 }
 
 func getIssues(w http.ResponseWriter, r *http.Request) {
