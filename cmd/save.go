@@ -34,7 +34,7 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		p , err:= LoadProject()
+		p, err := LoadProject()
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ to quickly create a Cobra application.`,
 	},
 }
 
-func saveVersion(p *gud.Project, message string) (*gud.Version, error){
+func saveVersion(p *gud.Project, message string) (*gud.Version, error) {
 	v, err := p.Save(message)
 	if err != nil {
 		return nil, err

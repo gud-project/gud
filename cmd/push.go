@@ -32,7 +32,7 @@ to quickly create a Cobra application.`,
 }
 
 func pushBranch(branch string) error {
-	p , err:= LoadProject()
+	p, err := LoadProject()
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func pushBranch(branch string) error {
 	}
 
 	req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: gConfig.Token})
-	req.Header.Add("Content-Type", "multipart/mixed; boundary=" +boundary)
+	req.Header.Add("Content-Type", "multipart/mixed; boundary="+boundary)
 
 	resp, err = client.Do(req)
 	if err != nil {

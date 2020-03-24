@@ -119,7 +119,7 @@ func getUserData(name, email, password *string) error {
 	}
 
 	*password, err = getPassword()
-	for err != nil && *password == "1"{
+	for err != nil && *password == "1" {
 		fmt.Fprintf(os.Stderr, err.Error())
 		*password, err = getPassword()
 	}

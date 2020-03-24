@@ -45,7 +45,7 @@ func LoadProject() (*gud.Project, error) {
 	return p, nil
 }
 
-func stringToHash(dst *gud.ObjectHash, src string) error{
+func stringToHash(dst *gud.ObjectHash, src string) error {
 	_, err := hex.Decode(dst[:], []byte(src))
 	if err != nil {
 		return err
@@ -56,11 +56,11 @@ func stringToHash(dst *gud.ObjectHash, src string) error{
 const modeMin = "min"
 const modeMax = "max"
 
-func checkArgsNum(size , argc int, mode string) error {
-	if size > argc && mode != modeMax{
+func checkArgsNum(size, argc int, mode string) error {
+	if size > argc && mode != modeMax {
 		return fmt.Errorf("not enough arguments in command usage(%d of %d)\n", argc, size)
 	}
-	if size < argc && mode != modeMin{
+	if size < argc && mode != modeMin {
 		return fmt.Errorf("to many arguments in command usage - %d required\n", size)
 	}
 	return nil

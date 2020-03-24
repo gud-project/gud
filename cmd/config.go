@@ -59,7 +59,6 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-
 		err = checkArgsNum(0, len(args), "")
 		if err == nil {
 			if printF {

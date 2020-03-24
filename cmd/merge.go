@@ -63,7 +63,7 @@ to quickly create a Cobra application.`,
 				}
 			}
 
-		}	else {
+		} else {
 			_, err = mergeByName(p, args[0])
 			if err != nil {
 				return err

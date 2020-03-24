@@ -64,7 +64,7 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		if !isSure2{
+		if !isSure2 {
 			return nil
 		}
 

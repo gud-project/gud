@@ -51,7 +51,7 @@ to quickly create a Cobra application.`,
 		}()
 
 		if len(args) == 0 {
-			for back := true; back ; {
+			for back := true; back; {
 				back, err = checkoutSelect(p)
 				if err != nil {
 					return err
@@ -157,7 +157,7 @@ func getVersion(p *gud.Project, v *gud.Version) error {
 		return errors.New("back")
 	}
 
-	for i := 0 ; i < len(versions) ; i++ {
+	for i := 0; i < len(versions); i++ {
 		if versions[i].Message == versionMessage {
 			v = versions[i]
 			return nil
