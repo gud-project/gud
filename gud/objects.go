@@ -104,7 +104,6 @@ func gobToVersion(v gobVersion) Version {
 	}
 }
 
-
 // HasPrev returns true if the version has a predecessor.
 func (v Version) HasPrev() bool {
 	return v.prev != nil
@@ -545,12 +544,12 @@ func removeVersion(gudPath string, last, afterLast Version, lastHash, afterLastH
 				toRemove = false
 				break
 			}
+		}
 
-			if toRemove {
-				err = os.Remove(objectPath(gudPath, lastObj))
-				if err != nil {
-					return
-				}
+		if toRemove {
+			err = os.Remove(objectPath(gudPath, lastObj))
+			if err != nil {
+				return
 			}
 		}
 	}
@@ -572,7 +571,15 @@ func removeVersion(gudPath string, last, afterLast Version, lastHash, afterLastH
 	}()
 
 	afterLast.prev = nil
-	return gob.NewEncoder(dst).Encode(versionToGob(afterLast))
+
+	zip := zlib.NewWriter(dst)
+	defer func() {
+		cerr := zip.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	return gob.NewEncoder(zip).Encode(versionToGob(afterLast))
 }
 
 func listTree(gudPath string, hash ObjectHash) (*list.List, error) {

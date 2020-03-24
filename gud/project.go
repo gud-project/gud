@@ -13,7 +13,7 @@ const defaultCheckpointNum = 5
 
 // Project is a representation of a Gud project
 type Project struct {
-	Path string
+	Path    string
 	gudPath string
 }
 
@@ -276,6 +276,7 @@ func (p Project) Checkpoint(message string) error {
 	var afterLast Version
 	last := *version
 	i := 0
+
 	for ; i < defaultCheckpointNum; i++ {
 		if !last.HasPrev() {
 			break
@@ -290,7 +291,7 @@ func (p Project) Checkpoint(message string) error {
 	}
 
 	if i == defaultCheckpointNum {
-		err = removeVersion(p.gudPath, last, afterLast, lastHash, afterLastHash)
+		err = removeVersion(inner.gudPath, last, afterLast, lastHash, afterLastHash)
 		if err != nil {
 			return err
 		}
