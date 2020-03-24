@@ -23,43 +23,54 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		var config gud.Config
-		err = p.LoadConfig(&config)
-		if err != nil {
-			return err
-		}
-
 		var gConfig gud.GlobalConfig
 		err = gud.LoadConfig(&gConfig, gConfig.GetPath())
 		if err != nil {
 			return err
 		}
 
-		branch, err := p.CurrentBranch()
-		if err != nil {
-			return err
-		}
-		hash, err := p.GetBranch(branch)
-		if err != nil {
-			return err
-		}
-
-		req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/user/%s/project/%s/pull?branch=%s&start=%s", gConfig.ServerDomain, config.OwnerName, config.ProjectName, branch, hash),
-			nil)
-		if err != nil {
-			return err
-		}
-
-		req.AddCookie(&http.Cookie{Name: "session", Value: gConfig.Token})
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		return p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
+		return PullBranch(p, gConfig.ServerDomain)
 	},
+}
+
+func PullBranch(p *gud.Project, domain string) (err error) {
+	var config gud.Config
+	err = p.LoadConfig(&config)
+	if err != nil {
+		return
+	}
+
+	var gConfig gud.GlobalConfig
+	err = gud.LoadConfig(&gConfig, gConfig.GetPath())
+	if err != nil {
+		return
+	}
+
+	branch, err := p.CurrentBranch()
+	if err != nil {
+		return
+	}
+	hash, err := p.GetBranch(branch)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/user/%s/project/%s/pull?branch=%s&start=%s", domain, config.OwnerName, config.ProjectName, branch, hash),
+		nil)
+	if err != nil {
+		return
+	}
+
+	req.AddCookie(&http.Cookie{Name: "session", Value: gConfig.Token})
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
+	return
 }
 
 func init() {
