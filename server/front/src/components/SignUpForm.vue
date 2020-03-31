@@ -1,21 +1,26 @@
 <template>
-	<form @submit="signUp">
-		<p style="color: red" v-for="error in errors">{{ error }}</p>
+	
+	<div class="container">
+	<form @submit="signUp" class="jumbotron" style="margin:2.5em">
+		<p style="color: red" v-for="error in errors" v-bind:key="error">{{ error }}</p>
+		
 		<p><label>
-			<input type="text" placeholder="Username" pattern="[a-zA-Z0-9_-]+" v-model="info.username" required />
+			<input type="text" class="form-control" placeholder="Username" pattern="[a-zA-Z0-9_-]+" v-model="info.username" required />
 		</label></p>
 		<p><label>
-			<input type="email" placeholder="E-mail" v-model="info.email" required />
+			<input type="email" class="form-control" placeholder="E-mail" v-model="info.email" required />
 		</label></p>
 		<p><label>
-			<input type="password" placeholder="Password" v-model="info.password" required />
+			<input type="password" class="form-control" placeholder="Password" v-model="info.password" required />
 		</label></p>
 		<p><label>
-			<input type="password" placeholder="Password (again)" v-model="passwordAgain" required />
+			<input type="password" class="form-control" placeholder="Password (again)" v-model="passwordAgain" required />
 		</label></p>
 		
-		<input type="submit" value="Sign Up" />
+		<input class="btn btn-primary btn-lg" type="submit" value="Sign Up" />
 	</form>
+	</div>
+
 </template>
 
 <script>

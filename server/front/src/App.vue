@@ -2,6 +2,7 @@
   <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
+      <router-link to="/SignUp">SignUp</router-link> |
       <router-link to="/login">Login</router-link>
     </div>
     <router-view />
@@ -27,6 +28,6 @@
 }
 
 #nav a.router-link-exact-active {
-  color: #42b983;
+  color: #2d72c0;
 }
 </style>

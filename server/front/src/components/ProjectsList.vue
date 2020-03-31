@@ -1,6 +1,6 @@
 <template>
 	<ul>
-		<li v-for="project in projects">
+		<li v-for="project in projects" v-bind:key="project">
 			<router-link :to="`/${$route.params.user}/${project}`">{{ project }}</router-link>
 		</li>
 	</ul>

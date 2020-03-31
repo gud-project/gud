@@ -19,6 +19,13 @@ const router = new VueRouter({
 			},
 		},
 		{
+			path: "/signup",
+			name: "signup",
+			component() {
+				return import(/* webpackChunkName: "signup" */ "../views/SignUp")
+			},
+		},
+		{
 			path: "/:user",
 			name: "Projects",
 			component() {
