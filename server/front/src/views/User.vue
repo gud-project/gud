@@ -1,5 +1,8 @@
 <template>
-	<ProjectsList />
+	<div>
+		<h1>{{ $route.params.user }}</h1>
+		<ProjectsList />
+	</div>
 </template>
 
 <script>

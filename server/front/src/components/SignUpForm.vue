@@ -16,7 +16,7 @@
 		<p><label>
 			<input type="password" class="form-control" placeholder="Password (again)" v-model="passwordAgain" required />
 		</label></p>
-		
+
 		<input class="btn btn-primary btn-lg" type="submit" value="Sign Up" />
 	</form>
 	</div>
