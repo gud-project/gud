@@ -36,13 +36,22 @@ func StartHeadless(dir string) (*Project, error) {
 	return startGudDir(dir, DefaultPath)
 }
 
-func startProject(path, gudRelPath string) (*Project, error) {
-	project, err := startGudDir(path, gudRelPath)
+func (p Project) AddHead() error {
+	err := p.ConfigInit()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = project.ConfigInit()
+	err = dumpHead(p.gudPath, Head{IsDetached: false, Branch: FirstBranchName})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func startProject(path, gudRelPath string) (*Project, error) {
+	project, err := startGudDir(path, gudRelPath)
 	if err != nil {
 		return nil, err
 	}
@@ -52,9 +61,15 @@ func startProject(path, gudRelPath string) (*Project, error) {
 		return nil, err
 	}
 
+	var gConf GlobalConfig
+	err = LoadConfig(&gConf, gConf.GetPath())
+	if err != nil {
+		return nil, err
+	}
+
 	obj, err := createVersion(project.gudPath, Version{
 		Message:  initialCommitName,
-		Author:   "Nitai", // TODO: get user from global config
+		Author:   gConf.Name,
 		Time:     time.Now(),
 		TreeHash: tree.Hash,
 	})
@@ -67,7 +82,7 @@ func startProject(path, gudRelPath string) (*Project, error) {
 		return nil, err
 	}
 
-	err = dumpHead(project.gudPath, Head{IsDetached: false, Branch: FirstBranchName})
+	err = project.AddHead()
 	if err != nil {
 		return nil, err
 	}
