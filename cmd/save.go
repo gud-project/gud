@@ -12,13 +12,10 @@ var message string
 var saveCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Use:   "save -m [message]",
-	Short: "saves the current version of the project",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Saves the current version of the project",
+	Long: `Save all changes made from the last save,
+adding all changed files and folders,
+and removing deleted ones`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if message == "" {
 			prompt := &survey.Multiline{

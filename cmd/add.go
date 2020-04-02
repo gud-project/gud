@@ -13,12 +13,8 @@ var allF bool
 var addCmd = &cobra.Command{
 	Use:   "add <file>...",
 	Short: "Add receives the path of the updated files in the project, in order to use them in the next save",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Add command orders the program to keep track of the given files,
+therefor adding them to the next save.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var gConf gud.GlobalConfig
 		err := gud.LoadConfig(&gConf, gConf.GetPath())

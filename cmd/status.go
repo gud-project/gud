@@ -12,12 +12,8 @@ import (
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Prints the status of the current version compared to the last one",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Prints the status of all of the changes made from the last save.
+Will show any changed removed or added file or folder`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return printStatus()
 	},
