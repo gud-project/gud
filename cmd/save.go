@@ -10,6 +10,7 @@ var message string
 
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
+	Args:  cobra.NoArgs,
 	Use:   "save -m [message]",
 	Short: "saves the current version of the project",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -19,16 +20,11 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(0, len(args), "")
-		if err != nil {
-			return err
-		}
-
 		if message == "" {
 			prompt := &survey.Multiline{
 				Message: "Enter commit message:",
 			}
-			err = survey.AskOne(prompt, &message, icons)
+			err := survey.AskOne(prompt, &message, icons)
 			if err != nil {
 				return err
 			}

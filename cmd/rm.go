@@ -14,6 +14,7 @@ var keepF bool
 
 // rmCmd represents the rm command
 var rmCmd = &cobra.Command{
+	Args:  cobra.MinimumNArgs(1),
 	Use:   "rm <file>...",
 	Short: "remove given files from the project's version",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -23,11 +24,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(1, len(args), modeMin)
-		if err != nil {
-			return err
-		}
-
 		//Check if there are directories to be removed without recursF
 		if !recursF {
 			var dirs []string
@@ -50,7 +46,7 @@ to quickly create a Cobra application.`,
 			}
 		}
 
-		err = removeFiles(args)
+		err := removeFiles(args)
 
 		if !keepF {
 			deleteFiles(args)

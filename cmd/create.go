@@ -24,6 +24,7 @@ var stayF bool
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
+	Args:  cobra.ExactArgs(1),
 	Use:   "create <branch name>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -33,11 +34,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(1, len(args), "")
-		if err != nil {
-			return err
-		}
-
 		branchName := args[0]
 		p, err := LoadProject()
 		if err != nil {

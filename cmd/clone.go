@@ -24,8 +24,8 @@ import (
 
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
-	Use:   "clone [domain] <owner> <project>",
 	Args:  cobra.RangeArgs(2, 3),
+	Use:   "clone [domain] <owner> <project>",
 	Short: "Create a copy of a project in the server",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:

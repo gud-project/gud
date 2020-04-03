@@ -14,6 +14,7 @@ const projectNotFound = ""
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
+	Args:  cobra.ExactArgs(1),
 	Use:   "push [branch]",
 	Short: "Push current branch to server",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -23,11 +24,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(1, len(args), "")
-		if err != nil {
-			return err
-		}
-
 		return pushBranch(args[0])
 	},
 }
