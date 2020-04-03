@@ -69,8 +69,17 @@ func PullBranch(p *gud.Project, domain string) (err error) {
 	}
 	defer resp.Body.Close()
 
+	err = checkResponseError(resp)
+	if err != nil {
+		return err
+	}
+
 	err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
-	return
+	if err != nil {
+		return err
+	}
+
+	return p.Reset()
 }
 
 func init() {

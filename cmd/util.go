@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -50,6 +53,19 @@ func stringToHash(dst *gud.ObjectHash, src string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func checkResponseError(resp *http.Response) error {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var message gud.ErrorResponse
+		err := json.NewDecoder(resp.Body).Decode(&message)
+		if err != nil {
+			return errors.New(resp.Status)
+		}
+		return errors.New(message.Error)
+	}
+
 	return nil
 }
 
