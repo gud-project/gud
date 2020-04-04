@@ -1,7 +1,7 @@
 <template>
 	<form @submit="invite">
-		<label><input type="search" v-model="name" placeholder="username" required /></label>
-		<input type="submit" value="Invite" />
+		<label><input type="search" class="form-control" v-model="name" placeholder="username" required/></label>
+		<input type="submit" class="btn btn-outline-primary" value="Invite" />
 	</form>
 </template>
 

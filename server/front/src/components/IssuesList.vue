@@ -1,17 +1,35 @@
 <template>
 	<div>
-		<router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
-			New {{ category }}
-		</router-link>
-		<div v-for="issue in issues">
-			#{{ issue.id }}
-			<router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/${issue.id}`">
-				{{ issue.title }}
-			</router-link>
-			<br />
-			<router-link :to="issue.author">@{{ issue.author }}</router-link>
-			<br /><br />
-		</div>
+		<table class="table">
+			<thead class="thead-dark">
+				<th scope="col">#</th>
+				<th scope="col">Name</th>
+				<th scope="col">Author</th>
+			</thead>
+			<tbody>
+			<tr v-for="issue in issues">
+				<th scope="row">{{ issue.id }}</th>
+				<td>
+					<router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/${issue.id}`">
+						{{ issue.title }}
+					</router-link>
+				</td>
+				<td>
+					<router-link :to="`/${issue.id}`">
+						@{{ issue.author }}
+					</router-link>
+				</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>
+					<router-link class="btn btn-secondary btn-md" :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
+						add {{ category }}
+					</router-link>
+				</td>
+			</tr>
+			</tbody>
+		</table>
 	</div>
 </template>
 

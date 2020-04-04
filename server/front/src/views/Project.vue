@@ -1,10 +1,20 @@
 <template>
-	<div>
-		<h1>{{ $route.params.user }}/{{ $route.params.project }}</h1>
-		<InviteForm />
-		<div class="container">
-			<IssuesList category="issue" />
-			<IssuesList category="pr" />
+	<div class="container">
+		<div class="jumbotron">
+			<h1>{{ $route.params.user }}</h1>
+			<h2>{{ $route.params.project }}</h2>
+			<br />
+            <InviteForm />
+			<br />
+			<div class="container">
+				<div class="container">
+					<IssuesList category="issue" />
+				</div>
+
+				<div class="container">
+					<IssuesList category="pr" />
+				</div>
+			</div>
 		</div>
 	</div>
 </template>
