@@ -2,9 +2,10 @@
 	<div>
 		<table class="table">
 			<thead class="thead-dark">
-				<th scope="col">#</th>
+				<th id="id" scope="col">#</th>
 				<th scope="col">Name</th>
 				<th scope="col">Author</th>
+				<th scope="col">State</th>
 			</thead>
 			<tbody>
 			<tr v-for="issue in issues">
@@ -19,11 +20,13 @@
 						@{{ issue.author }}
 					</router-link>
 				</td>
+				<td>
+					{{ issue.state }}
+				</td>
 			</tr>
 			<tr>
-				<td></td>
 				<td>
-					<router-link class="btn btn-secondary btn-md" :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
+					<router-link class="btn btn-secondary btn-lg" :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
 						add {{ category }}
 					</router-link>
 				</td>
@@ -61,5 +64,11 @@
 </script>
 
 <style scoped>
+	th{
+		width:250px;
+	}
 
+	#id{
+		width:50px
+	}
 </style>

@@ -1,12 +1,23 @@
 <template>
-	<div>
-		<h1>#{{ $route.params.issue }} : {{ issue.title }}</h1>
-		<router-link :to="issue.author">@{{ issue.author }}</router-link><br /><br />
-		<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
-		<p class="content">{{ issue.content }}</p>
+	<div class="container">
+		<div class="jumbotron">
+			<h1>#issue: title</h1>
+			<label>
+				<router-link :to="`/${issue.author}`">@author</router-link>
+			</label>
+			<br /><br />
+			<div v-if="pr">from ⇒ to</div>
+			<p class="content">content</p>
+		</div>
 	</div>
 </template>
 
+<!--
+<h1>#{{ $route.params.issue }} : {{ issue.title }}</h1>
+<router-link :to="issue.author">@{{ issue.author }}</router-link><br /><br />
+<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
+<p class="content">{{ issue.content }}</p>
+-->
 <script>
 	export default {
 		name: "IssuePage",

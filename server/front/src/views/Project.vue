@@ -7,12 +7,12 @@
             <InviteForm />
 			<br />
 			<div class="container">
-				<div class="container">
+				<div class="container-fluid">
 					<IssuesList category="issue" />
 				</div>
 
-				<div class="container">
-					<IssuesList category="pr" />
+				<div class="container-fluid">
+					<PrsList category="pr" />
 				</div>
 			</div>
 		</div>
@@ -22,9 +22,10 @@
 <script>
 	import IssuesList from "../components/IssuesList"
 	import InviteForm from "../components/InviteForm"
+	import PrsList from "../components/PrsList"
 	export default {
 		name: "Project",
-		components: { InviteForm, IssuesList },
+		components: { InviteForm, IssuesList, PrsList },
 	}
 </script>
 

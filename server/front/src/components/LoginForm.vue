@@ -1,21 +1,21 @@
 <template>
 	<div class="container">
-	<form @submit="login" class="jumbotron" style="margin:2.5em">
-		<p style="color: red" v-if="error">{{ error }}</p>
-		<p><label>
-			<input type="text" placeholder="Username" class="form-control" v-model="info.username" required />
-		</label></p>
-		<p><label>
-			<input type="password" placeholder="Password" class="form-control" v-model="info.password" required />
-		</label></p>
-		<p><label>
-			<div class="custom-control custom-checkbox">
-				<input type="checkbox" class="custom-control-input" id="customCheck1">
-				<label class="custom-control-label" for="customCheck1">Remember?</label>
-			</div>
-		</label></p>
+		<form @submit="login" class="jumbotron" style="margin:2.5em">
+			<p style="color: red" v-if="error">{{ error }}</p>
+			<p><label>
+				<input type="text" placeholder="Username" class="form-control" v-model="info.username" required />
+			</label></p>
+			<p><label>
+				<input type="password" placeholder="Password" class="form-control" v-model="info.password" required />
+			</label></p>
+			<p><label>
+				<div class="custom-control custom-checkbox">
+					<input type="checkbox" class="custom-control-input" id="customCheck1">
+					<label class="custom-control-label" for="customCheck1">Remember?</label>
+				</div>
+			</label></p>
 			<input class="btn btn-primary btn-lg" type="submit" value="Login" />
-	</form>
+		</form>
 	</div>
 </template>
 
