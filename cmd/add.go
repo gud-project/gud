@@ -14,7 +14,7 @@ var addCmd = &cobra.Command{
 	Use:   "add <file>...",
 	Short: "Add receives the path of the updated files in the project, in order to use them in the next save",
 	Long: `Add command orders the program to keep track of the given files,
-therefor adding them to the next save.`,
+therefor adding them to the next save`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var gConf gud.GlobalConfig
 		err := gud.LoadConfig(&gConf, gConf.GetPath())
