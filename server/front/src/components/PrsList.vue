@@ -9,29 +9,29 @@
                 <th scope="col">To</th>
             </thead>
             <tbody>
-            <tr v-for="issue in issues">
-                <th scope="row">{{ issue.id }}</th>
+            <tr v-for="prs in prs">
+                <th scope="row">{{ prs.id }}</th>
                 <td>
-                    <router-link :to="`/${$route.params.user}/${$route.params.project}/${category}/${issue.id}`">
-                        {{ issue.title }}
+                    <router-link :to="`/${$route.params.user}/${$route.params.project}/pr/${prs.id}`">
+                        {{ prs.title }}
                     </router-link>
                 </td>
                 <td>
-                    <router-link :to="`/${issue.id}`">
-                        @{{ issue.author }}
+                    <router-link :to="`/${prs.id}`">
+                        @{{ prs.author }}
                     </router-link>
                 </td>
                 <td>
-                    {{ issue.from }}
+                    {{ prs.from }}
                 </td>
                 <td>
-                    {{ issue.to }}
+                    {{ prs.to }}
                 </td>
             </tr>
             <tr>
                 <td>
-                    <router-link class="btn btn-secondary btn-lg" :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
-                        add {{ category }}
+                    <router-link class="btn btn-secondary btn-lg" :to="`/${$route.params.user}/${$route.params.project}/pr/new`">
+                        add pull request
                     </router-link>
                 </td>
             </tr>
@@ -43,23 +43,17 @@
 <script>
     export default {
         name: "PrsList",
-        props: {
-            category: {
-                type: String,
-                default: 'issue',
-            },
-        },
         data() {
             return {
-                issues: [],
+                prs: [],
             }
         },
         async created() {
             const { user, project } = this.$route.params
-            const res = await fetch(`/api/v1/user/${user}/project/${project}/${this.category}s`)
+            const res = await fetch(`/api/v1/user/${user}/project/${project}/prs`)
 
             if (res.ok) {
-                this.issues = await res.json()
+                this.prs = await res.json()
             } else {
                 console.error(res.statusText)
             }

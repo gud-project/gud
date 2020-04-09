@@ -16,11 +16,6 @@
 							<router-link :to="`/${$route.params.user}/${project}`">{{ project }}</router-link>
 						</td>
 					</tr>
-					<tr>
-						<router-link class="btn btn-secondary btn-lg" :to="`/${$route.params.user}/${$route.params.project}/${category}/new`">
-							new project
-						</router-link>
-					</tr>
 				</tbody>
 		</table>
 		</div>
