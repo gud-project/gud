@@ -18,7 +18,7 @@
                     You just need to press the download button. Gud has a multi-platform usage, <br />
                     and can be used in both Linux and Windows.<br />
                 </p>
-                <button class="btn btn-lg btn-primary">Download</button>
+                <form :action="url"><button type="submit" class="btn btn-lg btn-primary">Download</button></form>
                 <p>
                     <br />In order the use the "gud" root command in any file with your terminal,<br />
                     add the path to your "gud.exe" file, to your system variables.
@@ -30,7 +30,18 @@
 
 <script>
     export default {
-        name: "HomeForm"
+        name: "HomeForm",
+        computed: {
+            url() {
+                if (navigator.platform.includes("Win")) {
+                    return "/release/windows/gud.exe"
+                }
+                if (navigator.platform.includes("Mac")) {
+                    return "/release/darwin/gud"
+                }
+                return "/release/linux/gud"
+            }
+        }
     }
 </script>
 
