@@ -50,13 +50,7 @@
         },
         async created() {
             const { user, project } = this.$route.params
-            const res = await fetch(`/api/v1/user/${user}/project/${project}/prs`)
-
-            if (res.ok) {
-                this.prs = await res.json()
-            } else {
-                console.error(res.statusText)
-            }
+            this.prs = await this.$getData(`/api/v1/user/${user}/project/${project}/prs`)
         },
     }
 </script>

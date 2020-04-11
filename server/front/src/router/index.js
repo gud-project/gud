@@ -1,6 +1,7 @@
 import Vue from "vue"
 import VueRouter from "vue-router"
 import Home from "../views/Home.vue"
+import Error from "../views/Error"
 
 Vue.use(VueRouter)
 
@@ -66,6 +67,11 @@ const router = new VueRouter({
 			component() {
 				return import(/* webpackChunkName: "issue" */ "../views/PR")
 			},
+		},
+		{
+			path: "*",
+			name: Error,
+			component: Error,
 		},
 	],
 })
