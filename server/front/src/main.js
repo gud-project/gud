@@ -18,9 +18,7 @@ Vue.mixin({
 			}
 			this.$_error(Error, { error: res.status !== 404 && ((await res.json()).error || res.statusText) })
 		},
-	},
-	computed: {
-		async $loggedIn() {
+		async $isLoggedIn() {
 			return (await fetch("/api/v1/me", { method: "HEAD" })).ok
 		},
 	},
