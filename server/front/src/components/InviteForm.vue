@@ -19,15 +19,15 @@
 				
 				const { user, project } = this.$route.params
 				const res = await fetch(`/user/${user}/project/${project}/invite`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ name: this.name })
 				})
 				
 				if (res.ok) {
 					this.name = ""
 				} else {
-					console.error(res.statusText)
+					alert((await res.json()).error || res.statusText)
 				}
 			}
 		}

@@ -8,11 +8,12 @@
 	},
 	"dependencies": {
 		"vue": "^2.6.11",
-		"vue-router": "^3.1.5"
+		"vue-error-page": "^1.1.7",
+		"vue-router": "^3.1.6"
 	},
 	"devDependencies": {
-		"@vue/cli-plugin-router": "~4.2.0",
-		"@vue/cli-service": "~4.2.0",
+		"@vue/cli-plugin-router": "^4.2.3",
+		"@vue/cli-service": "^4.2.3",
 		"vue-template-compiler": "^2.6.11"
 	},
 	"browserslist": [

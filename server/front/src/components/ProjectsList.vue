@@ -31,12 +31,7 @@
 			}
 		},
 		async created() {
-			const res = await fetch(`/api/v1/user/${this.$route.params.user}/projects`)
-			if (res.ok) {
-				this.projects = await res.json()
-			} else {
-				console.error(res.statusText)
-			}
+			this.projects = await this.$getData(`/api/v1/user/${this.$route.params.user}/projects`)
 		},
 	}
 </script>

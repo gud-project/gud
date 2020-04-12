@@ -51,7 +51,7 @@
 			if (res.ok) {
 				this.branches = Object.keys(await res.json())
 			} else {
-				console.error(res.statusText)
+				alert((await res.json()).error || res.statusText)
 			}
 		},
 		methods: {
@@ -64,7 +64,7 @@
 				}
 				
 				const { user, project } = this.$route.params
-				const category = this.pr ? 'pr' : 'issue'
+				const category = this.pr ? "pr" : "issue"
 				const res = await fetch(`/api/v1/user/${user}/project/${project}/${category}s/create`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
