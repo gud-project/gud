@@ -48,7 +48,7 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		resp, err := http.Post(fmt.Sprintf("http://%s/api/v1/signup", gConfig.ServerDomain), "application/json", &buf)
+		resp, err := http.Post(fmt.Sprintf("%s/api/v1/signup", gConfig.ServerDomain), "application/json", &buf)
 		if err != nil {
 			return err
 		}

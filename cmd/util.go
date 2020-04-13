@@ -81,3 +81,9 @@ func checkArgsNum(size, argc int, mode string) error {
 	}
 	return nil
 }
+
+func checkUrl(url *string) {
+	if strings.Contains(*url,  "http") {
+		*url = "https://" + *url
+	}
+}

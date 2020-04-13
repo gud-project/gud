@@ -55,7 +55,7 @@ func PullBranch(p *gud.Project, domain string) (err error) {
 		return
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/api/v1/user/%s/project/%s/pull?branch=%s&start=%s", domain, config.OwnerName, config.ProjectName, branch, hash),
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/user/%s/project/%s/pull?branch=%s&start=%s", domain, config.OwnerName, config.ProjectName, branch, hash),
 		nil)
 	if err != nil {
 		return

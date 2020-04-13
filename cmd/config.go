@@ -28,6 +28,9 @@ Command can also be used by only writing "config"`,
 
 		if globalF {
 			err = gud.LoadConfig(&gConfig, gConfig.GetPath())
+			if err != nil {
+				return err
+			}
 		} else {
 			p, err = LoadProject()
 			if err != nil {
@@ -70,18 +73,15 @@ Command can also be used by only writing "config"`,
 				return err
 			}
 		}
-
 		err = p.Checkpoint("config-change")
 		if err != nil {
 			return err
 		}
-
 		defer func() {
 			if err != nil {
 				_ = p.Undo()
 			}
 		}()
-
 		if globalF {
 			err = gud.WriteConfig(gConfig, gConfig.GetPath())
 			if err != nil {
@@ -174,13 +174,12 @@ func getGlobalConfigChanges(args []string, config *gud.GlobalConfig) error {
 	if len(args) == 0 {
 		prompt := &survey.Select{
 			Message: "Choose field:",
-			Options: []string{"Name", "Token", "Domain server"},
+			Options: []string{"Name", "Token", "Server domain"},
 		}
 		err = survey.AskOne(prompt, &field, icons)
 		if err != nil {
 			return err
 		}
-
 		newValue := &survey.Input{
 			Message: "New value:",
 		}
@@ -188,12 +187,10 @@ func getGlobalConfigChanges(args []string, config *gud.GlobalConfig) error {
 		if err != nil {
 			return err
 		}
-
 	} else {
 		field = args[0]
 		value = args[1]
 	}
-
 	switch strings.ToLower(field) {
 	case "name":
 		config.Name = value
