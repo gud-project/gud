@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-const projectNotFound = ""
+const projectNotFound = "No Gud project found at "
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{

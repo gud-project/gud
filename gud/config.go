@@ -12,7 +12,7 @@ import (
 )
 
 const localConfigPath = "config.toml"
-const defaultDomainServer = "localhost"
+const defaultDomainServer = "https://gud.codes"
 
 
 type Config struct {

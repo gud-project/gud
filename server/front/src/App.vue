@@ -3,6 +3,7 @@
     <div id="nav">
       <router-link to="/">Home</router-link> |
 	  <span v-if="loggedIn">
+          <router-link to="/">Projects</router-link> |
 		  <a @click="logOut">LogOut</a>
 	  </span>
       <span v-else>
