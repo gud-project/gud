@@ -27,15 +27,17 @@ CREATE TABLE issues (
     user_id    int          NOT NULL REFERENCES users(user_id),
     content    varchar      NOT NULL,
     project_id int          NOT NULL REFERENCES projects(project_id),
-    status     issue_status NOT NULL
+    status     issue_status NOT NULL,
+    created_at timestamp    NOT NULL
 );
 
 CREATE TABLE prs (
     pr_id      serial PRIMARY KEY,
-    title      varchar NOT NULL,
-    user_id    int     NOT NULL REFERENCES users(user_id),
-    content    varchar NOT NULL,
-    project_id int     NOT NULL REFERENCES projects(project_id),
-    "from"     varchar NOT NULL,
-    "to"       varchar NOT NULL
+    title      varchar   NOT NULL,
+    user_id    int       NOT NULL REFERENCES users(user_id),
+    content    varchar   NOT NULL,
+    project_id int       NOT NULL REFERENCES projects(project_id),
+    "from"     varchar   NOT NULL,
+    "to"       varchar   NOT NULL,
+    created_at timestamp NOT NULL
 );

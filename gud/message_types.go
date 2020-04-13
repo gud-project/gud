@@ -1,5 +1,7 @@
 package gud
 
+import "time"
+
 type SignUpRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
@@ -37,20 +39,25 @@ type CreateIssueResponse struct {
 }
 
 type Issue struct {
-	Id      int    `json:"id"`
-	Title   string `json:"title"`
-	Author  string `json:"author"`
-	Content string `json:"content"`
-	Status  string `json:"status"`
+	Id      int       `json:"id"`
+	Title   string    `json:"title"`
+	Author  string    `json:"author"`
+	Content string    `json:"content"`
+	Status  string    `json:"status"`
+	Created time.Time `json:"created"`
 }
 
 type PullRequest struct {
-	Id      int    `json:"id"`
-	Title   string `json:"title"`
-	Author  string `json:"author"`
-	Content string `json:"content"`
-	From    string `json:"from"`
-	To      string `json:"to"`
+	Id      int       `json:"id"`
+	Title   string    `json:"title"`
+	Author  string    `json:"author"`
+	Content string    `json:"content"`
+	From    string    `json:"from"`
+	To      string    `json:"to"`
+	Created time.Time `json:"created"`
+}
+
+type UpdateIssueRequest struct {
 }
 
 type ErrorResponse struct {

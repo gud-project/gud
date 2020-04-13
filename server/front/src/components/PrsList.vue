@@ -5,27 +5,31 @@
                 <th id="id" scope="col">#</th>
                 <th scope="col">Name</th>
                 <th scope="col">Author</th>
+                <th scope="col">Created</th>
                 <th scope="col">From</th>
                 <th scope="col">To</th>
             </thead>
             <tbody>
-            <tr v-for="prs in prs">
-                <th scope="row">{{ prs.id }}</th>
+            <tr v-for="pr in prs">
+                <th scope="row">{{ pr.id }}</th>
                 <td>
-                    <router-link :to="`/${$route.params.user}/${$route.params.project}/pr/${prs.id}`">
-                        {{ prs.title }}
+                    <router-link :to="`/${$route.params.user}/${$route.params.project}/pr/${pr.id}`">
+                        {{ pr.title }}
                     </router-link>
                 </td>
                 <td>
-                    <router-link :to="`/${prs.id}`">
-                        @{{ prs.author }}
+                    <router-link :to="`/${pr.id}`">
+                        @{{ pr.author }}
                     </router-link>
                 </td>
                 <td>
-                    {{ prs.from }}
+					{{ new Date(pr.created).toDateString() }}
+				</td>
+                <td>
+                    {{ pr.from }}
                 </td>
                 <td>
-                    {{ prs.to }}
+                    {{ pr.to }}
                 </td>
             </tr>
             <tr>
