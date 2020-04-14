@@ -2,11 +2,38 @@
   <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/login">Login</router-link>
+	  <span v-if="loggedIn">
+          <router-link to="/">Projects</router-link> |
+		  <a @click="logOut">LogOut</a>
+	  </span>
+      <span v-else>
+	      <router-link to="/SignUp">SignUp</router-link> |
+	      <router-link to="/login">Login</router-link>
+      </span>
     </div>
-    <router-view />
+    <app-view />
   </div>
 </template>
+
+<script>
+	export default {
+		name: "App",
+		data() {
+			return {
+				loggedIn: false,
+			}
+		},
+		async created() {
+			this.loggedIn = await this.$isLoggedIn()
+		},
+		methods: {
+			async logOut() {
+				await fetch('/api/v1/logout', { method: "POST" })
+				await this.$router.go(0)
+			}
+		}
+	}
+</script>
 
 <style>
 #app {
@@ -27,6 +54,6 @@
 }
 
 #nav a.router-link-exact-active {
-  color: #42b983;
+  color: #2d72c0;
 }
 </style>

@@ -25,7 +25,7 @@ var newUserStmt,
 	getIssueStmt,
 	createPrStmt,
 	getPrsStmt,
-	getPrStmt* sql.Stmt
+	getPrStmt *sql.Stmt
 
 func init() {
 	var err error
@@ -74,24 +74,26 @@ func init() {
 			"INSERT INTO members (user_id, project_id) VALUES ($1, $2);")
 
 		createIssueStmt = mustPrepare(`
-			INSERT INTO issues (title, content, user_id, project_id, status) VALUES ($1, $2, $3, $4, 'open')
+			INSERT INTO issues (title, content, user_id, project_id, status, created_at)
+			VALUES ($1, $2, $3, $4, 'open', NOW())
 			RETURNING issue_id;`)
 
 		getIssuesStmt = mustPrepare(
-			"SELECT issue_id, user_id, title, content, status FROM issues WHERE project_id = $1")
+			"SELECT issue_id, user_id, title, content, status, created_at FROM issues WHERE project_id = $1")
 
 		getIssueStmt = mustPrepare(
-			"SELECT issue_id, user_id, title, content, status FROM issues WHERE issue_id = $1")
+			"SELECT issue_id, user_id, title, content, status, created_at FROM issues WHERE issue_id = $1")
 
 		createPrStmt = mustPrepare(`
-			INSERT INTO prs (title, content, user_id, project_id, "from", "to") VALUES ($1, $2, $3, $4, $5, $6)
+			INSERT INTO prs (title, content, user_id, project_id, "from", "to", created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, NOW())
 			RETURNING pr_id;`)
 
 		getPrsStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE project_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE project_id = $1`)
 
 		getPrStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to" FROM prs WHERE pr_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE pr_id = $1`)
 	}
 }
 

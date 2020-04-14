@@ -13,6 +13,8 @@ import (
 func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	r := route.Subrouter()
 	r.Use(verifySession, selector)
+
+	r.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {}).Methods(http.MethodHead)
 	r.HandleFunc("/projects", userProjects).Methods(http.MethodGet)
 
 	project := r.PathPrefix("/project/{project}").Subrouter()
@@ -62,12 +64,12 @@ func userProjects(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(names)
 }
 
-//func selectSelf(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		next.ServeHTTP(w, r.WithContext(
-//			context.WithValue(r.Context(), KeySelectedUserId, r.Context().Value(KeyUserId))))
-//	})
-//}
+func selectSelf(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(
+			context.WithValue(r.Context(), KeySelectedUserId, r.Context().Value(KeyUserId))))
+	})
+}
 
 func selectUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

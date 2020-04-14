@@ -1,12 +1,12 @@
 <template>
-	<SignUpForm />
+	<HomeForm />
 </template>
 
 <script>
-	import SignUpForm from "../components/SignUpForm"
+	import HomeForm from "../components/HomeForm"
 	
 	export default {
 		name: "Home",
-		components: { SignUpForm },
+		components: { HomeForm },
 	}
 </script>

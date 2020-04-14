@@ -93,7 +93,7 @@ type scanner interface {
 func scanIssue(row scanner) (*gud.Issue, error) {
 	var issue gud.Issue
 	var authorId int
-	err := row.Scan(&issue.Id, &authorId, &issue.Title, &issue.Content, &issue.Status)
+	err := row.Scan(&issue.Id, &authorId, &issue.Title, &issue.Content, &issue.Status, &issue.Created)
 	if err != nil {
 		return nil, err
 	}
