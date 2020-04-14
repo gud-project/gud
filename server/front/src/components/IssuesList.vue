@@ -5,6 +5,7 @@
 				<th id="id" scope="col">#</th>
 				<th scope="col">Name</th>
 				<th scope="col">Author</th>
+				<th scope="col">Created</th>
 				<th scope="col">State</th>
 			</thead>
 			<tbody>
@@ -19,6 +20,9 @@
 					<router-link :to="`/${issue.id}`">
 						@{{ issue.author }}
 					</router-link>
+				</td>
+				<td>
+					{{ new Date(issue.created).toDateString() }}
 				</td>
 				<td>
 					{{ issue.state }}

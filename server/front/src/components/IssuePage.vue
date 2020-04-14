@@ -6,6 +6,7 @@
 				<router-link :to="issue.author">@{{ issue.author }}</router-link>
 			</label>
 			<br /><br />
+			<p>{{ new Date(issue.created).toDateString() }}</p>
 			<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
 			<p class="content">{{ issue.content }}</p>
 		</div>
@@ -32,6 +33,7 @@
 					content: null,
 					from: null,
 					to: null,
+					created: null,
 				},
 			}
 		},
