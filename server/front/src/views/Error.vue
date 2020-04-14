@@ -1,7 +1,9 @@
 <template>
-	<div>
-		<h1>{{ error }}</h1>
-		<p>feelsbadman</p>
+	<div class="container">
+		<div class="jumbotron">
+			<h1>{{ error }}</h1>
+			<p>feelsbadman</p>
+		</div>
 	</div>
 </template>
 

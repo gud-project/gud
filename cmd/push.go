@@ -9,8 +9,6 @@ import (
 	"net/http"
 )
 
-const projectNotFound = "No Gud project found at "
-
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
 	Use:   "push [branch]",
@@ -57,7 +55,7 @@ func pushBranch(branch string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		if err.Error() == projectNotFound {
+		if err.Error() == gud.ProjectNotFound {
 			err = createServerProject(config.ProjectName, gConfig.Token)
 			if err != nil {
 				return err
