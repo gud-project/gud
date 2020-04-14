@@ -72,8 +72,8 @@ Command can also be used by only writing "config"`,
 			if err != nil {
 				return err
 			}
+			err = p.Checkpoint("config-change")
 		}
-		err = p.Checkpoint("config-change")
 		if err != nil {
 			return err
 		}
