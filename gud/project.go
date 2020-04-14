@@ -24,6 +24,24 @@ func Start(path string) (*Project, error) {
 		return nil, err
 	}
 
+	var gConfig GlobalConfig
+	err = LoadConfig(&gConfig, gConfig.GetPath())
+	if err != nil {
+		return nil, err
+	}
+
+	var config Config
+	err = project.LoadConfig(&config)
+	if err != nil {
+		return nil, err
+	}
+
+	config.OwnerName = gConfig.Name
+	err = project.WriteConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = startProject(project.Path, filepath.Join(DefaultPath, DefaultPath))
 	if err != nil {
 		return nil, err
