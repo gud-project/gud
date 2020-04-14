@@ -9,6 +9,7 @@ import (
 
 const DefaultPath = ".gud"
 const dirPerm = 0755
+const ProjectNotFound = "No Gud project found at "
 
 // Project is a representation of a Gud project
 type Project struct {
@@ -164,7 +165,7 @@ func Load(path string) (*Project, error) {
 		path = parent
 	}
 
-	return nil, Error{"No Gud project found at " + path}
+	return nil, Error{ProjectNotFound + path}
 }
 
 func (p Project) CurrentHash() (*ObjectHash, error) {
