@@ -55,13 +55,11 @@ func importProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := gud.StartHeadless(dir)
+	_, err = gud.StartHeadless(dir)
 	if err != nil {
 		handleError(w, err)
 		return
 	}
-
-	pullProjectFrom(w, r, *project, gud.FirstBranchName)
 }
 
 func projectBranch(w http.ResponseWriter, r *http.Request) {
@@ -247,7 +245,7 @@ func createProjectDir(r *http.Request) (dir string, errMsg string, err error) {
 	return
 }
 
-func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string)  {
+func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project, branch string) {
 	var username string
 	err := getUserStmt.QueryRow(r.Context().Value(KeyUserId)).Scan(&username)
 	if err != nil {

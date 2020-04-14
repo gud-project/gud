@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
@@ -10,7 +11,7 @@ import (
 	"net/http"
 )
 
-const projectNotFound = "No Gud project found at "
+const projectNotFoundError = "project not found"
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
@@ -56,20 +57,30 @@ func pushBranch(branch string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		if err.Error() == projectNotFound {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		var message gud.ErrorResponse
+		err := json.NewDecoder(resp.Body).Decode(&message)
+		if err != nil {
+			return errors.New(resp.Status)
+		}
+
+		if message.Error == projectNotFoundError {
 			err = createServerProject(config.ProjectName, gConfig)
 			if err != nil {
 				return err
 			}
-			resp, err = client.Do(req)
-			if err != nil {
-				return err
-			}
 		} else {
+			return errors.New(message.Error)
+		}
+	} else {
+		err = checkResponseError(resp)
+		if err != nil {
 			return err
 		}
 	}
-	defer resp.Body.Close()
 
 	var startHash *gud.ObjectHash
 	if resp.StatusCode != http.StatusNotFound {
@@ -116,7 +127,7 @@ func createServerProject(name string, gConf gud.GlobalConfig) error {
 	}
 
 	req, err := http.NewRequest(http.MethodPost,
-		fmt.Sprintf("%s/api/v1/projects/create", gConf.ServerDomain), &buf)
+		fmt.Sprintf("%s/api/v1/projects/import", gConf.ServerDomain), &buf)
 	if err != nil {
 		return err
 	}
