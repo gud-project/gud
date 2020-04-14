@@ -57,7 +57,7 @@ but will be a copy of an existing project from the server`,
 			return err
 		}
 
-		err = p.PullBranch(gud.FirstBranchName, resp.Body, resp.Header.Get("Content-Type"))
+		_, err = p.PullBranch(gud.FirstBranchName, resp.Body, resp.Header.Get("Content-Type"))
 		if err != nil {
 			return err
 		}

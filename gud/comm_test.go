@@ -31,7 +31,7 @@ func TestProject_PushBranch(t *testing.T) {
 		t.Fatal("failed to push branch: ", err)
 	}
 
-	err = server.PullBranch(FirstBranchName, &buf, "multipart/mixed; boundary="+boundary)
+	_, err = server.PullBranch(FirstBranchName, &buf, "multipart/mixed; boundary="+boundary)
 	if err != nil {
 		t.Fatal("failed to pull branch:", err)
 	}
