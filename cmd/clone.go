@@ -39,7 +39,7 @@ but will be a copy of an existing project from the server`,
 		}
 
 		req, err := http.NewRequest(http.MethodGet,
-			fmt.Sprintf("http://%s/api/v1/user/%s/project/%s/pull?branch=%s",
+			fmt.Sprintf("%s/api/v1/user/%s/project/%s/pull?branch=%s",
 				domain, owner, project, gud.FirstBranchName), nil)
 		if err != nil {
 			return err

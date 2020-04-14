@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"gitlab.com/magsh-2019/2/gud/gud"
+	"io"
 	"net/http"
 )
 
@@ -13,6 +14,7 @@ const projectNotFound = ""
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
+	Args:  cobra.ExactArgs(1),
 	Use:   "push [branch]",
 	Short: "Push current branch to server",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -22,11 +24,6 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(1, len(args), "")
-		if err != nil {
-			return err
-		}
-
 		return pushBranch(args[0])
 	},
 }
@@ -49,7 +46,9 @@ func pushBranch(branch string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/project/%s/%s/branch/%s", gConfig.ServerDomain, config.OwnerName, config.ProjectName, branch), nil)
+	req, err := http.NewRequest(http.MethodGet,
+		fmt.Sprintf("%s/api/v1/user/%s/project/%s/branch/%s",
+			gConfig.ServerDomain, config.OwnerName, config.ProjectName, branch), nil)
 	if err != nil {
 		return err
 	}
@@ -58,7 +57,7 @@ func pushBranch(branch string) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		if err.Error() == projectNotFound {
-			err = createServerProject(config.ProjectName, gConfig.Token)
+			err = createServerProject(config.ProjectName, gConfig)
 			if err != nil {
 				return err
 			}
@@ -76,7 +75,7 @@ func pushBranch(branch string) error {
 	if resp.StatusCode != http.StatusNotFound {
 		var hash gud.ObjectHash
 		_, err = resp.Body.Read(hash[:])
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return err
 		}
 		startHash = &hash
@@ -84,24 +83,30 @@ func pushBranch(branch string) error {
 
 	var buf bytes.Buffer
 	boundary, err := p.PushBranch(&buf, branch, startHash)
-	req, err = http.NewRequest("POST", fmt.Sprintf("%s/api/v1/project/%s/%s/push?branch=%s", gConfig.ServerDomain, gConfig.Name, config.ProjectName, branch), &buf)
+	req, err = http.NewRequest(http.MethodPost,
+		fmt.Sprintf("%s/api/v1/user/%s/project/%s/push?branch=%s",
+			gConfig.ServerDomain, config.OwnerName, config.ProjectName, branch), &buf)
 	if err != nil {
 		return err
 	}
 
-	req.AddCookie(&http.Cookie{Name: "ds_user_id", Value: gConfig.Token})
+	req.AddCookie(&http.Cookie{Name: "session", Value: gConfig.Token})
 	req.Header.Add("Content-Type", "multipart/mixed; boundary="+boundary)
 
 	resp, err = client.Do(req)
 	if err != nil {
 		return err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+	err = checkResponseError(resp)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func createServerProject(name, token string) error {
+func createServerProject(name string, gConf gud.GlobalConfig) error {
 	request := gud.CreateProjectRequest{Name: name}
 
 	var buf bytes.Buffer
@@ -110,15 +115,20 @@ func createServerProject(name, token string) error {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost/api/v1/create"), &buf)
+	req, err := http.NewRequest(http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/create", gConf.ServerDomain), &buf)
 	if err != nil {
 		return err
 	}
 
-	req.AddCookie(&http.Cookie{Name: "session", Value: token})
+	req.AddCookie(&http.Cookie{Name: "session", Value: gConf.Token})
 
 	client := &http.Client{}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	err = checkResponseError(resp)
 	if err != nil {
 		return err
 	}

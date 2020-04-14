@@ -47,6 +47,11 @@ func (p Project) AddHead() error {
 		return err
 	}
 
+	_, err = startProject(p.Path, filepath.Join(DefaultPath, DefaultPath))
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -82,7 +87,12 @@ func startProject(path, gudRelPath string) (*Project, error) {
 		return nil, err
 	}
 
-	err = project.AddHead()
+	err = project.ConfigInit()
+	if err != nil {
+		return nil, err
+	}
+
+	err = dumpHead(project.gudPath, Head{IsDetached: false, Branch: FirstBranchName})
 	if err != nil {
 		return nil, err
 	}

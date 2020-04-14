@@ -9,15 +9,11 @@ var stayF bool
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
-	Use:   "branch create <branch name>",
+	Args:  cobra.ExactArgs(1),
+	Use:   "create <branch name>",
 	Short: "Create a new branch",
-	Long: `A subcommand of "branch" root command. Used to create a new branch for a new version to work on`,
+	Long:  `A subcommand of "branch" root command. Used to create a new branch for a new version to work on`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := checkArgsNum(1, len(args), "")
-		if err != nil {
-			return err
-		}
-
 		branchName := args[0]
 		p, err := LoadProject()
 		if err != nil {
