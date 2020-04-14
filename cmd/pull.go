@@ -74,7 +74,7 @@ func PullBranch(p *gud.Project, domain string) (err error) {
 		return err
 	}
 
-	err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
+	_, err = p.PullBranch(branch, resp.Body, resp.Header.Get("Content-Type"))
 	if err != nil {
 		return err
 	}

@@ -21,6 +21,7 @@ const treeContentType = "application/x-gud-tree"
 const versionContentType = "application/x-gud-version"
 
 type InputError Error
+
 func (e InputError) Error() string {
 	return e.s
 }
@@ -110,55 +111,27 @@ func pushVersion(gudPath string, writer *multipart.Writer, hash ObjectHash) erro
 		return err
 	}
 
-	return pushTree(gudPath, writer, version.TreeHash)
-}
-
-func pushTree(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
-	part, err := createPart(writer, hash, treeContentType)
-	if err != nil {
-		return err
-	}
-
-	src, err := os.Open(objectPath(gudPath, hash))
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	var t tree
-	err = readGobObject(io.TeeReader(src, part), &t)
-	if err != nil {
-		return err
-	}
-
-	for _, obj := range t {
+	return walk(gudPath, *version, func(relPath string, obj object) error {
+		var contentType string
 		if obj.Type == typeTree {
-			err = pushTree(gudPath, writer, obj.Hash)
+			contentType = treeContentType
 		} else {
-			err = pushBlob(gudPath, writer, obj.Hash)
+			contentType = blobContentType
 		}
+		part, err := createPart(writer, obj.Hash, contentType)
 		if err != nil {
 			return err
 		}
-	}
 
-	return nil
-}
+		src, err := os.Open(objectPath(gudPath, obj.Hash))
+		if err != nil {
+			return err
+		}
+		defer src.Close()
 
-func pushBlob(gudPath string, writer *multipart.Writer, hash ObjectHash) error {
-	part, err := createPart(writer, hash, blobContentType)
-	if err != nil {
+		_, err = io.Copy(part, src)
 		return err
-	}
-
-	src, err := os.Open(objectPath(gudPath, hash))
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	_, err = io.Copy(part, src)
-	return err
+	})
 }
 
 func createPart(writer *multipart.Writer, hash ObjectHash, contentType string) (io.Writer, error) {
@@ -169,27 +142,27 @@ func createPart(writer *multipart.Writer, hash ObjectHash, contentType string) (
 	return writer.CreatePart(header)
 }
 
-func (p Project) PullBranch(branch string, in io.Reader, contentType string) error {
+func (p Project) PullBranch(branch string, in io.Reader, contentType string) (*ObjectHash, error) {
 	return p.PullBranchFrom(branch, in, contentType, "")
 }
 
-func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user string) error {
+func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user string) (*ObjectHash, error) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
+		return nil, InputError{fmt.Sprintf("invalid content type: %s", contentType)}
 	}
 	if !strings.HasPrefix(mediaType, "multipart/") {
-		return InputError{fmt.Sprintf("invalid content type: %s", contentType)}
+		return nil, InputError{fmt.Sprintf("invalid content type: %s", contentType)}
 	}
 
 	currentHash, err := p.GetBranch(branch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	temp, err := createTempProject(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = os.RemoveAll(temp.Path)
@@ -200,7 +173,7 @@ func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user s
 	for {
 		hash, err := pullVersion(temp.gudPath, user, objs, currentHash, files)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if hash == nil {
 			break
@@ -212,22 +185,22 @@ func (p Project) PullBranchFrom(branch string, in io.Reader, contentType, user s
 		name := e.Value.(string)
 		err = copyFile(filepath.Join(temp.gudPath, objectsPath, name), filepath.Join(p.gudPath, objectsPath, name))
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	if currentHash != nil {
 		err = dumpBranch(p.gudPath, branch, *currentHash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return currentHash, nil
 }
 
 func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *ObjectHash, files *list.List,
-	) (hash *ObjectHash, err error) {
+) (hash *ObjectHash, err error) {
 	part, err := reader.NextPart()
 	if err == io.EOF {
 		return nil, nil

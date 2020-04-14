@@ -14,6 +14,11 @@
 				<div class="container-fluid">
 					<PrsList category="pr" />
 				</div>
+				<div class="container">
+					<div class="container-fluid">
+						<JobsList />
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -23,9 +28,10 @@
 	import IssuesList from "../components/IssuesList"
 	import InviteForm from "../components/InviteForm"
 	import PrsList from "../components/PrsList"
+	import JobsList from "../components/JobsList"
 	export default {
 		name: "Project",
-		components: { InviteForm, IssuesList, PrsList },
+		components: { JobsList, InviteForm, IssuesList, PrsList },
 	}
 </script>
 

@@ -41,3 +41,13 @@ CREATE TABLE prs (
     "to"       varchar   NOT NULL,
     created_at timestamp NOT NULL
 );
+
+CREATE TYPE job_status AS ENUM ('pending', 'success', 'failure');
+
+CREATE TABLE jobs (
+    job_id     serial PRIMARY KEY,
+    project_id int        NOT NULL REFERENCES projects(project_id),
+    "version"  char(20)   NOT NULL,
+    status     job_status NOT NULL,
+    logs       text       NOT NULL
+);

@@ -60,6 +60,13 @@ type PullRequest struct {
 type UpdateIssueRequest struct {
 }
 
+type Job struct {
+	Id      int    `json:"id"`
+	Version string `json:"version"`
+	Status  string `json:"status"`
+	Logs    string `json:"logs,omitempty"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

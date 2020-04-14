@@ -23,6 +23,8 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	project.HandleFunc("/branch/{branch}", projectBranch).Methods(http.MethodGet)
 	project.HandleFunc("/push", pushProject).Methods(http.MethodPost)
 	project.HandleFunc("/pull", pullProject).Methods(http.MethodGet)
+	project.HandleFunc("/jobs", getJobs).Methods(http.MethodGet)
+	project.HandleFunc("/job/{job}", getJob).Methods(http.MethodGet)
 	project.HandleFunc("/invite", inviteMember).Methods(http.MethodPost)
 
 	issues := project.PathPrefix("/issues").Subrouter()

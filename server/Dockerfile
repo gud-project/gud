@@ -8,14 +8,17 @@ COPY server/*.go server/
 RUN cd server/ && CGO_ENABLED=0 go build
 
 FROM node:alpine AS front
-COPY server/front/ .
+COPY server/front/package.json server/front/package-lock.json ./
+RUN npm install
+
+COPY server/front/ ./
 RUN npm run build -- --mode development
 
 FROM scratch
-COPY --from=back /go/server /var/www/server
-COPY --from=front /dist /var/www/front/dist
+COPY --from=back /go/server/server /var/www/server
+COPY --from=front /dist/ /var/www/front/dist/
 
-VOLUME /var/www/projects
+VOLUME /var/www/projects/
 EXPOSE 8080
 
 CMD ["/var/www/server"]

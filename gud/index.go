@@ -24,6 +24,7 @@ type indexEntry struct {
 	Hash  ObjectHash
 	State FileState
 	Mtime time.Time
+	Size  int64
 }
 
 type indexFile struct {
@@ -35,6 +36,11 @@ type indexFile struct {
 func (p Project) Add(paths ...string) error {
 	// TODO: handle renames
 	entries, err := loadIndex(p.gudPath)
+	if err != nil {
+		return err
+	}
+
+	versionHash, err := p.CurrentHash()
 	if err != nil {
 		return err
 	}
@@ -53,7 +59,7 @@ func (p Project) Add(paths ...string) error {
 			return err
 		}
 
-		prev, err := p.findObject(rel)
+		prev, err := p.findObject(rel, *versionHash)
 		if err != nil {
 			return err
 		}
@@ -68,7 +74,8 @@ func (p Project) Add(paths ...string) error {
 			}
 
 			err = p.compareTree(
-				rel, prevTree, entries, func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
+				rel, prevTree, entries, // TODO: might need to replace entries with nil
+				func(relPath string, state FileState, hash *ObjectHash, isDir bool) error {
 					if !isDir {
 						entries, err = p.addIndexEntry(relPath, state, entries)
 						if err != nil {
@@ -126,6 +133,11 @@ func (p Project) Remove(paths ...string) error {
 		return err
 	}
 
+	versionHash, err := p.CurrentHash()
+	if err != nil {
+		return err
+	}
+
 	for _, path := range paths {
 		abs, err := filepath.Abs(path)
 		if err != nil {
@@ -136,7 +148,7 @@ func (p Project) Remove(paths ...string) error {
 			return err
 		}
 
-		prev, err := p.findObject(rel)
+		prev, err := p.findObject(rel, *versionHash)
 		if err != nil {
 			return err
 		}
@@ -190,6 +202,7 @@ func (p Project) removeDirFromIndex(relPath string, prevHash ObjectHash, index [
 
 func (p Project) addIndexEntry(relPath string, state FileState, index []indexEntry) ([]indexEntry, error) {
 	var mtime time.Time
+	var n int64
 	if state != StateRemoved {
 		info, err := os.Stat(filepath.Join(p.Path, relPath))
 		if err != nil {
@@ -197,6 +210,7 @@ func (p Project) addIndexEntry(relPath string, state FileState, index []indexEnt
 		}
 
 		mtime = info.ModTime()
+		n = info.Size()
 	}
 
 	ind, found := findEntry(index, relPath)
@@ -245,6 +259,7 @@ func (p Project) addIndexEntry(relPath string, state FileState, index []indexEnt
 		Hash:  *hash,
 		State: state,
 		Mtime: mtime,
+		Size:  n,
 	}
 	return index, nil
 }

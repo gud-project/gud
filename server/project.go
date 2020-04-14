@@ -253,7 +253,7 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 		return
 	}
 
-	err = project.PullBranchFrom(branch, r.Body, r.Header.Get("Content-Type"), username)
+	hash, err := project.PullBranchFrom(branch, r.Body, r.Header.Get("Content-Type"), username)
 	if err != nil {
 		if inputErr, ok := err.(gud.InputError); ok {
 			reportError(w, http.StatusBadRequest, inputErr.Error())
@@ -262,6 +262,13 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 		}
 		return
 	}
+
+	err = createJob(r.Context().Value(KeyProjectId).(int), project, *hash)
+	if err != nil {
+		handleError(w, err)
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func verifyProject(next http.Handler) http.Handler {
