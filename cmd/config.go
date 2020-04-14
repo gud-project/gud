@@ -73,10 +73,11 @@ Command can also be used by only writing "config"`,
 				return err
 			}
 			err = p.Checkpoint("config-change")
+			if err != nil {
+				return err
+			}
 		}
-		if err != nil {
-			return err
-		}
+
 		defer func() {
 			if err != nil {
 				_ = p.Undo()
