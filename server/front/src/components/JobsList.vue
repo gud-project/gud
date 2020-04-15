@@ -1,11 +1,29 @@
 <template>
 	<div>
-		<div v-for="job in jobs">
-			<router-link :to="`/${$route.params.user}/${$route.params.project}/job/${job.id}`">
-				#{{ job.id }}
-			</router-link>
-			<div :style="`color: ${getStatusColor(job.status)}`">{{ job.status }}</div>
-		</div>
+		<table class="table">
+			<thead class="thead-dark">
+			<th id="id" scope="col">#</th>
+			<th scope="col">Name</th>
+			<th scope="col">Version</th>
+			<th scope="col">Status</th>
+			</thead>
+
+			<tbody>
+			<tr v-for="job in jobs">
+				<th scope="row">
+					<router-link :to="`/${$route.params.user}/${$route.params.project}/job/${job.id}`">
+						id
+					</router-link>
+				</th>
+				<td>
+					{{job.version}}
+				</td>
+				<td>
+					<div :style="`color: ${getStatusColor(job.status)}`">{{ job.status }}</div>
+				</td>
+			</tr>
+			</tbody>
+		</table>
 	</div>
 </template>
 

@@ -6,18 +6,20 @@
 			<br />
             <InviteForm />
 			<br />
-			<div class="container">
+			<div>
+				<h3>Issues:</h3>
 				<div class="container-fluid">
 					<IssuesList category="issue" />
 				</div>
 
+				<h3>Pull requests:</h3>
 				<div class="container-fluid">
 					<PrsList category="pr" />
 				</div>
-				<div class="container">
-					<div class="container-fluid">
+
+				<h3>Jobs:</h3>
+				<div class="container-fluid">
 						<JobsList />
-					</div>
 				</div>
 			</div>
 		</div>

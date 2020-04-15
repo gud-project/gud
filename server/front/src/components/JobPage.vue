@@ -1,7 +1,9 @@
 <template>
-	<div>
-		<h1>#{{ $route.params.job }} : {{ job.status }}</h1>
-		<p class="logs">{{ job.logs }}</p>
+	<div class="container">
+		<div class="jumbotron">
+			<h1>#{{ $route.params.job }} : {{ job.status }}</h1>
+			<p class="logs">{{ job.logs }}</p>
+		</div>
 	</div>
 </template>
 
