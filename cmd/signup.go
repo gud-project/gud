@@ -21,12 +21,8 @@ var emailPattern = regexp.MustCompile(`^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0
 var signupCmd = &cobra.Command{
 	Use:   "signup",
 	Short: "Create a new user in the server",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long: `Create a new user on a remote server.
+Server domain is in config file.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var name, email, password string
 		err := getUserData(&name, &email, &password)

@@ -11,7 +11,7 @@ import (
 var branchCmd = &cobra.Command{
 	Use:   "branch",
 	Short: "Gives you information about your project's branches. Also takes place as the branch root command",
-	Long: `branch is the root command for branch commands. This means in order to execute more
+	Long: `Branch is the root command for branch commands. This means in order to execute more
 complex branch commands, you will write "gud branch" and then your command. In addition,
 when branch is called by it's own it will print information about the branches in your project`,
 	RunE: func(cmd *cobra.Command, args []string) error {

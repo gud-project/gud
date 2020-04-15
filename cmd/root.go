@@ -11,13 +11,11 @@ import (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "gud",
-	Short: "gud is a version control system, that helps you manage your project's different versions",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Gud is a version control system, that helps you manage your project's different versions",
+	Long: `Gud is a version control system, attempting to answer the problems coming up with the
+existing version controls systems, and add new, modern features to them.
+Some of the new major features are an undo command in the CLI,
+and automatic update. As for now, gud has one remote server working, in the automatically used domain "gud.codes"`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error { return errors.New("") },

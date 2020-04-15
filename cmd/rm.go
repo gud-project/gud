@@ -16,13 +16,10 @@ var keepF bool
 var rmCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Use:   "rm <file>...",
-	Short: "remove given files from the project's version",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Remove given files from the project's version",
+	Long: `Remove a file from your current version of the project.
+Will the delete the file(unless -k is used).
+If the file was already deleted, it will only be removed on the index index.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		//Check if there are directories to be removed without recursF
 		if !recursF {

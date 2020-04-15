@@ -10,7 +10,10 @@ var mergeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Use:   "merge <branch>",
 	Short: "Merge the given branch into the current one",
-	Long: ``,
+	Long: `Merge files from a given file to the current one.
+If there are changes in a file in both branches,
+will create a "conflict", allowing you to decide what to keep
+and what to replace from the both of the files`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		p, err := LoadProject()
 		if err != nil {
