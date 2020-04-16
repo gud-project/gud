@@ -25,11 +25,11 @@ var newUserStmt,
 	getIssueStmt,
 	createPrStmt,
 	getPrsStmt,
-	getPrStmt ,
+	getPrStmt,
 	createJobStmt,
 	finishJobStmt,
 	getJobsStmt,
-	getJobStmt*sql.Stmt
+	getJobStmt *sql.Stmt
 
 func init() {
 	var err error

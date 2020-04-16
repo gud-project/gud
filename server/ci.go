@@ -27,11 +27,13 @@ func execJob(tar io.Reader) (int, []byte, error) {
 	ctx := context.Background()
 	var stdout bytes.Buffer
 
+	stdout.WriteString("gud: BUILDING IMAGE...\n")
 	id, err := buildImage(cli, ctx, tar, &stdout)
 	if err != nil {
 		return -1, stdout.Bytes(), err
 	}
 
+	stdout.WriteString("\ngud: EXECUTING JOB...\n")
 	status, err := runContainer(cli, ctx, id, &stdout)
 	return status, stdout.Bytes(), err
 }

@@ -47,7 +47,7 @@ CREATE TYPE job_status AS ENUM ('pending', 'success', 'failure');
 CREATE TABLE jobs (
     job_id     serial PRIMARY KEY,
     project_id int        NOT NULL REFERENCES projects(project_id),
-    "version"  char(20)   NOT NULL,
+    "version"  char(40)   NOT NULL,
     status     job_status NOT NULL,
     logs       text       NOT NULL
 );

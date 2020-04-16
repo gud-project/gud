@@ -14,27 +14,26 @@ import (
 )
 
 func createJob(projectId int, project gud.Project, hash gud.ObjectHash) error {
-	jobId, err := execReturningId(createJobStmt, projectId, hash)
+	hasDockerfile, err := project.HasFile("Dockerfile", hash)
 	if err != nil {
 		return err
 	}
+	if hasDockerfile {
+		jobId, err := execReturningId(createJobStmt, projectId, hash.String())
+		if err != nil {
+			return err
+		}
 
-	go runJob(jobId, project, hash)
+		go runJob(jobId, project, hash)
+	}
+
 	return nil
 }
 
 func runJob(id int, project gud.Project, hash gud.ObjectHash) {
-	hasDockerfile, err := project.HasFile("Dockerfile", hash)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	if !hasDockerfile {
-		return
-	}
-
 	var code int
 	var logs []byte
+	var err error
 	defer func() {
 		if err != nil {
 			log.Println(err)
@@ -61,7 +60,6 @@ func runJob(id int, project gud.Project, hash gud.ObjectHash) {
 	if err != nil {
 		return
 	}
-
 }
 
 func getJobs(w http.ResponseWriter, r *http.Request) {
