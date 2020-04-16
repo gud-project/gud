@@ -10,7 +10,7 @@ import (
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(2, 3),
-	Use:   "Clone [domain] <owner> <project>",
+	Use:   "clone [domain] <owner> <project>",
 	Short: "Create a copy of a project in the server",
 	Long: `Start a new project in the current folder. In difference from start, the project will not be empty,
 but will be a copy of an existing project from the server`,
