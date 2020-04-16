@@ -210,56 +210,53 @@ func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *Objec
 	}
 	defer part.Close()
 
-	hash, err = validatePart(gudPath, part, versionContentType)
+	hash, err = validatePart(part, versionContentType)
 	if err != nil {
 		return
 	}
 
-	name := part.FileName()
-	dst, err := os.Create(objectPath(gudPath, *hash))
-	if err != nil {
-		return
-	}
-	defer func() {
-		cerr := dst.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
-
-	current, err := versionFromReader(io.TeeReader(part, dst))
-	if err != nil {
-		return
-	}
-
-	prev, err := validateVersion(gudPath, user, *current, *hash, prevHash)
-	if err != nil {
-		return
-	}
-
-	files.PushBack(name)
-
-	var prevTree tree
-	if prev != nil {
-		prevTree, err = loadTree(gudPath, prev.TreeHash)
+	var src io.Reader = part
+	_, err = os.Stat(objectPath(gudPath, *hash))
+	if os.IsNotExist(err) {
+		dst, err := os.Create(objectPath(gudPath, *hash))
 		if err != nil {
-			return
+			return nil, err
 		}
+		defer func() {
+			cerr := dst.Close()
+			if err == nil {
+				err = cerr
+			}
+		}()
+
+		src = io.TeeReader(part, dst)
 	}
 
-	err = pullTree(gudPath, reader, current.TreeHash, prevTree, files)
+	current, err := versionFromReader(src)
+	if err != nil {
+		return
+	}
+
+	err = validateVersion(gudPath, user, *current, *hash, prevHash)
+	if err != nil {
+		return
+	}
+
+	files.PushBack(part.FileName())
+
+	err = pullTree(gudPath, reader, current.TreeHash, files)
 	return
 }
 
 func pullTree(
-	gudPath string, reader *multipart.Reader, expectedHash ObjectHash, prev tree, files *list.List) error {
+	gudPath string, reader *multipart.Reader, expectedHash ObjectHash, files *list.List) error {
 	part, err := reader.NextPart()
 	if err != nil {
 		return InputError{"invalid multipart data"}
 	}
 	defer part.Close()
 
-	hash, err := validatePart(gudPath, part, treeContentType)
+	hash, err := validatePart(part, treeContentType)
 	if err != nil {
 		return err
 	}
@@ -267,20 +264,25 @@ func pullTree(
 		return InputError{fmt.Sprintf("unexpected tree: expected %s, got %s", expectedHash, hash)}
 	}
 
-	name := part.FileName()
-	dst, err := os.Create(objectPath(gudPath, *hash))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		cerr := dst.Close()
-		if err == nil {
-			err = cerr
+	var src io.Reader = part
+	_, err = os.Stat(objectPath(gudPath, *hash))
+	if os.IsNotExist(err) {
+		dst, err := os.Create(objectPath(gudPath, *hash))
+		if err != nil {
+			return err
 		}
-	}()
+		defer func() {
+			cerr := dst.Close()
+			if err == nil {
+				err = cerr
+			}
+		}()
+
+		src = io.TeeReader(part, dst)
+	}
 
 	var current tree
-	err = readGobObject(io.TeeReader(part, dst), &current)
+	err = readGobObject(src, &current)
 	if err != nil {
 		return InputError{fmt.Sprintf("invalid tree object: %s", hash)}
 	}
@@ -289,45 +291,24 @@ func pullTree(
 		return InputError{fmt.Sprintf("invalid tree: %s", hash)}
 	}
 
-	files.PushBack(name)
+	files.PushBack(part.FileName())
 
 	for _, obj := range current {
-		var prevObj *object
-		for _, p := range prev {
-			if p.Hash == obj.Hash {
-				prevObj = &p
-				break
+		switch obj.Type {
+		case typeBlob:
+			err = pullBlob(gudPath, reader, obj.Hash, files)
+			if err != nil {
+				return err
 			}
-		}
-		if prevObj != nil {
-			if obj.Type != prevObj.Type {
-				return InputError{fmt.Sprintf("invalid tree: %s", hash)}
+
+		case typeTree:
+			err = pullTree(gudPath, reader, obj.Hash, files)
+			if err != nil {
+				return err
 			}
-		} else {
-			switch obj.Type {
-			case typeBlob:
-				err = pullBlob(gudPath, reader, obj.Hash, files)
-				if err != nil {
-					return err
-				}
 
-			case typeTree:
-				var prevChild tree
-				if ind, found := searchTree(prev, obj.Name); found {
-					prevChild, err = loadTree(gudPath, prev[ind].Hash)
-					if err != nil {
-						return err
-					}
-				}
-
-				err = pullTree(gudPath, reader, obj.Hash, prevChild, files)
-				if err != nil {
-					return err
-				}
-
-			default:
-				return InputError{fmt.Sprintf("invalid tree: %s", hash)}
-			}
+		default:
+			return InputError{fmt.Sprintf("invalid tree: %s", hash)}
 		}
 	}
 
@@ -341,12 +322,17 @@ func pullBlob(gudPath string, reader *multipart.Reader, expectedHash ObjectHash,
 	}
 	defer part.Close()
 
-	hash, err := validatePart(gudPath, part, blobContentType)
+	hash, err := validatePart(part, blobContentType)
 	if err != nil {
 		return err
 	}
 	if *hash != expectedHash {
 		return InputError{fmt.Sprintf("unexpected blob: expected %s, got %s", expectedHash, hash)}
+	}
+
+	_, err = os.Stat(objectPath(gudPath, *hash))
+	if !os.IsNotExist(err) {
+		return nil
 	}
 
 	name := part.FileName()
@@ -376,7 +362,7 @@ func pullBlob(gudPath string, reader *multipart.Reader, expectedHash ObjectHash,
 	return nil
 }
 
-func validatePart(gudPath string, part *multipart.Part, expectedType string) (*ObjectHash, error) {
+func validatePart(part *multipart.Part, expectedType string) (*ObjectHash, error) {
 	name := part.FileName()
 	var hash ObjectHash
 	n, err := hex.Decode(hash[:], []byte(name))
@@ -390,58 +376,53 @@ func validatePart(gudPath string, part *multipart.Part, expectedType string) (*O
 			fmt.Sprintf("invalid content type: expected %s, got %s", expectedType, contentType)}
 	}
 
-	_, err = os.Stat(objectPath(gudPath, hash))
-	if !os.IsNotExist(err) {
-		return nil, InputError{fmt.Sprintf("object already exists: %s", name)}
-	}
-
 	return &hash, nil
 }
 
-func validateVersion(rootPath, user string, v Version, hash ObjectHash, prevHash *ObjectHash) (*Version, error) {
+func validateVersion(rootPath, user string, v Version, hash ObjectHash, prevHash *ObjectHash) error {
 	if user != "" && v.Author != user {
-		return nil, InputError{fmt.Sprintf("expected user %s, got %s", user, v.Author)}
+		return InputError{fmt.Sprintf("expected user %s, got %s", user, v.Author)}
 	}
 
 	if prevHash == nil {
 		if v.HasPrev() {
-			return nil, InputError{fmt.Sprintf("expected first version: %s", hash)}
+			return InputError{fmt.Sprintf("expected first version: %s", hash)}
 		}
 		if v.IsMergeVersion() {
-			return nil, InputError{fmt.Sprintf("invalid merge version: %s", hash)}
+			return InputError{fmt.Sprintf("invalid merge version: %s", hash)}
 		}
 
-		return nil, nil
+		return nil
 	}
 
 	prev, err := loadVersion(rootPath, *prevHash)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if !v.HasPrev() {
-		return nil, InputError{fmt.Sprintf("unexpected first version: %s", hash)}
+		return InputError{fmt.Sprintf("unexpected first version: %s", hash)}
 	}
 	if *v.prev != *prevHash {
-		return nil, InputError{fmt.Sprintf("unexpected version: %s", hash)}
+		return InputError{fmt.Sprintf("unexpected version: %s", hash)}
 	}
 	if !prev.Time.Before(v.Time) {
-		return nil, InputError{fmt.Sprintf("invalid version time: %s", hash)}
+		return InputError{fmt.Sprintf("invalid version time: %s", hash)}
 	}
 	if v.IsMergeVersion() {
 		merged, err := loadVersion(rootPath, *v.merged)
 		if os.IsNotExist(err) {
-			return nil, InputError{fmt.Sprintf("invalid merge version: %s", hash)}
+			return InputError{fmt.Sprintf("invalid merge version: %s", hash)}
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if !merged.Time.Before(v.Time) {
-			return nil, InputError{fmt.Sprintf("invalid version time: %s", hash)}
+			return InputError{fmt.Sprintf("invalid version time: %s", hash)}
 		}
 	}
 
-	return prev, nil
+	return nil
 }
 
 func versionFromReader(in io.Reader) (*Version, error) {
