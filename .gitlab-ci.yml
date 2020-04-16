@@ -5,7 +5,6 @@ cache:
         - /go/pkg/mod/cache
 
 before_script:
-    - cp -r $CI_PROJECT_DIR .
     - make cli back
     
     - git clone --depth=1 https://github.com/bats-core/bats-core.git
