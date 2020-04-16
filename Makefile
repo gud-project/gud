@@ -28,7 +28,8 @@ $(SERVER_DIR)/server: $(SERVER_SRC) $(LIB_SRC)
 
 front: $(FRONT_DIR)/dist/index.html
 $(FRONT_DIR)/dist/index.html: $(FRONT_SRC)
-	npm run --prefix $(FRONT_DIR) build -- --mode development
+	npm insall --prefix $(FRONT_DIR)
+	npm run --prefix $(FRONT_DIR) build -- --mode $(if $(PROD),production,development)
 
 bin: main.go $(CMD_SRC) $(LIB_SRC)
 	for target in 'windows' 'darwin' 'linux'

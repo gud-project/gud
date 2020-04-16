@@ -20,5 +20,6 @@ COPY --from=front /dist/ /var/www/front/dist/
 
 VOLUME /var/www/projects/
 EXPOSE 8080
+EXPOSE 443
 
 CMD ["/var/www/server"]

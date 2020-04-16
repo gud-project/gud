@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"gitlab.com/magsh-2019/2/gud/gud"
@@ -27,7 +28,14 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.Dir("./front/dist/")))
 	http.Handle("/api/v1/", http.StripPrefix("/api/v1", api))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+
+	if _, inProd := os.LookupEnv("PROD"); inProd {
+		log.Println("server running on https")
+		log.Fatal(http.ListenAndServeTLS(":443", os.Getenv("TLS_CERT"), os.Getenv("TLS_KEY"), nil))
+	} else {
+		log.Println("server running on 8080")
+		log.Fatal(http.ListenAndServe(":8080", nil))
+	}
 }
 
 // reportError reports an error to the client side (e.g. invalid input, unauthorized)
