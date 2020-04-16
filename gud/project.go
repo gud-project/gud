@@ -3,6 +3,7 @@ package gud
 
 import (
 	"archive/tar"
+	"compress/zlib"
 	"io"
 	"os"
 	"path/filepath"
@@ -337,7 +338,13 @@ func (p Project) Tar(writer io.Writer, hash ObjectHash) (err error) {
 		}
 		defer src.Close()
 
-		_, err = io.Copy(w, src)
+		zip, err := zlib.NewReader(src)
+		if err != nil {
+			return err
+		}
+		defer zip.Close()
+
+		_, err = io.Copy(w, zip)
 		return err
 	})
 }
