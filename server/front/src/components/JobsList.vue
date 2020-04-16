@@ -3,7 +3,6 @@
 		<table class="table">
 			<thead class="thead-dark">
 			<th id="id" scope="col">#</th>
-			<th scope="col">Name</th>
 			<th scope="col">Version</th>
 			<th scope="col">Status</th>
 			</thead>
@@ -12,11 +11,11 @@
 			<tr v-for="job in jobs">
 				<th scope="row">
 					<router-link :to="`/${$route.params.user}/${$route.params.project}/job/${job.id}`">
-						id
+						{{ job.id }}
 					</router-link>
 				</th>
 				<td>
-					{{job.version}}
+					{{ job.version }}
 				</td>
 				<td>
 					<div :style="`color: ${getStatusColor(job.status)}`">{{ job.status }}</div>
@@ -49,7 +48,7 @@
 			getStatusColor(status) {
 				switch (status) {
 					case "pending":
-						return "yellow"
+						return "orange"
 					case "success":
 						return "green"
 					case "failure":
