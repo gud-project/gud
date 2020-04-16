@@ -1,18 +1,33 @@
 image: golang:latest
 
+cache:
+    paths:
+        - /go/pkg/mod/cache
+
 before_script:
-    - pkg_name=gitlab.com/magsh-2019/2/gud
-    - mkdir -p /go/src/$(dirname $pkg_name)
-    - cp -r $CI_PROJECT_DIR /go/src/$pkg_name
+    - cp -r $CI_PROJECT_DIR .
+    - make cli back
     
     - git clone --depth=1 https://github.com/bats-core/bats-core.git
     - cd bats-core
     - ./install.sh /usr/local
+    - cd ..
+    - rm -rf bats-core
+    
+    - which npm || ( curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt install -y nodejs )
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+
+stages:
+    - test
+    - deploy
 
 lib:
     stage: test
     script:
-        - go test $pkg_name/gud
+        - go test ./gud
     only:
         changes:
             - gud/*
@@ -20,5 +35,13 @@ lib:
 cli:
     stage: test
     script:
-        - cd /go/src/$pkg_name
         - bats test.bats
+
+deploy:
+    stage: deploy
+    script:
+        - PROD=1 make server
+        - scp -r ./server/server ./server/front/dist/ root@gud.codes
+        - ssh root@gud.codes service gud restart
+    only:
+        - master
