@@ -14,6 +14,10 @@ type LoginRequest struct {
 	Remember bool   `json:"remember"`
 }
 
+type UserResponse struct {
+	Username string `json:"username"`
+}
+
 type CreateProjectRequest struct {
 	Name string `json:"name"`
 }

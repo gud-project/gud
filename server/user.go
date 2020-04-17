@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"gitlab.com/magsh-2019/2/gud/gud"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -14,7 +15,7 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	r := route.Subrouter()
 	r.Use(verifySession, selector)
 
-	r.HandleFunc("", func(w http.ResponseWriter, r *http.Request) {}).Methods(http.MethodHead)
+	r.HandleFunc("", getUser).Methods(http.MethodHead, http.MethodGet)
 	r.HandleFunc("/projects", userProjects).Methods(http.MethodGet)
 
 	project := r.PathPrefix("/project/{project}").Subrouter()
@@ -36,6 +37,22 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
 	prs.HandleFunc("", getPrs).Methods(http.MethodGet)
 	prs.HandleFunc("/{pr}", getPr).Methods(http.MethodGet)
+}
+
+func getUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodHead {
+		return
+	}
+
+	var user gud.UserResponse
+	err := getUserStmt.QueryRow(r.Context().Value(KeySelectedUserId)).Scan(&user.Username)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(user)
 }
 
 func userProjects(w http.ResponseWriter, r *http.Request) {
