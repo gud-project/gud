@@ -15,13 +15,13 @@
             <div class="jumbotron">
                 <h1>How to get it</h1>
                 <p>
-                    You just need to press the download button. Gud has a multi-platform usage, <br />
-                    and can be used in both Linux and Windows.<br />
+                    Just press the download button. Gud is cross-platform
+                    and works on Linux, MacOS and Windows.<br />
                 </p>
                 <form :action="url"><button type="submit" class="btn btn-lg btn-primary">Download</button></form>
                 <p>
                     <br />In order the use the "gud" root command in any file with your terminal,<br />
-                    add the path to your "gud.exe" file, to your system variables.
+                    add the path to your "gud" executable to your PATH environment variable.
                 </p>
             </div>
         </div>
