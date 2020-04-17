@@ -1,46 +1,49 @@
 image: golang:latest
 
-cache:
-    paths:
-        - /go/pkg/mod/cache
-
-before_script:
-    - make cli back
-    
-    - git clone --depth=1 https://github.com/bats-core/bats-core.git
-    - cd bats-core
-    - ./install.sh /usr/local
-    - cd ..
-    - rm -rf bats-core
-    
-    - which npm || ( curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt install -y nodejs )
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-
 stages:
+    - build
     - test
     - deploy
+
+build:
+    stage: build
+    before_script:
+        - which npm || ( curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt install -y nodejs )
+    script:
+        - PROD=1 make
+    cache:
+        paths:
+            - server/front/node_modules/
+            - server/server
+            - server/front/dist/
 
 lib:
     stage: test
     script:
-        - go test ./gud
+        - go test $(go list)/gud
     only:
         changes:
             - gud/*
 
 cli:
     stage: test
+    before_script:
+        - git clone --depth=1 https://github.com/bats-core/bats-core.git
+        - ./bats-core/install.sh /usr/local
+        - rm -rf bats-core
     script:
         - bats test.bats
 
 deploy:
     stage: deploy
+    before_script:
+        - eval $(ssh-agent -s)
+        - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+        - mkdir -p ~/.ssh
+        - chmod 700 ~/.ssh
     script:
-        - PROD=1 make server
-        - scp -r ./server/server ./server/front/dist/ root@gud.codes
+        - scp ./server/server root@gud.codes:/var/www/
+        - scp -r ./server/front/dist/ root@gud.codes:/var/www/front/
         - ssh root@gud.codes service gud restart
     only:
         - master
