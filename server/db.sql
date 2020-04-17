@@ -49,5 +49,5 @@ CREATE TABLE jobs (
     project_id int        NOT NULL REFERENCES projects(project_id),
     "version"  char(40)   NOT NULL,
     status     job_status NOT NULL,
-    logs       text       NOT NULL
+    logs       varchar    NOT NULL
 );
