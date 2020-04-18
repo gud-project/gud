@@ -1,0 +1,76 @@
+<template>
+	<div class="container">
+		<div class="jumbotron">
+			<h1>!{{ $route.params.pr }} : {{ pr.title }}</h1>
+			<label>
+				<router-link :to="pr.author">@{{ pr.author }}</router-link>
+			</label>
+			<br /><br />
+			<p>{{ new Date(pr.created).toDateString() }}</p>
+			<p><b>{{ pr.status }}</b> {{ pr.from }} ⇒ {{ pr.to }}</p>
+			<p class="content">{{ pr.content }}</p>
+			
+			<div>
+				<button @click="mergePr" :disabled="pr.status !== 'open'">Merge</button>
+				<button @click="closePr" :disabled="pr.status !== 'open'">Close</button>
+			</div>
+		</div>
+	</div>
+</template>
+
+<script>
+	export default {
+		name: "PrPage",
+		data() {
+			return {
+				pr: {
+					title: null,
+					author: null,
+					content: null,
+					status: null,
+					from: null,
+					to: null,
+					created: null,
+				},
+			}
+		},
+		async created() {
+			const { user, project, pr } = this.$route.params
+			this.pr = await this.$getData(
+				`/api/v1/user/${user}/project/${project}/prs/${pr}`)
+			this.status = this.pr.status
+		},
+		methods: {
+			async mergePr() {
+				const { user, project, pr } = this.$route.params
+				const res = await fetch(`/api/v1/user/${user}/project/${project}/prs/${pr}/merge`, {
+					method: "POST",
+				})
+				
+				if (res.ok) {
+					this.pr.status = "merged"
+				} else {
+					alert((await res.json()).error || res.statusText)
+				}
+			},
+			async closePr() {
+				const { user, project, pr } = this.$route.params
+				const res = await fetch(`/api/v1/user/${user}/project/${project}/prs/${pr}/close`, {
+					method: "POST",
+				})
+				
+				if (res.ok) {
+					this.pr.status = "closed"
+				} else {
+					alert((await res.json()).error || res.statusText)
+				}
+			},
+		}
+	}
+</script>
+
+<style scoped>
+.content {
+	white-space: pre-line;
+}
+</style>

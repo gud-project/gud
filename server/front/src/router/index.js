@@ -62,7 +62,7 @@ const router = new VueRouter({
 			},
 		},
 		{
-			path: "/:user/:project/pr/:issue",
+			path: "/:user/:project/pr/:pr",
 			name: "PR",
 			component() {
 				return import(/* webpackChunkName: "issue" */ "../views/PR")
