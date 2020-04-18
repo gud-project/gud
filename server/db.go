@@ -23,6 +23,7 @@ var newUserStmt,
 	createIssueStmt,
 	getIssuesStmt,
 	getIssueStmt,
+	setIssueStatusStmt,
 	createPrStmt,
 	getPrsStmt,
 	getPrStmt,
@@ -88,9 +89,12 @@ func init() {
 		getIssueStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status, created_at FROM issues WHERE issue_id = $1")
 
+		setIssueStatusStmt = mustPrepare(
+			"UPDATE issues SET status = $2 WHERE issue_id = $1;")
+
 		createPrStmt = mustPrepare(`
-			INSERT INTO prs (title, content, user_id, project_id, "from", "to", created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, NOW())
+			INSERT INTO prs (title, content, user_id, project_id, "from", "to", status, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW())
 			RETURNING pr_id;`)
 
 		getPrsStmt = mustPrepare(
@@ -154,6 +158,7 @@ func closeDB() error {
 		createIssueStmt,
 		getIssuesStmt,
 		getIssueStmt,
+		setIssueStatusStmt,
 		createPrStmt,
 		getPrsStmt,
 		getPrStmt,

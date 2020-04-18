@@ -31,7 +31,10 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	issues := project.PathPrefix("/issues").Subrouter()
 	issues.HandleFunc("/create", createIssue).Methods(http.MethodPost)
 	issues.HandleFunc("", getIssues).Methods(http.MethodGet)
-	issues.HandleFunc("/{issue}", getIssue).Methods(http.MethodGet)
+
+	issue := issues.PathPrefix("/{issue}").Subrouter()
+	issue.HandleFunc("", getIssue).Methods(http.MethodGet)
+	issue.HandleFunc("/update", setIssueStatus).Methods(http.MethodPost)
 
 	prs := project.PathPrefix("/prs").Subrouter()
 	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)

@@ -62,6 +62,7 @@ type PullRequest struct {
 }
 
 type UpdateIssueRequest struct {
+	Status string `json:"status"`
 }
 
 type Job struct {
