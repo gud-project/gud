@@ -39,7 +39,11 @@ func createUserRouter(route *mux.Route, selector mux.MiddlewareFunc) {
 	prs := project.PathPrefix("/prs").Subrouter()
 	prs.HandleFunc("/create", createPr).Methods(http.MethodPost)
 	prs.HandleFunc("", getPrs).Methods(http.MethodGet)
-	prs.HandleFunc("/{pr}", getPr).Methods(http.MethodGet)
+
+	pr := prs.PathPrefix("/{pr}").Subrouter()
+	pr.HandleFunc("", getPr).Methods(http.MethodGet)
+	pr.HandleFunc("/merge", mergePr).Methods(http.MethodPost)
+	pr.HandleFunc("/close", closePr).Methods(http.MethodPost)
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
