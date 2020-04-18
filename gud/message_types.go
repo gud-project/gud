@@ -52,13 +52,9 @@ type Issue struct {
 }
 
 type PullRequest struct {
-	Id      int       `json:"id"`
-	Title   string    `json:"title"`
-	Author  string    `json:"author"`
-	Content string    `json:"content"`
-	From    string    `json:"from"`
-	To      string    `json:"to"`
-	Created time.Time `json:"created"`
+	Issue
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 type UpdateIssueRequest struct {

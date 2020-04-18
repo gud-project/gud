@@ -7,7 +7,7 @@
 			</label>
 			<br /><br />
 			<p>{{ new Date(issue.created).toDateString() }}</p>
-			<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
+			<p v-if="pr"><b>{{ issue.status }}</b> {{ issue.from }} ⇒ {{ issue.to }}</p>
 			<p class="content">{{ issue.content }}</p>
 			<br /><br />
 			<div v-if="pr"></div>
@@ -24,12 +24,6 @@
 	</div>
 </template>
 
-<!--
-<h1>#{{ $route.params.issue }} : {{ issue.title }}</h1>
-<router-link :to="issue.author">@{{ issue.author }}</router-link><br /><br />
-<div v-if="pr">{{ issue.from }} ⇒ {{ issue.to }}</div>
-<p class="content">{{ issue.content }}</p>
--->
 <script>
 	export default {
 		name: "IssuePage",

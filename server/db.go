@@ -27,6 +27,8 @@ var newUserStmt,
 	createPrStmt,
 	getPrsStmt,
 	getPrStmt,
+	mergePrStmt,
+	closePrStmt,
 	createJobStmt,
 	finishJobStmt,
 	getJobsStmt,
@@ -98,10 +100,16 @@ func init() {
 			RETURNING pr_id;`)
 
 		getPrsStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE project_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", status, created_at FROM prs WHERE project_id = $1`)
 
 		getPrStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE pr_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", status, created_at FROM prs WHERE pr_id = $1`)
+
+		mergePrStmt = mustPrepare(
+			"UPDATE prs SET status = 'merged' WHERE pr_id = $1;")
+
+		closePrStmt = mustPrepare(
+			"UPDATE prs SET status = 'closed' WHERE pr_id = $1;")
 
 		createJobStmt = mustPrepare(
 			`INSERT INTO jobs (project_id, "version", status, logs) VALUES ($1, $2, 'pending', '') RETURNING job_id;`)
@@ -162,6 +170,8 @@ func closeDB() error {
 		createPrStmt,
 		getPrsStmt,
 		getPrStmt,
+		mergePrStmt,
+		closePrStmt,
 		createJobStmt,
 		finishJobStmt,
 		getJobsStmt,

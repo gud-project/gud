@@ -112,7 +112,7 @@ func getPr(w http.ResponseWriter, r *http.Request) {
 func scanPr(row scanner) (*gud.PullRequest, error) {
 	var pr gud.PullRequest
 	var authorId int
-	err := row.Scan(&pr.Id, &authorId, &pr.Title, &pr.Content, &pr.From, &pr.To, &pr.Created)
+	err := row.Scan(&pr.Id, &authorId, &pr.Title, &pr.Content, &pr.From, &pr.To, &pr.Status, &pr.Created)
 	if err != nil {
 		return nil, err
 	}
