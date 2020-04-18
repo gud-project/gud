@@ -68,8 +68,6 @@ func pushBranch(branch string) error {
 			if err != nil {
 				return err
 			}
-		} else {
-			return errors.New(message.Error)
 		}
 	} else {
 		err = checkResponseError(resp)

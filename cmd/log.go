@@ -52,8 +52,8 @@ func printLog(p gud.Project, hash gud.ObjectHash, version gud.Version) error {
 		}
 	}
 
-	fmt.Fprintf(os.Stdout, "Message: %s\nTime: %s\nHash: %s\n\n",
-		version.Message, version.Time.Format("2006-01-02 15:04:05"), hash)
+	fmt.Fprintf(os.Stdout, "Message: %s\nTime: %s\nAuthor: %s\nHash: %s\n\n",
+		version.Message, version.Time.Format("2006-01-02 15:04:05"), version.Author, hash)
 	return nil
 }
 

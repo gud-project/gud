@@ -262,7 +262,7 @@ func (p Project) merge(from ObjectHash, name string) (*Version, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, Error{"there are merge conflicts. please solve them and save the changes"}
+		return nil, ErrMergeConflict
 	}
 
 	treeObj, err := createTree(p.gudPath, ".", tree)

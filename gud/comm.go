@@ -210,14 +210,13 @@ func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *Objec
 	}
 	defer part.Close()
 
-	hash, err = validatePart(part, versionContentType)
+	hash, exists, err := validatePart(gudPath, part, versionContentType)
 	if err != nil {
 		return
 	}
 
 	var src io.Reader = part
-	_, err = os.Stat(objectPath(gudPath, *hash))
-	if os.IsNotExist(err) {
+	if !exists {
 		dst, err := os.Create(objectPath(gudPath, *hash))
 		if err != nil {
 			return nil, err
@@ -230,6 +229,8 @@ func pullVersion(gudPath, user string, reader *multipart.Reader, prevHash *Objec
 		}()
 
 		src = io.TeeReader(part, dst)
+	} else {
+		user = "" // only check new version authors
 	}
 
 	current, err := versionFromReader(src)
@@ -256,7 +257,7 @@ func pullTree(
 	}
 	defer part.Close()
 
-	hash, err := validatePart(part, treeContentType)
+	hash, exists, err := validatePart(gudPath, part, treeContentType)
 	if err != nil {
 		return err
 	}
@@ -265,8 +266,7 @@ func pullTree(
 	}
 
 	var src io.Reader = part
-	_, err = os.Stat(objectPath(gudPath, *hash))
-	if os.IsNotExist(err) {
+	if !exists {
 		dst, err := os.Create(objectPath(gudPath, *hash))
 		if err != nil {
 			return err
@@ -322,16 +322,14 @@ func pullBlob(gudPath string, reader *multipart.Reader, expectedHash ObjectHash,
 	}
 	defer part.Close()
 
-	hash, err := validatePart(part, blobContentType)
+	hash, exists, err := validatePart(gudPath, part, blobContentType)
 	if err != nil {
 		return err
 	}
 	if *hash != expectedHash {
 		return InputError{fmt.Sprintf("unexpected blob: expected %s, got %s", expectedHash, hash)}
 	}
-
-	_, err = os.Stat(objectPath(gudPath, *hash))
-	if !os.IsNotExist(err) {
+	if exists {
 		return nil
 	}
 
@@ -362,21 +360,23 @@ func pullBlob(gudPath string, reader *multipart.Reader, expectedHash ObjectHash,
 	return nil
 }
 
-func validatePart(part *multipart.Part, expectedType string) (*ObjectHash, error) {
+func validatePart(gudPath string, part *multipart.Part, expectedType string) (*ObjectHash, bool, error) {
 	name := part.FileName()
 	var hash ObjectHash
 	n, err := hex.Decode(hash[:], []byte(name))
 	if err != nil || n != len(hash) {
-		return nil, InputError{fmt.Sprintf("invalid file name: %s", name)}
+		return nil, false, InputError{fmt.Sprintf("invalid file name: %s", name)}
 	}
 
 	contentType := part.Header.Get("Content-Type")
 	if contentType != expectedType {
-		return nil, InputError{
+		return nil, false, InputError{
 			fmt.Sprintf("invalid content type: expected %s, got %s", expectedType, contentType)}
 	}
 
-	return &hash, nil
+	_, err = os.Stat(objectPath(gudPath, hash))
+
+	return &hash, !os.IsNotExist(err), nil
 }
 
 func validateVersion(rootPath, user string, v Version, hash ObjectHash, prevHash *ObjectHash) error {
