@@ -5,19 +5,19 @@
 			<label>
 				<router-link :to="issue.author">@{{ issue.author }}</router-link>
 			</label>
-			<br /><br />
-			<p>{{ new Date(issue.created).toDateString() }}</p>
+			<br />
 			<p class="content">{{ issue.content }}</p>
-			
 			<form @submit="setStatus">
-				<select v-model="status">
+				<select v-model="status" class="custom-select" style="width:auto;">
 					<option value="open">Open</option>
 					<option value="in_progress">In Progress</option>
 					<option value="done">Done</option>
 					<option value="closed">Closed</option>
 				</select>
-				<input type="submit" value="Set Status" :disabled="status === issue.status" />
+				<input type="submit" value="Set Status" class="btn btn-success" :disabled="status === issue.status" />
 			</form>
+			<br /><br />
+			<p>{{ new Date(issue.created).toDateString() }}</p>
 		</div>
 	</div>
 </template>
@@ -32,8 +32,6 @@
 					author: null,
 					content: null,
 					status: null,
-					from: null,
-					to: null,
 					created: null,
 				},
 				status: null,
@@ -69,5 +67,6 @@
 <style scoped>
 .content {
 	white-space: pre-line;
+	font-size: larger;
 }
 </style>

@@ -37,19 +37,6 @@ canceling Gud VCS and deleting saved old versions`,
 			return nil
 		}
 
-		isSure2 := false
-		prompt = &survey.Confirm{
-			Message: "Can you please not to? It really wants to live...",
-		}
-		err = survey.AskOne(prompt, &isSure2, icons)
-		if err != nil {
-			return err
-		}
-
-		if !isSure2 {
-			return nil
-		}
-
 		_ = os.RemoveAll(filepath.Join(p.Path, gud.DefaultPath))
 		if restartF {
 			_, err = gud.Start("")

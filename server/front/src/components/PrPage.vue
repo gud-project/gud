@@ -5,15 +5,16 @@
 			<label>
 				<router-link :to="pr.author">@{{ pr.author }}</router-link>
 			</label>
+			<br />
+			<p class="larger-text"> {{ pr.from }} &rarr; {{ pr.to }}</p>
+			<p class="content">{{ pr.content }}</p>
+			<p class="larger-text">Current Status: <b>{{ pr.status }}</b></p>
+			<div class="btn-group">
+				<button @click="mergePr" :disabled="pr.status !== 'open'" class="btn btn-success">Merge</button>
+				<button @click="closePr" :disabled="pr.status !== 'open'" class="btn btn-danger">Close</button>
+			</div>
 			<br /><br />
 			<p>{{ new Date(pr.created).toDateString() }}</p>
-			<p><b>{{ pr.status }}</b> {{ pr.from }} ⇒ {{ pr.to }}</p>
-			<p class="content">{{ pr.content }}</p>
-			
-			<div>
-				<button @click="mergePr" :disabled="pr.status !== 'open'">Merge</button>
-				<button @click="closePr" :disabled="pr.status !== 'open'">Close</button>
-			</div>
 		</div>
 	</div>
 </template>
@@ -72,5 +73,8 @@
 <style scoped>
 .content {
 	white-space: pre-line;
+}
+.larger-text {
+	font-size: larger;
 }
 </style>
