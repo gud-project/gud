@@ -16,23 +16,19 @@
 							<router-link :to="`/${$route.params.user}/${project}`">{{ project }}</router-link>
 						</td>
 					</tr>
-					<tr>
-						<td>
-							<form class="input-group mb-3" v-if="creating" @submit="create">
-								<input v-model="info.name" placeholder="Name" pattern="[a-zA-Z0-9_-]+"
-								       class="form-control" required />
-								<div class="input-group-append">
-									<input type="submit" value="Create" class="btn btn-md btn-success" />
-								</div>
-								<div class="input-group-append">
-									<button class="btn btn-md btn-danger" @click="creating = false">Cancel</button>
-								</div>
-							</form>
-							<button class="btn btn-secondary" v-else @click="creating = true">Create Project</button>
-						</td>
-					</tr>
 				</tbody>
 		</table>
+			<form class="input-group mb-3" v-if="creating" @submit="create">
+				<input v-model="info.name" placeholder="Name" pattern="[a-zA-Z0-9_-]+"
+					   class="form-control" required />
+				<div class="input-group-append">
+					<input type="submit" value="Create" class="btn btn-md btn-success" />
+				</div>
+				<div class="input-group-append">
+					<button class="btn btn-md btn-danger" @click="creating = false">Cancel</button>
+				</div>
+			</form>
+			<button class="btn btn-secondary" v-else @click="creating = true">Create Project</button>
 		</div>
 	</div>
 </template>
