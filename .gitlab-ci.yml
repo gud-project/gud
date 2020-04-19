@@ -12,6 +12,7 @@ build:
     script:
         - PROD=1 make
     cache:
+        key: server-cache
         paths:
             - server/front/node_modules/
             - server/server
@@ -47,5 +48,7 @@ deploy:
         - ssh root@gud.codes rm -rf /var/www/front/dist/
         - scp -r ./server/front/dist/ root@gud.codes:/var/www/front/
         - ssh root@gud.codes service gud restart
+    cache:
+        key: server-cache
     only:
         - master
