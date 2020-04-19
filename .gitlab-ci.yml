@@ -42,7 +42,9 @@ deploy:
         - mkdir -p ~/.ssh
         - chmod 700 ~/.ssh
     script:
+        - ssh root@gud.codes service gud stop
         - scp ./server/server root@gud.codes:/var/www/
+        - ssh root@gud.codes rm -rf /var/www/front/dist/
         - scp -r ./server/front/dist/ root@gud.codes:/var/www/front/
         - ssh root@gud.codes service gud restart
     only:
