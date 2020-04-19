@@ -37,7 +37,14 @@ func createProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = gud.Start(dir)
+	var username string
+	err = getUserStmt.QueryRow(r.Context().Value(KeyUserId)).Scan(&username)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	_, err = gud.StartAs(dir, username)
 	if err != nil {
 		handleError(w, err)
 		return

@@ -102,9 +102,9 @@ teardown() {
 
 	run gud log
 	[ "$status" -eq 0 ]
-	[ "${lines[3]}" = "Message: $msg1" ]
+	[ "${lines[4]}" = "Message: $msg1" ]
 
-	hash1="$(echo "${lines[5]}" | grep -Po '^Hash: \K([0-9a-f]{40})$')"
+	hash1="$(echo "${lines[7]}" | grep -Po '^Hash: \K([0-9a-f]{40})$')"
 	readonly hash1
 	[ -n "$hash1" ]
 
@@ -121,7 +121,7 @@ teardown() {
 
 	run gud log
 	[ "$status" -eq 0 ]
-	[ "${lines[6]}" = "Message: $msg2" ]
+	[ "${lines[8]}" = "Message: $msg2" ]
 
 	# go back to previous version
 	run gud checkout "$hash1"

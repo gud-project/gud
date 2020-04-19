@@ -23,13 +23,17 @@ type Project struct {
 // Start creates a new Gud project in the path it receives.
 // It returns a struct representing it.
 func Start(path string) (*Project, error) {
-	project, err := startProject(path, DefaultPath)
+	var gConfig GlobalConfig
+	err := LoadConfig(&gConfig, gConfig.GetPath())
 	if err != nil {
 		return nil, err
 	}
 
-	var gConfig GlobalConfig
-	err = LoadConfig(&gConfig, gConfig.GetPath())
+	return StartAs(path, gConfig.Name)
+}
+
+func StartAs(path, user string) (*Project, error) {
+	project, err := startProject(path, DefaultPath)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +44,7 @@ func Start(path string) (*Project, error) {
 		return nil, err
 	}
 
-	config.OwnerName = gConfig.Name
+	config.OwnerName = user
 	err = project.WriteConfig(config)
 	if err != nil {
 		return nil, err

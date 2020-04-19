@@ -23,9 +23,12 @@ var newUserStmt,
 	createIssueStmt,
 	getIssuesStmt,
 	getIssueStmt,
+	setIssueStatusStmt,
 	createPrStmt,
 	getPrsStmt,
 	getPrStmt,
+	mergePrStmt,
+	closePrStmt,
 	createJobStmt,
 	finishJobStmt,
 	getJobsStmt,
@@ -88,16 +91,25 @@ func init() {
 		getIssueStmt = mustPrepare(
 			"SELECT issue_id, user_id, title, content, status, created_at FROM issues WHERE issue_id = $1")
 
+		setIssueStatusStmt = mustPrepare(
+			"UPDATE issues SET status = $2 WHERE issue_id = $1;")
+
 		createPrStmt = mustPrepare(`
-			INSERT INTO prs (title, content, user_id, project_id, "from", "to", created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, NOW())
+			INSERT INTO prs (title, content, user_id, project_id, "from", "to", status, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, 'open', NOW())
 			RETURNING pr_id;`)
 
 		getPrsStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE project_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", status, created_at FROM prs WHERE project_id = $1`)
 
 		getPrStmt = mustPrepare(
-			`SELECT pr_id, user_id, title, content, "from", "to", created_at FROM prs WHERE pr_id = $1`)
+			`SELECT pr_id, user_id, title, content, "from", "to", status, created_at FROM prs WHERE pr_id = $1`)
+
+		mergePrStmt = mustPrepare(
+			"UPDATE prs SET status = 'merged' WHERE pr_id = $1;")
+
+		closePrStmt = mustPrepare(
+			"UPDATE prs SET status = 'closed' WHERE pr_id = $1;")
 
 		createJobStmt = mustPrepare(
 			`INSERT INTO jobs (project_id, "version", status, logs) VALUES ($1, $2, 'pending', '') RETURNING job_id;`)
@@ -154,9 +166,12 @@ func closeDB() error {
 		createIssueStmt,
 		getIssuesStmt,
 		getIssueStmt,
+		setIssueStatusStmt,
 		createPrStmt,
 		getPrsStmt,
 		getPrStmt,
+		mergePrStmt,
+		closePrStmt,
 		createJobStmt,
 		finishJobStmt,
 		getJobsStmt,

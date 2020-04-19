@@ -8,6 +8,7 @@
                 <th scope="col">Created</th>
                 <th scope="col">From</th>
                 <th scope="col">To</th>
+                <th scope="col">State</th>
             </thead>
             <tbody>
             <tr v-for="pr in prs">
@@ -30,6 +31,9 @@
                 </td>
                 <td>
                     {{ pr.to }}
+                </td>
+                <td>
+                    {{ pr.status }}
                 </td>
             </tr>
             <tr>

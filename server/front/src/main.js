@@ -13,13 +13,22 @@ Vue.mixin({
 	methods: {
 		async $getData(url) {
 			const res = await fetch(url)
+			console.log(res)
 			if (res.ok) {
 				return await res.json()
 			}
-			this.$_error(Error, { error: res.status !== 404 && ((await res.json()).error || res.statusText) })
+			
+			let error
+			try {
+				error = (await res.json()).error || res.statusText
+			} catch {
+				error = res.statusText
+			}
+			this.$_error(Error, { error })
 		},
-		async $isLoggedIn() {
-			return (await fetch("/api/v1/me", { method: "HEAD" })).ok
+		async $getUser() {
+			const res = await fetch("/api/v1/me")
+			return res.ok ? (await res.json()).username : null
 		},
 	},
 })

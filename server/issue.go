@@ -86,6 +86,50 @@ func getIssue(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func setIssueStatus(w http.ResponseWriter, r *http.Request) {
+	issueId, err := strconv.Atoi(mux.Vars(r)["issue"])
+	if err != nil {
+		reportError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var req gud.UpdateIssueRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		reportError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	status := req.Status
+	if _, ok := map[string]struct{}{
+		"open":        {},
+		"in_progress": {},
+		"done":        {},
+		"closed":      {},
+	}[status]; !ok {
+		reportError(w, http.StatusBadRequest, fmt.Sprintf("unrecognized issue status: %s", status))
+		return
+	}
+
+	res, err := setIssueStatusStmt.Exec(issueId, status)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if rows == 0 {
+		reportError(w, http.StatusNotFound, fmt.Sprintf("issue #%d not found", issueId))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 type scanner interface {
 	Scan(ret ...interface{}) error
 }

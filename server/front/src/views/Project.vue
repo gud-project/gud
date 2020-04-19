@@ -9,12 +9,12 @@
 			<div>
 				<h3>Issues:</h3>
 				<div class="container-fluid">
-					<IssuesList category="issue" />
+					<IssuesList />
 				</div>
 
 				<h3>Pull requests:</h3>
 				<div class="container-fluid">
-					<PrsList category="pr" />
+					<PrsList />
 				</div>
 
 				<h3>Jobs:</h3>

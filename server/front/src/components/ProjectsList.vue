@@ -18,16 +18,17 @@
 					</tr>
 					<tr>
 						<td>
-							<button class="btn btn-secondary" id="create-project-button" onclick="createProject(true)">Create Project</button>
-							<form @submit="create" class="input-group mb-3" id="create-project-form" hidden>
-								<input id="new-project-name" v-model="info.name" placeholder="Name" pattern="[a-zA-Z0-9_-]+" class="form-control" required />
+							<form class="input-group mb-3" v-if="creating" @submit="create">
+								<input v-model="info.name" placeholder="Name" pattern="[a-zA-Z0-9_-]+"
+								       class="form-control" required />
 								<div class="input-group-append">
-									<input type="submit" value="Save" class="btn btn-md btn-success"/>
+									<input type="submit" value="Create" class="btn btn-md btn-success" />
 								</div>
 								<div class="input-group-append">
-									<button class="btn btn-md btn-danger" onclick="createProject(false)">Cancel</button>
+									<button class="btn btn-md btn-danger" @click="creating = false">Cancel</button>
 								</div>
 							</form>
+							<button class="btn btn-secondary" v-else @click="creating = true">Create Project</button>
 						</td>
 					</tr>
 				</tbody>
@@ -37,23 +38,12 @@
 </template>
 
 <script>
-	function createProject(create) {
-		const button = document.getElementById("create-project-button");
-		const form = document.getElementById("create-project-form");
-		if (create) {
-			button.style.visibility = "hidden";
-			form.style.visibility = "visible";
-		} else {
-			button.style.visibility = "visible";
-			form.style.visibility = "hidden";
-		}
-	}
-
 	export default {
 		name: "ProjectsList",
 		data() {
 			return {
 				projects: [],
+				creating: false,
 				info: {
 					name: null,
 				},
@@ -75,7 +65,6 @@
 				}
 			},
 		},
-
 		async created() {
 			this.projects = await this.$getData(`/api/v1/user/${this.$route.params.user}/projects`)
 		},
@@ -83,7 +72,5 @@
 </script>
 
 <style scoped>
-#new-project-name {
-	width:1px
-}
+
 </style>

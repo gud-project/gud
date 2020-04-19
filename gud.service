@@ -1,0 +1,18 @@
+[Unit]
+Description=Gud Server
+After=network.target
+
+[Service]
+ExecStart=/var/www/server
+WorkingDirectory=/var/www/
+Restart=on-failure
+
+Environment=PROD=1
+Environment=TLS_CERT=/etc/letsencrypt/live/gud.codes/fullchain.pem
+Environment=TLS_KEY=/etc/letsencrypt/live/gud.codes/privkey.pem
+
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target

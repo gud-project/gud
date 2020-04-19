@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS issues (
     created_at timestamp    NOT NULL
 );
 
+CREATE TYPE pr_status AS ENUM ('open', 'merged', 'closed');
+
 CREATE TABLE IF NOT EXISTS prs (
     pr_id      serial PRIMARY KEY,
     title      varchar   NOT NULL,
@@ -39,6 +41,7 @@ CREATE TABLE IF NOT EXISTS prs (
     project_id int       NOT NULL REFERENCES projects(project_id),
     "from"     varchar   NOT NULL,
     "to"       varchar   NOT NULL,
+    status     pr_status NOT NULL,
     created_at timestamp NOT NULL
 );
 
@@ -49,5 +52,5 @@ CREATE TABLE jobs (
     project_id int        NOT NULL REFERENCES projects(project_id),
     "version"  char(40)   NOT NULL,
     status     job_status NOT NULL,
-    logs       text       NOT NULL
+    logs       varchar    NOT NULL
 );

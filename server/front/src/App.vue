@@ -2,8 +2,8 @@
   <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-	  <span v-if="loggedIn">
-          <router-link to="/">Projects</router-link> |
+	  <span v-if="username">
+          <router-link :to="`/${username}`">Projects</router-link> |
 		  <a @click="logOut">LogOut</a>
 	  </span>
       <span v-else>
@@ -20,11 +20,11 @@
 		name: "App",
 		data() {
 			return {
-				loggedIn: false,
+				username: null,
 			}
 		},
 		async created() {
-			this.loggedIn = await this.$isLoggedIn()
+			this.username = await this.$getUser()
 		},
 		methods: {
 			async logOut() {

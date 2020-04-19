@@ -1,12 +1,12 @@
 <template>
-	<IssuePage pr />
+	<PrPage />
 </template>
 
 <script>
-	import IssuePage from "../components/IssuePage"
+	import PrPage from "../components/PrPage"
 	export default {
 		name: "PR",
-		components: { IssuePage },
+		components: { PrPage },
 	}
 </script>
 
