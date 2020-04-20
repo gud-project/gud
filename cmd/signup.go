@@ -54,23 +54,7 @@ Server domain is in config file.`,
 			return errors.New("failed to create user")
 		}
 
-		var token string
-		for _, cookie := range resp.Cookies() {
-			if cookie.Name == "session" {
-				token = cookie.Value
-			}
-		}
-
-		var config gud.GlobalConfig
-		err = gud.LoadConfig(&config, config.GetPath())
-		if err != nil {
-			return err
-		}
-
-		config.Name = name
-		config.Token = token
-
-		return gud.WriteConfig(&config, config.GetPath())
+		return nil
 	},
 }
 
