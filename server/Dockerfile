@@ -36,11 +36,12 @@ COPY server/front/ ./
 RUN npm run build
 
 FROM scratch
-COPY --from=back /go/src/server/server /var/www/server
-COPY --from=front /dist/ /var/www/front/dist/
-COPY --from=cli /go/src/release /var/www/front/dist/release/
+WORKDIR /var/www/
+COPY --from=back /go/src/server/server server
+COPY --from=front /dist/ front/dist/
+COPY --from=cli /go/src/release front/dist/release/
 
-VOLUME /var/www/projects/
+VOLUME projects/
 EXPOSE 8080
 
-CMD ["/var/www/server"]
+CMD ["./server"]

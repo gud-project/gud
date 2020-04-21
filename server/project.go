@@ -281,12 +281,12 @@ func pullProjectFrom(w http.ResponseWriter, r *http.Request, project gud.Project
 func verifyProject(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		ownerName := vars["user"]
 		projectName := vars["project"]
-		userId := r.Context().Value(KeyUserId).(int)
 
-		var projectId, ownerId int
-		err := projectByNameStmt.QueryRow(ownerName, projectName).Scan(&projectId, &ownerId)
+		userId := r.Context().Value(KeyUserId).(int)
+		ownerId := r.Context().Value(KeySelectedUserId).(int)
+		var projectId int
+		err := projectByNameStmt.QueryRow(ownerId, projectName).Scan(&projectId, &ownerId)
 		if err == sql.ErrNoRows {
 			reportError(w, http.StatusNotFound, "project not found")
 			return
@@ -308,9 +308,7 @@ func verifyProject(next http.Handler) http.Handler {
 			}
 		}
 
-		next.ServeHTTP(w, r.WithContext(context.WithValue(context.WithValue(r.Context(),
-			KeyProjectId, projectId),
-			KeySelectedUserId, ownerId)))
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), KeyProjectId, projectId)))
 	})
 }
 

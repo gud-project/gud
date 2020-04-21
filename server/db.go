@@ -68,8 +68,7 @@ func init() {
 			"SELECT user_id FROM projects WHERE project_id = $1;")
 
 		projectByNameStmt = mustPrepare(`
-			SELECT project_id, user_id FROM projects JOIN users USING (user_id)
-			WHERE projects.name = $2 AND users.username = $1;`)
+			SELECT project_id, user_id FROM projects WHERE projects.name = $2 AND user_id = $1;`)
 
 		userProjectsStmt = mustPrepare(
 			"SELECT name FROM projects WHERE user_id = $1;")
