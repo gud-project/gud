@@ -132,6 +132,14 @@ func mergePr(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !project.HasHead() {
+		err = project.AddHead()
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+
 	err = project.CheckoutBranch(pr.To)
 	if err != nil {
 		handleError(w, err)
