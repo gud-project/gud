@@ -35,5 +35,5 @@ bin: main.go $(CMD_SRC) $(LIB_SRC)
 	for target in 'windows' 'darwin' 'linux'
 	do
 		[ $$target = 'windows' ] && ext='.exe' || ext=''
-		GOOS="$$target" GOARCH=amd64 go build -o "$(RELEASE_DIR)/$$target/gud$$ext"
+		GOOS="$$target" GOARCH=amd64 go build -ldflags '-s -w' -o "$(RELEASE_DIR)/$$target/gud$$ext"
 	done
