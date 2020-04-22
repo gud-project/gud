@@ -15,12 +15,15 @@ const projectNotFoundError = "project not found"
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	Use:   "push [branch]",
 	Short: "Push current branch to server",
 	Long: `Upload your branch into the server,
 by creating or updating the branch on the server to be like your local one.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return pushBranch("")
+		}
 		return pushBranch(args[0])
 	},
 }
@@ -29,6 +32,13 @@ func pushBranch(branch string) error {
 	p, err := LoadProject()
 	if err != nil {
 		return err
+	}
+
+	if branch == "" {
+		branch, err = p.CurrentBranch()
+		if err != nil {
+			return err
+		}
 	}
 
 	var config gud.Config

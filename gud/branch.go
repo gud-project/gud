@@ -24,6 +24,11 @@ type Head struct {
 	MergedHash *ObjectHash
 }
 
+func (p Project) HasHead() bool {
+	_, err := os.Stat(filepath.Join(p.gudPath, headFileName))
+	return !os.IsNotExist(err)
+}
+
 func (p Project) CreateBranch(name string) error {
 	if name == "" {
 		return Error{"branch name cannot be empty"}

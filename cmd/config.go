@@ -198,6 +198,7 @@ func getGlobalConfigChanges(args []string, config *gud.GlobalConfig) error {
 	case "token":
 		config.Token = value
 	case "server domain", "serverdomain":
+		checkUrl(&value)
 		config.ServerDomain = value
 	default:
 		return fmt.Errorf("%s is not a configuration field\n", field)
